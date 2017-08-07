@@ -1,0 +1,22 @@
+# from jai-imageio-core for TIFF support
+
+#com.github.jaiimageio.impl.plugins.jpeg.CLibJPEGImageReaderSpi
+#com.github.jaiimageio.impl.plugins.png.CLibPNGImageReaderSpi
+#com.github.jaiimageio.impl.plugins.jpeg2000.J2KImageReaderSpi
+#com.github.jaiimageio.impl.plugins.jpeg2000.J2KImageReaderCodecLibSpi
+com.github.jaiimageio.impl.plugins.wbmp.WBMPImageReaderSpi
+com.github.jaiimageio.impl.plugins.bmp.BMPImageReaderSpi
+com.github.jaiimageio.impl.plugins.pcx.PCXImageReaderSpi
+com.github.jaiimageio.impl.plugins.pnm.PNMImageReaderSpi
+com.github.jaiimageio.impl.plugins.raw.RawImageReaderSpi
+com.github.jaiimageio.impl.plugins.tiff.TIFFImageReaderSpi
+
+
+# from jai-imageio-jpeg2000 for jpeg2000 support
+
+com.github.jaiimageio.jpeg2000.impl.J2KImageReaderSpi
+
+
+# from levigo-jbig2-imageio for jbig2 support
+
+com.levigo.jbig2.JBIG2ImageReaderSpi

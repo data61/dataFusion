@@ -1,0 +1,25 @@
+<configuration>
+
+  <appender name="CONS" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+  
+  <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+    <file>tika.log</file>
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!--   <logger name="au.csiro.data61" level="DEBUG" /> -->
+  
+  <!-- too chatty at WARN -->
+  <logger name="org.apache.pdfbox.pdmodel.font" level="ERROR" />
+  <logger name="org.apache.fontbox.ttf" level="ERROR" />
+  
+  <root level="INFO">
+    <appender-ref ref="FILE" />
+  </root>
+</configuration>
