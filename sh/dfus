@@ -1,0 +1,33 @@
+#! /bin/bash
+
+while getopts ":hm:" opt; do
+  case $opt in
+  m)
+    HEAP=-Xmx${OPTARG}G
+    ;;
+  h)
+    cat <<EoF
+Usage: ${0##*/} [-m max_heap_GB] {tika|ner|search} [option]...
+EoF
+    exit 0
+    ;;
+  :)
+    echo "Option -$OPTARG requires an argument." >&2
+    exit -1
+    ;;
+  \?)
+    echo "Invalid option: -$OPTARG" >&2
+    exit -2
+    ;;
+  esac
+done
+
+eval cmd=\$$OPTIND
+shift $OPTIND
+# echo $cmd "$@"
+
+getJar() {
+  echo ${DFUS_DIR}/dataFusion-${1}/target/scala-${SCALA_VER}/datafusion-${1}_${SCALA_VER}-${DFUS_VER}-one-jar.jar
+}
+
+java $HEAP -jar `getJar $cmd` "$@"

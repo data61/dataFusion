@@ -1,0 +1,11 @@
+#! /bin/bash
+
+# Tika calls tesseract 3 with args: imageInFile txtOutFile -l eng -psm 1 txt -c preserve_interword_spaces=0
+# Tesseract 4 no longer accepts txt (which is the default anyway) so filter that out
+declare -a args
+for a in "$@"; do
+  [[ "$a" != txt ]] && args+=("$a")
+done
+
+ROOT=/usr/local
+LD_LIBRARY_PATH=$ROOT/lib $ROOT/bin/tesseract "${args[@]}"
