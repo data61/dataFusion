@@ -33,32 +33,40 @@ To develop [Scala](http://scala-lang.org/) code install:
 
 The command:
 
-    source ./setenv.sh
+    source sh/setenv
     sbt -J-Xmx2G clean test one-jar dumpLicenseReport
 
 cleans out previous build products, runs unit tests, builds [onejar](https://github.com/sbt/sbt-onejar) files and creates license reports on dependencies. Build products are found under each sub-project's `target` directory.
 
 Notes:
 - Without `-J-Xmx2G` tests may fail due to insufficient memory. 
-- Without MITIE-models installed (see the [dataFusion-ner README](dataFusion-ner) for details) and `source ./setenv.sh` (with appropriate locations in that file) tests involving MITIE may fail.
+- Without MITIE-models installed (see the [dataFusion-ner README](dataFusion-ner) for details) and `source sh/setenv` (with appropriate locations in that file) tests involving MITIE may fail.
 
 ## Run
 
 The Scala programs are packaged by the build as a [onejar](https://github.com/sbt/sbt-onejar). This is a jar file containing all dependencies and run simply with: `java -jar {filename.jar}` (however dataFusion-ner and dataFusion-ner-service have additional dependencies as as noted in [dataFusion-ner](dataFusion-ner)). The `--help` command line option describes the available options.
 
+A convenience script `sh/dfus` provides shorter command lines. It supports a `-h` option for help.
+
+### Configuration
 These projects have configuration in `src/main/resources/application.conf`, which uses `${?ENV_VAR}` syntax to define environment variables that may be set to override default values set in the file. For example dataFusion-ner's [application.conf](dataFusion-ner/src/main/resources/application.conf) sets the default location for MITIE's English NER model to `MITIE-models/english/ner_model.dat` (relative to whatever directory the program is run from) and allows this to be overridden by setting an environment variable `NER_MITIE_ENGLISH_MODEL`.
 
-Recommendations:
+### Recommendations
 
 - override all relative paths with environment variables specifying absolute paths; and
-- set configuration environment variables for all dataFusion programs in `setenv.sh` and source this file prior to running any of the programs.
+- set configuration environment variables for all dataFusion programs in `sh/setenv` and source this file prior to running any of the programs.
 
-Example:
+Examples:
 
-     source ./setenv.sh
+     source sh/setenv                       # set the environment for the following commands
+
+     # get help for the search CLI
      java -jar dataFusion-search/target/scala-2.12/datafusion-search_2.12-0.2-SNAPSHOT-one-jar.jar --help
-     
 
+     dfus -h                                # get help for the sh/dfus script
+     dfus search --help                     # same as java command above
+     dfus -m 7 ner < tika.json > ner.json   # run NER with 7GM memory (uses all CPUs by default)
+     
 ## Swagger Support
 
 The `dataFusion-$name-service` web services use [Swagger](https://swagger.io/) to both

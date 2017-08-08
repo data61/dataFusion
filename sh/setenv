@@ -1,8 +1,13 @@
 #! /not/to/be/execed
  
+cat >&2 <<EoF
+Source this file with the dataFusion top level dir as the current directory.
+It sets env vars for the project and sets a restricted PATH with dataFusion/sh as the highest priority item.
+EoF
+
 # these 3 used by sh/dfus
 SCALA_VER=2.12
-DFUS_DIR=/home/bac003/sw/dataFusion
+DFUS_DIR="$PWD"
 DFUS_VER=0.2-SNAPSHOT
 
 # sbt tests using MITIE will fail without these vars being appropriately set
