@@ -131,7 +131,7 @@ object TikaUtil {
     val largeNotUseful = Set("X-TIKA:content", "Chroma Palette PaletteEntry", "LocalColorTable ColorTableEntry", "Strip Byte Counts", "Strip Offsets", "PLTE PLTEEntry")
 
     val content = cleanText(fileName, Option(m.get("X-TIKA:content")))
-    // TODO: if Spanish we should repeat the OCR  telling tesseract its Spanish
+    // TODO: if Spanish we should repeat the OCR  telling tesseract its Spanish or use -l eng+esp ?
     val langMeta = content.flatMap(LangDetect.lang).map(l => Map(META_LANG_CODE -> l.lang, "language-prob" -> l.prob.toString)).getOrElse(Map.empty)
     
     val meta = langMeta ++ (for {
@@ -196,7 +196,10 @@ object TikaUtil {
    *  This function closes each stream it opens.
    *  Case where it opens `in` more than once: if there is an exception from parsing an Excel spreadsheet
    *  we convert it to Open Document Spreadsheet format and parse that instead (because the OpenOffice
-   *  conversion often succeeds on Excel files that Tika cannot parse). 
+   *  conversion often succeeds on Excel files that Tika cannot parse).
+   *  Tesseract OCR of scanned PDFs gets text from different lines mixed up if there is too much skew.
+   *  TODO: Pre-processing to descew images can greatly improve OCR results. Is it needed?
+   *  ocrmypdf does descrew but timeouts on tesseract 4, perhaps due to old versions of ghostscript in ubuntu repo.
    */
   def tika(inCtor: => InputStream, fileName: String, id: Long): Try[Doc] = {
     
