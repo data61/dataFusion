@@ -7,5 +7,9 @@ for a in "$@"; do
   [[ "$a" != txt ]] && args+=("$a")
 done
 
-ROOT=/usr/local
-LD_LIBRARY_PATH=$ROOT/lib $ROOT/bin/tesseract "${args[@]}"
+# if manually built and installed:
+# ROOT=/usr/local
+# LD_LIBRARY_PATH=$ROOT/lib $ROOT/bin/tesseract "${args[@]}"
+
+# if installed from ppa:alex-p/tesseract-ocr
+/usr/bin/tesseract "${args[@]}"
