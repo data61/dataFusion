@@ -223,7 +223,7 @@ object DataFusionLucene {
     object PosDocSearch {
       case class PosQuery(query: String, clnt_intrnl_id: Long)
       case class PosMultiQuery(queries: List[PosQuery])
-      case class PosInfo(posStr: Int, posEnd: Int, offStr: Int, offEnd: Int, text: String)
+      case class PosInfo(score: Float, posStr: Int, posEnd: Int, offStr: Int, offEnd: Int, text: String)
       case class LPosDoc(docId: Long, embIdx: Int, posInfos: List[PosInfo], path: String)
       case class PHits(stats: Stats, hits: List[LPosDoc], error: Option[String], query: String, clnt_intrnl_id: Long)
       case class PMultiHits(pHits: List[PHits])
@@ -231,7 +231,7 @@ object DataFusionLucene {
       object JsonProtocol {
         implicit val posQueryCodec = jsonFormat2(PosQuery)
         implicit val posMultiQueryCodec = jsonFormat1(PosMultiQuery)
-        implicit val posInfoCodec = jsonFormat5(PosInfo)
+        implicit val posInfoCodec = jsonFormat6(PosInfo)
         implicit val lposDocCodec = jsonFormat4(LPosDoc)
         implicit val pHitsCodec = jsonFormat5(PHits)
         implicit val pMultiHitsCodec = jsonFormat1(PMultiHits)
@@ -259,29 +259,57 @@ object DataFusionLucene {
           if (p.endOffset > maxOff) maxOff = p.endOffset
         }
         
-        def posInfo(text: String) = PosInfo(minPos, maxPos, minOff, maxOff, text.substring(minOff, maxOff))
+        def posInfo(score: Float, text: String) = PosInfo(score, minPos, maxPos, minOff, maxOff, text.substring(minOff, maxOff))
       }
       
       def searchSpans(searcher: IndexSearcher, lq: SpanNearQuery, q: PosQuery, numTerms: Int) = {
-        val t = Timer()
-        val w = lq.createWeight(searcher, false) // no scores reqd
-        val leafCtx = searcher.getIndexReader.getContext.leaves
-        val spans = leafCtx.asScala.map(lrc => (lrc, w.getSpans(lrc, SpanWeight.Postings.OFFSETS)))
-        val myCol = new MySpanCollector
+        val timer = Timer()
+        val weight = lq.createWeight(searcher, true) // needsScores
+        val collector = new MySpanCollector
         val hits = (for {
-          (lrc, s) <- spans if s != null
-          docId <- Iterator.continually(s.nextDoc).takeWhile(_ !=  DocIdSetIterator.NO_MORE_DOCS)
-          d = ldoc(lrc.reader.document(docId)) // docId relative to lrc, not searcher.getIndexReader
-          posns = Iterator.continually(s.nextStartPosition).takeWhile(_ !=  Spans.NO_MORE_POSITIONS)
-            .map { _ =>
-              myCol.reset
-              s.collect(myCol)
-              myCol.posInfo(d.content)
-            }.filter(p => p.posEnd - p.posStr == numTerms).toList // duplicate query term must have a match for each occurrence
-        } yield LPosDoc(d.docId, d.embIdx, posns, d.path)).filter(_.posInfos.nonEmpty).toList
-        PHits(Stats(hits.size, t.elapsedSecs), hits, None, q.query, q.clnt_intrnl_id)
+          lrc <- searcher.getIndexReader.getContext.leaves.asScala
+          spans <- Option(weight.getSpans(lrc, SpanWeight.Postings.OFFSETS)).toList
+          // scoring code modified from org.apache.lucene.search.spans.SpanScorer
+          docScorer = weight.getSimScorer(lrc)
+          docId <- Iterator.continually(spans.nextDoc).takeWhile(_ !=  DocIdSetIterator.NO_MORE_DOCS)
+          doc = ldoc(lrc.reader.document(docId)) // docId relative to lrc, not searcher.getIndexReader
+          posns = Iterator.continually(spans.nextStartPosition).takeWhile(_ !=  Spans.NO_MORE_POSITIONS).map { _ =>
+            val freq = docScorer.computeSlopFactor(spans.width)
+            val score = docScorer.score(docId, freq)
+            log.debug(s"provide scores: docId = $docId, width = ${spans.width}, freq = $freq, score = $score")
+            collector.reset
+            spans.collect(collector)
+            collector.posInfo(score, doc.content)
+          }.filter(p => p.posEnd - p.posStr == numTerms).toList
+          // TODO: handle duplicate terms in query - same num terms in query and match
+          // e.g. search for "Aaron H Aaron" cannot match "H Aaron"
+          // is this good enough? what about "H H H"?
+        } yield LPosDoc(doc.docId, doc.embIdx, posns, doc.path)).filter(_.posInfos.nonEmpty).toList
+        PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.query, q.clnt_intrnl_id)
       }
   
+      /** TODO: posInfo.score always set to 1.0. Is it faster without scoring? */
+      def searchSpansNoScores(searcher: IndexSearcher, lq: SpanNearQuery, q: PosQuery, numTerms: Int) = {
+        val timer = Timer()
+        val weight = lq.createWeight(searcher, false) // not needsScores
+        val collector = new MySpanCollector
+        val hits = (for {
+          lrc <- searcher.getIndexReader.getContext.leaves.asScala
+          spans <- Option(weight.getSpans(lrc, SpanWeight.Postings.OFFSETS)).toList
+          docId <- Iterator.continually(spans.nextDoc).takeWhile(_ !=  DocIdSetIterator.NO_MORE_DOCS)
+          doc = ldoc(lrc.reader.document(docId)) // docId relative to lrc, not searcher.getIndexReader
+          posns = Iterator.continually(spans.nextStartPosition).takeWhile(_ !=  Spans.NO_MORE_POSITIONS)
+            .map { _ =>
+              collector.reset
+              spans.collect(collector)
+              collector.posInfo(1.0f, doc.content)
+            }.filter(p => p.posEnd - p.posStr == numTerms).toList
+            // TODO: handle duplicate terms in query - same num terms in query and match
+            // e.g. search for "Aaron H Aaron" cannot match "H Aaron"
+            // is this good enough? what about "H H H"?
+        } yield LPosDoc(doc.docId, doc.embIdx, posns, doc.path)).filter(_.posInfos.nonEmpty).toList
+        PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.query, q.clnt_intrnl_id)
+      }
     }
   
     object MetaSearch {

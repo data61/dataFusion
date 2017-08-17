@@ -5,7 +5,7 @@ libraryDependencies ++= Seq(
   "lucene-analyzers-common",
   "lucene-queryparser",
   "lucene-highlighter"
-).map("org.apache.lucene" % _ % "6.5.0")
+).map("org.apache.lucene" % _ % "6.6.0")
 
 libraryDependencies ++= Seq(
   "com.typesafe" % "config" % "1.3.1",

@@ -1,20 +1,22 @@
 package au.csiro.data61.dataFusion.search
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.JavaConverters.asScalaBufferConverter
 
 import org.apache.lucene.index.{ DirectoryReader, Term }
-import org.apache.lucene.search.IndexSearcher
-import org.apache.lucene.search.spans.{ SpanNearQuery, SpanTermQuery }
+import org.apache.lucene.search.{ DocIdSetIterator, IndexSearcher }
+import org.apache.lucene.search.spans.{ SpanNearQuery, SpanTermQuery, SpanWeight, Spans }
 import org.apache.lucene.store.RAMDirectory
 import org.scalatest.{ FlatSpec, Matchers }
 
 import com.typesafe.scalalogging.Logger
 
-import LuceneUtil.{ directory, tokenIter }
-import DataFusionLucene._
-import DataFusionLucene.DFIndexing._
-import DataFusionLucene.DFSearching.PosDocSearch.{ PosQuery, searchSpans }
-import org.apache.lucene.document.Document
+import DataFusionLucene.{ F_CONTENT, LDoc, analyzer }
+import DataFusionLucene.DFIndexing.{ ldoc2doc, mkIndexer }
+import DataFusionLucene.DFSearching.{ Stats, ldoc }
+import DataFusionLucene.DFSearching.PosDocSearch.{ LPosDoc, MySpanCollector, PHits, PosQuery, searchSpans }
+import LuceneUtil.tokenIter
+import au.csiro.data61.dataFusion.common.Timer
+import org.apache.lucene.search.spans.SpanScorer
 
 class DataFusionLuceneTest extends FlatSpec with Matchers {
   val log = Logger(getClass)
@@ -58,7 +60,11 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
       x.stats.totalHits should be(1)
       x.hits.size should be(1)
       x.hits.head.posInfos.size should be(1)
-      x.hits.head.posInfos.head.text should be ("Sarah Jones") 
+      
+      val pinf = x.hits.head.posInfos.head
+      pinf.text should be ("Sarah Jones") 
+      pinf.score should be(0.43184555f)
+      pinf.text should be ("Sarah Jones") 
     }
     
     {
