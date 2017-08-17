@@ -6,9 +6,9 @@ It sets env vars for the project and sets a restricted PATH with dataFusion/sh a
 EoF
 
 # these 3 used by sh/dfus
-SCALA_VER=2.12
-DFUS_DIR="$PWD"
-DFUS_VER=0.2-SNAPSHOT
+export DFUS_DIR="$PWD"
+export SCALA_VER=2.12
+export DFUS_VER=0.2-SNAPSHOT
 
 # sbt tests using MITIE will fail without these vars being appropriately set
 export LD_LIBRARY_PATH=${DFUS_DIR}/dataFusion-ner/MITIE-native # directory containing libjavamitie.so
