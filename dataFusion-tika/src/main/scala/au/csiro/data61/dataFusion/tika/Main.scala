@@ -13,11 +13,20 @@ import au.csiro.data61.dataFusion.common.Data.JsonProtocol.docFormat
 import au.csiro.data61.dataFusion.common.Parallel.doParallel
 import resource.managed
 import spray.json.pimpAny
+import java.io.InputStream
+import java.net.URL
 
 object Main {
   private val log = Logger(getClass)
   
   case class CliOption(startId: Long, numWorkers: Int)
+  
+  /**
+   * if path starts with "http:" use HTTP GET else read local file.
+   */
+  def inputStream(path: String) : InputStream = {
+    if (path startsWith "http:") new URL(path).openStream else new FileInputStream(path)
+  }
   
   // modified from dataFusion-ner cliNer
   def cliTika(cliOption: CliOption) = {
@@ -64,7 +73,7 @@ object Main {
       def work(pathIdx: (String, Long)): Try[Doc] = {
         val path = pathIdx._1
         inProgress += path -> System.currentTimeMillis
-        val d = TikaUtil.tika(new FileInputStream(path), path, pathIdx._2) // stream opened/closed in parseTextMeta
+        val d = TikaUtil.tika(inputStream(path), path, pathIdx._2) // stream opened/closed in parseTextMeta
         inProgress.remove(path)
         d
       }
@@ -90,7 +99,7 @@ object Main {
 
     val parser = new scopt.OptionParser[CliOption]("dataFusion-tika") {
       head("dataFusion-tika", "0.x")
-      note("Tika text and metadata extraction CLI.")
+      note("Tika text and metadata extraction CLI. Stdin contains local file paths or http URL's, one per line.")
       opt[Long]('i', "startId") action { (v, c) =>
         c.copy(startId = v)
       } text (s"id's allocated incrementally starting with this value, (default ${defaultCliOption.startId})")
