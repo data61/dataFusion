@@ -14,6 +14,7 @@ libraryDependencies ++= Seq(
   "com.github.jai-imageio" % "jai-imageio-core" % "1.3.1",        // add PDFBox support for TIFF
   "com.github.jai-imageio" % "jai-imageio-jpeg2000" % "1.3.0",    // add PDFBox support for jpeg2000
   "com.levigo.jbig2" % "levigo-jbig2-imageio" % "2.0",            // add PDFBox support for jbig2
+  "org.xerial" % "sqlite-jdbc" % "3.19.3",                        // add to 'parse' sqlite files and embedded files
   "com.optimaize.languagedetector" % "language-detector" % "0.6", // tika-langdetect-1.15 dependency is 0.5, but we use language-detector directly, not via tika-langdetect
   
   "com.typesafe" % "config" % "1.3.1",
