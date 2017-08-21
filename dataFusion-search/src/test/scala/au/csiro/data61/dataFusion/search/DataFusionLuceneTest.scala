@@ -1,22 +1,15 @@
 package au.csiro.data61.dataFusion.search
 
-import scala.collection.JavaConverters.asScalaBufferConverter
-
-import org.apache.lucene.index.{ DirectoryReader, Term }
-import org.apache.lucene.search.{ DocIdSetIterator, IndexSearcher }
-import org.apache.lucene.search.spans.{ SpanNearQuery, SpanTermQuery, SpanWeight, Spans }
+import org.apache.lucene.index.DirectoryReader
+import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.store.RAMDirectory
 import org.scalatest.{ FlatSpec, Matchers }
 
 import com.typesafe.scalalogging.Logger
 
-import DataFusionLucene.{ F_CONTENT, LDoc, analyzer }
 import DataFusionLucene.DFIndexing.{ ldoc2doc, mkIndexer }
-import DataFusionLucene.DFSearching.{ Stats, ldoc }
-import DataFusionLucene.DFSearching.PosDocSearch.{ LPosDoc, MySpanCollector, PHits, PosQuery, searchSpans }
-import LuceneUtil.tokenIter
-import au.csiro.data61.dataFusion.common.Timer
-import org.apache.lucene.search.spans.SpanScorer
+import DataFusionLucene.DFSearching.PosDocSearch.{ PosQuery, searchSpans }
+import DataFusionLucene.LDoc
 
 class DataFusionLuceneTest extends FlatSpec with Matchers {
   val log = Logger(getClass)

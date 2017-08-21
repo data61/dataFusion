@@ -4,23 +4,21 @@ import java.io.OutputStreamWriter
 
 import scala.io.Source
 import scala.language.postfixOps
+import scala.util.Try
 import scala.util.control.NonFatal
 
-import org.apache.lucene.index.Term
 import org.apache.lucene.queryparser.classic.QueryParser
 import org.apache.lucene.search.MatchAllDocsQuery
-import org.apache.lucene.search.spans.{ SpanNearQuery, SpanTermQuery }
 
 import com.typesafe.scalalogging.Logger
 
-import DataFusionLucene._
-import DataFusionLucene.DFSearching._
-import LuceneUtil.{ Searcher, directory, tokenIter }
+import DataFusionLucene.{ F_CONTENT, F_JSON, F_TEXT, F_VAL, analyzer, docIndex, metaIndex, nerIndex }
+import DataFusionLucene.DFSearching.{ Query, Stats, DocSearch, PosDocSearch, MetaSearch, NerSearch }
+import LuceneUtil.{ Searcher, directory }
 import Main.CliOption
 import au.csiro.data61.dataFusion.common.Parallel.doParallel
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
-import scala.util.Try
 
 
 object Search {

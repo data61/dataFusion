@@ -2,9 +2,7 @@ package au.csiro.data61.dataFusion.search
 
 import java.io.File
 
-import scala.annotation.tailrec
-import scala.collection.JavaConverters._
-import scala.collection.SortedMap
+import scala.collection.JavaConverters.{ asScalaBufferConverter, mapAsJavaMapConverter }
 import scala.language.implicitConversions
 
 import org.apache.lucene.analysis.Analyzer
@@ -14,21 +12,18 @@ import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 import org.apache.lucene.analysis.standard.StandardTokenizer
 import org.apache.lucene.document.{ Document, Field, FieldType }
-import org.apache.lucene.index.{ IndexOptions, IndexReader, IndexWriter, IndexWriterConfig, PostingsEnum, Term, TermsEnum }
+import org.apache.lucene.index.{ IndexOptions, IndexWriter, IndexWriterConfig, PostingsEnum, Term }
 import org.apache.lucene.search.{ DocIdSetIterator, IndexSearcher, ScoreDoc }
-import org.apache.lucene.search.spans.{ SpanCollector, SpanNearQuery, SpanWeight, Spans }
+import org.apache.lucene.search.spans.{ SpanCollector, SpanNearQuery, SpanTermQuery, SpanWeight, Spans }
 import org.apache.lucene.store.Directory
-import org.apache.lucene.util.BytesRef
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
+import LuceneUtil.tokenIter
 import au.csiro.data61.dataFusion.common.Timer
-import LuceneUtil.postIter
-
-import spray.json._, DefaultJsonProtocol._
-import LuceneUtil.{ Searcher, directory, tokenIter }
-import org.apache.lucene.search.spans.{ SpanNearQuery, SpanTermQuery }
+import spray.json.{ pimpAny, pimpString }
+import spray.json.DefaultJsonProtocol, DefaultJsonProtocol._
 
 
 
@@ -248,7 +243,7 @@ object DataFusionLucene {
         private var maxOff = Int.MinValue
         
         override def reset: Unit = {
-          log.info(s"PosDocSearch.MySpanCollector.reset():")
+          // log.debug(s"PosDocSearch.MySpanCollector.reset():")
           minPos = Int.MaxValue 
           maxPos = Int.MinValue
           minOff = Int.MaxValue 
