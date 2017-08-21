@@ -58,19 +58,7 @@ object Search {
      */
     def search(slop: Int, posQuery: String, q: PosQuery) = 
       try {
-        val queryTerms = tokenIter(analyzer, F_CONTENT, q.query).toList
-        val (lq, numTerms) = posQuery match {
-          case "ord" => {
-            val qs = queryTerms.map(t => new SpanTermQuery(new Term(F_CONTENT, t)))
-            (new SpanNearQuery(qs.toArray, slop, true), qs.size)
-          }
-          case "unord" | _ => {
-            val qs = queryTerms.map(t => new SpanTermQuery(new Term(F_CONTENT, t)))
-            (new SpanNearQuery(qs.toArray, slop, false), qs.size)
-          }
-        }
-        log.debug(s"PosDocSearcher.search: lq = $lq")
-        searchSpans(indexSearcher, lq, q, numTerms)
+        searchSpans(indexSearcher, slop, posQuery, q)
       } catch {
         case NonFatal(e) => {
           log.error("PosDocSearcher error", e)

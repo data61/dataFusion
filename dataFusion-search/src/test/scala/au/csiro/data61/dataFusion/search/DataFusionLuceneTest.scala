@@ -37,11 +37,7 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
     
     {
       val q = PosQuery("AA AA", 1L)
-      val queryTerms = tokenIter(analyzer, F_CONTENT, q.query).toList
-      log.debug(s"SpanQuery: queryTerms = $queryTerms")
-      val qs = queryTerms.map(t => new SpanTermQuery(new Term(F_CONTENT, t)))
-      val lq = new SpanNearQuery(qs.toArray, 0, true) // ordered
-      val x = searchSpans(searcher, lq, q, qs.size)
+      val x = searchSpans(searcher, 0, "ord", q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(1)
       x.hits.size should be(1)
@@ -51,11 +47,7 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
     
     {
       val q = PosQuery("Jones Sarah", 2L)
-      val queryTerms = tokenIter(analyzer, F_CONTENT, q.query).toList
-      log.debug(s"SpanQuery: queryTerms = $queryTerms")
-      val qs = queryTerms.map(t => new SpanTermQuery(new Term(F_CONTENT, t)))
-      val lq = new SpanNearQuery(qs.toArray, 0, false) // not ordered
-      val x = searchSpans(searcher, lq, q, qs.size)
+      val x = searchSpans(searcher, 0, "unord", q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(1)
       x.hits.size should be(1)
@@ -69,11 +61,7 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
     
     {
       val q = PosQuery("AA AA", 1L)
-      val queryTerms = tokenIter(analyzer, F_CONTENT, q.query).toList
-      log.debug(s"SpanQuery: queryTerms = $queryTerms")
-      val qs = queryTerms.map(t => new SpanTermQuery(new Term(F_CONTENT, t)))
-      val lq = new SpanNearQuery(qs.toArray, 0, false) // not ordered
-      val x = searchSpans(searcher, lq, q, qs.size)
+      val x = searchSpans(searcher, 0, "unord", q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(1)
       x.hits.size should be(1)
@@ -83,11 +71,7 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
     
     {
       val q = PosQuery("AA AA BB", 1L)
-      val queryTerms = tokenIter(analyzer, F_CONTENT, q.query).toList
-      log.debug(s"SpanQuery: queryTerms = $queryTerms")
-      val qs = queryTerms.map(t => new SpanTermQuery(new Term(F_CONTENT, t)))
-      val lq = new SpanNearQuery(qs.toArray, 0, false) // not ordered
-      val x = searchSpans(searcher, lq, q, qs.size)
+      val x = searchSpans(searcher, 0, "unord", q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(1)
       x.hits.size should be(1)
@@ -98,11 +82,7 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
     
     {
       val q = PosQuery("AA AA CC", 1L)
-      val queryTerms = tokenIter(analyzer, F_CONTENT, q.query).toList
-      log.debug(s"SpanQuery: queryTerms = $queryTerms")
-      val qs = queryTerms.map(t => new SpanTermQuery(new Term(F_CONTENT, t)))
-      val lq = new SpanNearQuery(qs.toArray, 0, false) // not ordered
-      val x = searchSpans(searcher, lq, q, qs.size)
+      val x = searchSpans(searcher, 0, "unord", q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(0)
     }
