@@ -34,9 +34,9 @@ To develop [Scala](http://scala-lang.org/) code install:
 The command:
 
     source sh/setenv
-    sbt -J-Xmx2G clean test one-jar dumpLicenseReport
+    sbt -J-Xmx2G clean test publish-local one-jar dumpLicenseReport
 
-cleans out previous build products, runs unit tests, builds [onejar](https://github.com/sbt/sbt-onejar) files and creates license reports on dependencies. Build products are found under each sub-project's `target` directory.
+cleans out previous build products, runs unit tests, publishes libraries to your local Ivy repository (located at `~/.ivy2/`), builds [onejar](https://github.com/sbt/sbt-onejar) files and creates license reports on dependencies. Build products are found under each sub-project's `target` directory.
 
 Notes:
 - Without `-J-Xmx2G` tests may fail due to insufficient memory. 
