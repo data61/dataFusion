@@ -261,23 +261,29 @@ object DataFusionLucene {
         def posInfo(score: Float, text: String) = PosInfo(score, minPos, maxPos, minOff, maxOff, text.substring(minOff, maxOff))
       }
       
+//      val searchSpansScoreTimer = Timer()
+//      val searchSpansNonScoreTimer = Timer()
+//      var searchSpansCount = 0
+      
       /** 
-       * How to get docFreq:
-       * Term termInstance = new Term("contents", term);
-       * reader.docFreq(termInstance)
-       * @param queryTerms is the list of analyzed terms in the query
+       * this is a phrase search
+       * a single term results in: java.lang.IllegalArgumentException: Less than 2 subSpans.size():1
        */
       def searchSpans(searcher: IndexSearcher, slop: Int, posQuery: String, q: PosQuery) = {
         val timer = Timer()
         val reader = searcher.getIndexReader
         val terms = tokenIter(analyzer, F_CONTENT, q.query).map(new Term(F_CONTENT, _)).toList
+        // 
         
         // Here we score using only Lucene's version of IDF, no term freq or doc length norm etc.
         // This depends only on the query not the doc, so it could go in PHits once rather than
         // repeated in each PosInfo, but leave in case this changes.
         // https://lucene.apache.org/core/6_6_0/core/org/apache/lucene/search/similarities/TFIDFSimilarity.html
+//        searchSpansScoreTimer.start
         val score = terms.foldLeft(0.0) { (score, t) => score + 1.0 + Math.log10( (reader.numDocs + 1.0) / (reader.docFreq(t) + 1.0)) }.toFloat
+//        searchSpansScoreTimer.stop
         
+//        searchSpansNonScoreTimer.start
         val snq = new SpanNearQuery(terms.map(new SpanTermQuery(_)).toArray, slop, posQuery == "ord")
         log.debug(s"PosDocSearch.searchSpans: snq = $snq")
         
@@ -298,6 +304,10 @@ object DataFusionLucene {
             // e.g. search for "Aaron H Aaron" cannot match "H Aaron"
             // is this good enough? what about "H H H"?
         } yield LPosDoc(doc.docId, doc.embIdx, posns, doc.path)).filter(_.posInfos.nonEmpty).toList
+//        searchSpansNonScoreTimer.stop
+//        searchSpansCount += 1
+//        if (searchSpansCount % 1000 == 0) log.info(s"searchSpans: scoring took ${searchSpansScoreTimer.elapsedSecs} sec, searching took ${searchSpansNonScoreTimer.elapsedSecs} sec")
+        // Scoring is fast enough: scoring took 0.462 sec, searching took 113.58 sec
         PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.query, q.clnt_intrnl_id)
       }
       
