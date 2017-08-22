@@ -28,28 +28,29 @@ object CoreNLP {
     }
   }
   
-  object Spanish {
-    // use Spanish models (and no lemma annotator)
-    val nlp = managed(getClass.getResourceAsStream("/StanfordCoreNLP-spanish.properties")).map { in =>
-        val p = new Properties
-        p.load(in)
-        p.setProperty("annotators", Seq(STANFORD_TOKENIZE, STANFORD_SSPLIT, STANFORD_POS, STANFORD_NER).mkString(", "))
-        val nlp = CoreNLP.synchronized { new StanfordCoreNLP(p, true) }
-        log.debug(s"CoreNLP Spanish pipeline initialized with properties: ${p.asScala}")
-        nlp
-      }.tried.get
-  }
+//  object Spanish {
+//    // use Spanish models (and no lemma annotator)
+//    val nlp = managed(getClass.getResourceAsStream("/StanfordCoreNLP-spanish.properties")).map { in =>
+//        val p = new Properties
+//        p.load(in)
+//        p.setProperty("annotators", Seq(STANFORD_TOKENIZE, STANFORD_SSPLIT, STANFORD_POS, STANFORD_NER).mkString(", "))
+//        val nlp = CoreNLP.synchronized { new StanfordCoreNLP(p, true) }
+//        log.debug(s"CoreNLP Spanish pipeline initialized with properties: ${p.asScala}")
+//        nlp
+//      }.tried.get
+//  }
   
-  def nlp(lang: String) = lang match {
-    case "es" => {
-      // log.debug("Spanish")
-      Spanish.nlp
-    }
-    case _ => {
-      // log.debug("English")
-      English.nlp
-    }
-  }
+//  def nlp(lang: String) = lang match {
+//    case "es" => {
+//      // log.debug("Spanish")
+//      Spanish.nlp
+//    }
+//    case _ => {
+//      // log.debug("English")
+//      English.nlp
+//    }
+//  }
+  def nlp(lang: String) = English.nlp
     
   // convert CoreNLP's Spanish NER class names to the equivalent English class names (leaving English and unknown class names unchanged)
   val fixNerClass = Map("PERS" -> "PERSON", "ORG" -> "ORGANIZATION", "LUG" -> "LOCATION", "OTROS" -> "MISC") withDefault(identity)

@@ -89,12 +89,12 @@ Efectuó cuatro viajes a las Indias —denominación del continente americano ha
     assert(ners.map(_.copy(score = 1.0)).contains(Ner(76, 78, 436, 445, 1.0, "Oak Ridge", "LOCATION", "MITIE")))
   }
   
-  it should "get Spanish entities" in {
-    val ners = ner(es, esTxt)
-    log.debug(s"ners = ${ners}")
-    // log.debug(s"Offset conversion times: es = ${Spanish.nlp.t.elapsedSecs} secs")
-    assert(ners.map(_.copy(score = 1.0)).contains(Ner(0, 2, 0, 15, 1.0, "Cristóbal Colón", "PERSON", "MITIE")))
-  }
+//  it should "get Spanish entities" in {
+//    val ners = ner(es, esTxt)
+//    log.debug(s"ners = ${ners}")
+//    // log.debug(s"Offset conversion times: es = ${Spanish.nlp.t.elapsedSecs} secs")
+//    assert(ners.map(_.copy(score = 1.0)).contains(Ner(0, 2, 0, 15, 1.0, "Cristóbal Colón", "PERSON", "MITIE")))
+//  }
   
   it should "get English entities in mutiple threads" in {
     val expected = ner(en, enTxt)

@@ -48,7 +48,7 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
       
       val pinf = x.hits.head.posInfos.head
       pinf.text should be ("Sarah Jones") 
-      pinf.score should be(0.43184555f)
+      pinf.score should be(2.1760912f)
       pinf.text should be ("Sarah Jones") 
     }
     

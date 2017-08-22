@@ -38,9 +38,9 @@ object Main {
     // parallel initialization
     def tasksIf[A](p: Boolean, t: Seq[Future[A]]) = if (p) t else Seq.empty
     val parallelInit = Future.sequence(
-      tasksIf(cliOption.all || cliOption.corenlp, Seq(Future { CoreNLP.English }, Future { CoreNLP.Spanish })) ++
-      tasksIf(cliOption.all || cliOption.opennlp, Seq(Future { OpenNLP.English }, Future { OpenNLP.Spanish })) ++
-      tasksIf(cliOption.all || cliOption.mitie,   Seq(Future { MITIE.English }, Future { MITIE.Spanish }))
+      tasksIf(cliOption.all || cliOption.corenlp, Seq(Future { CoreNLP.English }/*, Future { CoreNLP.Spanish }*/)) ++
+      tasksIf(cliOption.all || cliOption.opennlp, Seq(Future { OpenNLP.English }/*, Future { OpenNLP.Spanish }*/)) ++
+      tasksIf(cliOption.all || cliOption.mitie,   Seq(Future { MITIE.English }/*, Future { MITIE.Spanish }*/))
     )
     Await.result(parallelInit, 5 minutes)
     log.info("NLP models loaded")

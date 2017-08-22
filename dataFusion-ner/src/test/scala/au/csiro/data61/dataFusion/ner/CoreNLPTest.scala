@@ -37,27 +37,27 @@ Este hecho impulsó decisivamente la expansión mundial de la civilización euro
     assert(ners.contains(Ner(98, 100, 566, 577, 1.0, "August 1943", "DATE", "CoreNLP")))
   }
   
-  it should "get Spanish entities" in {
-    val ners = nerSplit(es, esTxt, 1) // split into small chunks
-    log.debug(s"ners = ${ners}")
-    assert(ners.contains(Ner(0, 2, 0, 15, 1.0, "Cristóbal Colón", "PERSON", "CoreNLP")))
-    assert(ners.contains(Ner(141, 142, 737, 743, 1.0, "Europa", "LOCATION", "CoreNLP")))
-  }
-  
-  it should "get Spanish entities in mutiple threads" in {
-    val expected = nerSplit(es, esTxt, 1) // split into small chunks
-    
-    val r = new Runnable {
-      override def run = {
-        val ners = ner(es, esTxt) // would split to 100 lines, but text is smaller than that, so no split
-        ners should be(expected)
-      }
-    }
-    val threads = Iterator.range(0, 8).map { _ => 
-      val t = new Thread(r)
-      t.start
-      t
-    }.toList
-    threads.foreach(_.join)
-  }
+//  it should "get Spanish entities" in {
+//    val ners = nerSplit(es, esTxt, 1) // split into small chunks
+//    log.debug(s"ners = ${ners}")
+//    assert(ners.contains(Ner(0, 2, 0, 15, 1.0, "Cristóbal Colón", "PERSON", "CoreNLP")))
+//    assert(ners.contains(Ner(141, 142, 737, 743, 1.0, "Europa", "LOCATION", "CoreNLP")))
+//  }
+//  
+//  it should "get Spanish entities in mutiple threads" in {
+//    val expected = nerSplit(es, esTxt, 1) // split into small chunks
+//    
+//    val r = new Runnable {
+//      override def run = {
+//        val ners = ner(es, esTxt) // would split to 100 lines, but text is smaller than that, so no split
+//        ners should be(expected)
+//      }
+//    }
+//    val threads = Iterator.range(0, 8).map { _ => 
+//      val t = new Thread(r)
+//      t.start
+//      t
+//    }.toList
+//    threads.foreach(_.join)
+//  }
 }

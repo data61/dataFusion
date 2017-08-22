@@ -34,21 +34,21 @@ object OpenNLP {
     }
   }
   
-  object Spanish {
-    /** Spanish sentence & tokenizer models used in training Spanish NameFinder models are not available,
-      * so use CoreNLP (just for this) and hope it is not too different!
-      */
-    val coreNLP = managed(getClass.getResourceAsStream("/StanfordCoreNLP-spanish.properties")).map { in =>
-        val p = new Properties
-        p.load(in)
-        p.setProperty("annotators", Seq(STANFORD_TOKENIZE, STANFORD_SSPLIT).mkString(", "))
-        CoreNLP.synchronized { new StanfordCoreNLP(p, true) } // synchronized else multi-threaded sbt test fails
-      }.tried.get
-      
-    val ners = Seq("location", "organization", "person", "misc").map { typ =>
-      loadModel(s"/opennlp-models-1.5/es-ner-${typ}.bin", in => new TokenNameFinderModel(in))
-    }
-  }
+//  object Spanish {
+//    /** Spanish sentence & tokenizer models used in training Spanish NameFinder models are not available,
+//      * so use CoreNLP (just for this) and hope it is not too different!
+//      */
+//    val coreNLP = managed(getClass.getResourceAsStream("/StanfordCoreNLP-spanish.properties")).map { in =>
+//        val p = new Properties
+//        p.load(in)
+//        p.setProperty("annotators", Seq(STANFORD_TOKENIZE, STANFORD_SSPLIT).mkString(", "))
+//        CoreNLP.synchronized { new StanfordCoreNLP(p, true) } // synchronized else multi-threaded sbt test fails
+//      }.tried.get
+//      
+//    val ners = Seq("location", "organization", "person", "misc").map { typ =>
+//      loadModel(s"/opennlp-models-1.5/es-ner-${typ}.bin", in => new TokenNameFinderModel(in))
+//    }
+//  }
   
   /**
    * Not thread-safe 
@@ -86,41 +86,42 @@ object OpenNLP {
   /**
    * Not thread-safe 
    */
-  class EsOpenNLP {
-    // because *ME are not thread-safe
-    val ners = Spanish.ners.map(new NameFinderME(_))
-    
-    def ner(in: String): List[Ner] = {
-      var tokenIdx = 0;
-      val r = for {
-        sentence <- Spanish.coreNLP.process(in).get(classOf[SentencesAnnotation]).asScala
-        tokens = sentence.get(classOf[TokensAnnotation]).asScala.toArray
-        tIdx = tokenIdx
-        _ = tokenIdx += tokens.size // token index of start of next sentence
-        ner <- ners
-        s <- ner.find(tokens.map(_.originalText))
-        start = tokens(s.getStart).beginPosition
-        end = tokens(s.getEnd - 1).endPosition
-      } yield Ner(tIdx + s.getStart, tIdx + s.getEnd, start, end, s.getProb, in.substring(start, end), s.getType.toUpperCase, "OpenNLP")
-      
-      ners.foreach(_.clearAdaptiveData)
-      r.toList
-    }
-  }
-  val esOpenNLP = new ThreadLocal[EsOpenNLP] {
-    override protected def initialValue = new EsOpenNLP
-  }
+//  class EsOpenNLP {
+//    // because *ME are not thread-safe
+//    val ners = Spanish.ners.map(new NameFinderME(_))
+//    
+//    def ner(in: String): List[Ner] = {
+//      var tokenIdx = 0;
+//      val r = for {
+//        sentence <- Spanish.coreNLP.process(in).get(classOf[SentencesAnnotation]).asScala
+//        tokens = sentence.get(classOf[TokensAnnotation]).asScala.toArray
+//        tIdx = tokenIdx
+//        _ = tokenIdx += tokens.size // token index of start of next sentence
+//        ner <- ners
+//        s <- ner.find(tokens.map(_.originalText))
+//        start = tokens(s.getStart).beginPosition
+//        end = tokens(s.getEnd - 1).endPosition
+//      } yield Ner(tIdx + s.getStart, tIdx + s.getEnd, start, end, s.getProb, in.substring(start, end), s.getType.toUpperCase, "OpenNLP")
+//      
+//      ners.foreach(_.clearAdaptiveData)
+//      r.toList
+//    }
+//  }
+//  val esOpenNLP = new ThreadLocal[EsOpenNLP] {
+//    override protected def initialValue = new EsOpenNLP
+//  }
   
   /** thread-safe */
-  def ner(lang: String, in: String): List[Ner] =
-    lang match {
-      case "es" => {
-        // log.debug("Spanish")
-        esOpenNLP.get.ner(in)
-      }
-      case _ => {
-        // log.debug("English")
-        enOpenNLP.get.ner(in)
-      }
-    }
+//  def ner(lang: String, in: String): List[Ner] =
+//    lang match {
+//      case "es" => {
+//        // log.debug("Spanish")
+//        esOpenNLP.get.ner(in)
+//      }
+//      case _ => {
+//        // log.debug("English")
+//        enOpenNLP.get.ner(in)
+//      }
+//    }
+  def ner(lang: String, in: String): List[Ner] = enOpenNLP.get.ner(in)
 }

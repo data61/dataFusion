@@ -23,26 +23,26 @@ Efectuó cuatro viajes a las Indias —denominación del continente americano ha
     assert(ners.map(_.copy(score = 1.0)).contains(Ner(78, 80, 436, 445, 1.0, "Oak Ridge", "LOCATION", "OpenNLP")))
   }
   
-  it should "get Spanish entities" in {
-    val ners = ner(es, esTxt)
-    log.debug(s"ners = ${ners}")
-    assert(ners.map(_.copy(score = 1.0)).contains(Ner(80, 81, 390, 399, 1.0, "Guanahani", "LOCATION", "OpenNLP")))
-  }
-  
-  it should "get Spanish entities in mutiple threads" in {
-    val expected = ner(es, esTxt)
-    
-    val r = new Runnable {
-      override def run = {
-        val ners = ner(es, esTxt)
-        ners should be(expected)
-      }
-    }
-    val threads = Iterator.range(0, 8).map { _ => 
-      val t = new Thread(r)
-      t.start
-      t
-    }.toList
-    threads.foreach(_.join)
-  }
+//  it should "get Spanish entities" in {
+//    val ners = ner(es, esTxt)
+//    log.debug(s"ners = ${ners}")
+//    assert(ners.map(_.copy(score = 1.0)).contains(Ner(80, 81, 390, 399, 1.0, "Guanahani", "LOCATION", "OpenNLP")))
+//  }
+//  
+//  it should "get Spanish entities in mutiple threads" in {
+//    val expected = ner(es, esTxt)
+//    
+//    val r = new Runnable {
+//      override def run = {
+//        val ners = ner(es, esTxt)
+//        ners should be(expected)
+//      }
+//    }
+//    val threads = Iterator.range(0, 8).map { _ => 
+//      val t = new Thread(r)
+//      t.start
+//      t
+//    }.toList
+//    threads.foreach(_.join)
+//  }
 }

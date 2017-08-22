@@ -113,20 +113,20 @@ object MITIE {
     val nlp = new Nlp(conf.getString("mitie.englishNerModel"))
   }
   
-  object Spanish {
-    val nlp = new Nlp(conf.getString("mitie.spanishNerModel"))
-  }
-
+//  object Spanish {
+//    val nlp = new Nlp(conf.getString("mitie.spanishNerModel"))
+//  }
       
-  def ner(lang: String, in: String): List[Ner] =
-    lang match {
-      case "es" => {
-        // log.debug("Spanish")
-        Spanish.nlp.ner(in)
-      }
-      case _ => {
-        // log.debug("English")
-        English.nlp.ner(in)
-      }
-    }
+//  def ner(lang: String, in: String): List[Ner] =
+//    lang match {
+//      case "es" => {
+//        // log.debug("Spanish")
+//        Spanish.nlp.ner(in)
+//      }
+//      case _ => {
+//        // log.debug("English")
+//        English.nlp.ner(in)
+//      }
+//    }
+  def ner(lang: String, in: String): List[Ner] = English.nlp.ner(in)
 }
