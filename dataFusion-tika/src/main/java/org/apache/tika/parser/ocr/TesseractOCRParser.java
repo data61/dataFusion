@@ -121,7 +121,7 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
     // timing
     private static AtomicLong count = new AtomicLong();
     private static AtomicDouble pythonTime = new AtomicDouble();
-    private static AtomicDouble imageMagikTime  = new AtomicDouble();
+    private static AtomicDouble imageMagickTime  = new AtomicDouble();
     private static AtomicDouble tesseractTime = new AtomicDouble();
 
     @Override
@@ -362,11 +362,11 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
 			executor.execute(cmdLine);
 		} catch(Exception e) {
 			String err = outputStream.toString("UTF-8").trim();
-			if (metadata != null) metadata.set("X-TIKA:ImageMagik-Error", err);
-			LOG.error("Can't run ImageMagik to preprocess image prior to OCR. ImageMagic said: " + err, e);
+			if (metadata != null) metadata.set("X-TIKA:ImageMagick-Error", err);
+			LOG.error("Can't run ImageMagick. ImageMagick said: " + err, e);
 		} 
 		t.stop();
-		imageMagikTime.addAndGet(t.elapsedSecs());
+		imageMagickTime.addAndGet(t.elapsedSecs());
        
         tmp.close();
     }
@@ -528,7 +528,7 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
         	t.stop();
         	tesseractTime.addAndGet(t.elapsedSecs());
         	Long n = count.incrementAndGet();
-        	if (n % 10 == 0) LOG.info("doOCR: OCR count = {}, Python {} secs, ImageMagik {} secs, Tesseract {} secs", new Object[]{n, pythonTime.get(), imageMagikTime.get(), tesseractTime.get()});
+        	if (n % 10 == 0) LOG.info("doOCR: OCR count = {}, Python {} secs, ImageMagick {} secs, Tesseract {} secs", new Object[]{n, pythonTime.get(), imageMagickTime.get(), tesseractTime.get()});
         }
     }
 
