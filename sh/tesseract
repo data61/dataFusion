@@ -7,9 +7,11 @@ for a in "$@"; do
   [[ "$a" != txt ]] && args+=("$a")
 done
 
-# if manually built and installed:
-# ROOT=/usr/local
-# LD_LIBRARY_PATH=$ROOT/lib $ROOT/bin/tesseract "${args[@]}"
+# if manually built and installed
+ROOT=/usr/local
+# put *.traindata files under $ROOT/share
+# mv $ROOT/share/tessdata/pdf.ttf $ROOT/share
+LD_LIBRARY_PATH=$ROOT/lib TESSDATA_PREFIX=$ROOT/share/tessdata $ROOT/bin/tesseract "${args[@]}"
 
 # if installed from ppa:alex-p/tesseract-ocr
-/usr/bin/tesseract "${args[@]}"
+# /usr/bin/tesseract "${args[@]}"

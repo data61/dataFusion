@@ -28,7 +28,7 @@ lazy val commonSettings = Seq(
   exportJars := true, // required by sbt-onejar
   autoAPIMappings := true, // scaladoc
   
-  unmanagedSourceDirectories in Compile := (scalaSource in Compile).value :: Nil, // only Scala sources, no Java
+  // unmanagedSourceDirectories in Compile := (scalaSource in Compile).value :: Nil, // only Scala sources, no Java
   unmanagedSourceDirectories in Test := (scalaSource in Test).value :: Nil,
   
   // filterScalaLibrary := false, // sbt-dependency-graph: include scala library in output

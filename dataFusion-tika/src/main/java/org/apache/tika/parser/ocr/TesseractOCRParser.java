@@ -22,7 +22,6 @@ import javax.imageio.ImageIO;
 import javax.xml.parsers.SAXParser;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -46,6 +45,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
@@ -79,6 +79,10 @@ import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import com.google.common.util.concurrent.AtomicDouble;
+
+import au.csiro.data61.dataFusion.common.Timer;
+
 /**
  * TesseractOCRParser powered by tesseract-ocr engine. To enable this parser,
  * create a {@link TesseractOCRConfig} object and pass it through a
@@ -91,7 +95,7 @@ import org.xml.sax.helpers.DefaultHandler;
  * parseContext.set(TesseractOCRConfig.class, config);<br>
  * </p>
  *
- *
+ * Copied and modified from tika-parsers-1.16. One-jar will complain about the duplicate class.
  */
 public class TesseractOCRParser extends AbstractParser implements Initializable {
     private static final Logger LOG = LoggerFactory.getLogger(TesseractOCRParser.class);
@@ -109,7 +113,16 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
                     MediaType.image("jpx"), MediaType.image("x-portable-pixmap")
             })));
     private static Map<String,Boolean> TESSERACT_PRESENT = new HashMap<>();
-
+    
+    // these are set by dataFusion-tika{,-service} Main from command line options
+    public static boolean ocrImagePreprocess = true;
+    public static boolean ocrImageDeskew = true;
+    
+    // timing
+    private static AtomicLong count = new AtomicLong();
+    private static AtomicDouble pythonTime = new AtomicDouble();
+    private static AtomicDouble imageMagikTime  = new AtomicDouble();
+    private static AtomicDouble tesseractTime = new AtomicDouble();
 
     @Override
     public Set<MediaType> getSupportedTypes(ParseContext context) {
@@ -169,23 +182,23 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
      
     }
     
-    private static boolean hasPython() {
-    	// check if python is installed and if the rotation program path has been specified correctly
-        
-    	boolean hasPython = false;
-    	
-		try {
-			Process proc = Runtime.getRuntime().exec("python -h");
-			BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream(), "UTF-8"));
-			if(stdInput.read() != -1) {
-				hasPython = true;
-			}
-		} catch (IOException e) {
-
-		} 
-
-		return hasPython;	
-    }
+//    private static boolean hasPython() {
+//    	// check if python is installed and if the rotation program path has been specified correctly
+//        
+//    	boolean hasPython = false;
+//    	
+//		try {
+//			Process proc = Runtime.getRuntime().exec("python -h");
+//			BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream(), "UTF-8"));
+//			if(stdInput.read() != -1) {
+//				hasPython = true;
+//			}
+//		} catch (IOException e) {
+//
+//		} 
+//
+//		return hasPython;	
+//    }
     
     public void parse(Image image, ContentHandler handler, Metadata metadata, ParseContext context) throws IOException,
             SAXException, TikaException {
@@ -239,7 +252,7 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
 
             XHTMLContentHandler xhtml = new XHTMLContentHandler(handler, metadata);
             xhtml.startDocument();
-            parse(tikaStream, tmpOCROutputFile, parseContext, xhtml, config);
+            parse(tikaStream, tmpOCROutputFile, parseContext, xhtml, config, metadata);
             xhtml.endDocument();
         } finally {
             tmp.dispose();
@@ -289,7 +302,7 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
         try {
             TikaInputStream tikaStream = TikaInputStream.get(stream, tmp);
             File tmpImgFile = tmp.createTemporaryFile();
-            parse(tikaStream, tmpImgFile, parseContext, xhtml, config);
+            parse(tikaStream, tmpImgFile, parseContext, xhtml, config, null);
         } finally {
             tmp.dispose();
         }
@@ -302,50 +315,64 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
      * @throws IOException if an input error occurred
      * @throws TikaException if an exception timed out
      */
-    private void processImage(File streamingObject, TesseractOCRConfig config) throws IOException, TikaException {
-    	
-    	// fetch rotation script from resources
-    	InputStream in = getClass().getResourceAsStream("rotation.py");
+    private void processImage(File streamingObject, TesseractOCRConfig config, Metadata metadata) throws IOException, TikaException {
+    	String angle = "0.00"; 
     	TemporaryResources tmp = new TemporaryResources();
-    	File rotationScript = tmp.createTemporaryFile();
-    	Files.copy(in, rotationScript.toPath(), StandardCopyOption.REPLACE_EXISTING);
-    	
-    	String cmd = "python " + rotationScript.getAbsolutePath() + " -f " + streamingObject.getAbsolutePath();
-    	String angle = "0"; 
-    			
-    	DefaultExecutor executor = new DefaultExecutor();
-    	ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-    	PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream);
-        executor.setStreamHandler(streamHandler);
-        
-        // determine the angle of rotation required to make the text horizontal
-        CommandLine cmdLine = CommandLine.parse(cmd);
-        if(hasPython()) {
+    	if (ocrImageDeskew) {
+	    	ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        	Timer t = new Timer();
             try {
+		    	// fetch rotation script from resources
+		    	InputStream in = getClass().getResourceAsStream("rotation.py");
+		    	File rotationScript = tmp.createTemporaryFile();
+		    	Files.copy(in, rotationScript.toPath(), StandardCopyOption.REPLACE_EXISTING);
+		    	
+		    	String cmd = "python " + rotationScript.getAbsolutePath() + " -f " + streamingObject.getAbsolutePath();
+		    			
+		    	DefaultExecutor executor = new DefaultExecutor();
+		    	PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream);
+		        executor.setStreamHandler(streamHandler);
+		        
+		        // determine the angle of rotation required to make the text horizontal
+		        CommandLine cmdLine = CommandLine.parse(cmd);
                 executor.execute(cmdLine);
                 angle = outputStream.toString("UTF-8").trim();
+                if (metadata != null) metadata.set("X-TIKA:Skew-Angle", angle);
             } catch(Exception e) {	
-
+            	String err = outputStream.toString("UTF-8").trim();
+            	if (err.length() > 0 && metadata != null) metadata.set("X-TIKA:Skew-Error", err);
+            	LOG.error("Can't run rotation.py to determine skew. Python said: " + err, e);
             }
-        }
+            t.stop();
+            pythonTime.addAndGet(t.elapsedSecs());
+    	}
               
-        // process the image - parameter values can be set in TesseractOCRConfig.properties
-    	String line = "convert -density " + config.getDensity() + " -depth " + config.getDepth() + 
-    			" -colorspace " + config.getColorspace() +  " -filter " + config.getFilter() + 
-    			" -resize " + config.getResize() + "% -rotate "+ angle + " " + streamingObject.getAbsolutePath() + 
-    			" " + streamingObject.getAbsolutePath();    	
-        cmdLine = CommandLine.parse(line);
+    	ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    	Timer t = new Timer();
 		try {
+	        // process the image - parameter values can be set in TesseractOCRConfig.properties
+	    	String line = "convert -density " + config.getDensity() + " -depth " + config.getDepth() + 
+	    			" -colorspace " + config.getColorspace() +  " -filter " + config.getFilter() + 
+	    			" -resize " + config.getResize() + "% -rotate "+ angle + " " + streamingObject.getAbsolutePath() + 
+	    			" " + streamingObject.getAbsolutePath();    	
+	    	CommandLine cmdLine = CommandLine.parse(line);
+	    	DefaultExecutor executor = new DefaultExecutor();
+	    	PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream);
+	        executor.setStreamHandler(streamHandler); // out & err
 			executor.execute(cmdLine);
-		} catch(Exception e) {	
-
+		} catch(Exception e) {
+			String err = outputStream.toString("UTF-8").trim();
+			if (metadata != null) metadata.set("X-TIKA:ImageMagik-Error", err);
+			LOG.error("Can't run ImageMagik to preprocess image prior to OCR. ImageMagic said: " + err, e);
 		} 
+		t.stop();
+		imageMagikTime.addAndGet(t.elapsedSecs());
        
         tmp.close();
     }
     
     private void parse(TikaInputStream tikaInputStream, File tmpOCROutputFile, ParseContext parseContext,
-                       XHTMLContentHandler xhtml, TesseractOCRConfig config)
+                       XHTMLContentHandler xhtml, TesseractOCRConfig config, Metadata metadata)
             throws IOException, SAXException, TikaException {
         File tmpTxtOutput = null;
         try {
@@ -353,25 +380,29 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
             long size = tikaInputStream.getLength();
 
             if (size >= config.getMinFileSizeToOcr() && size <= config.getMaxFileSizeToOcr()) {
-
-            	// Process image if ImageMagick Tool is present
-            	if(config.isEnableImageProcessing() == 1 && hasImageMagick(config)) {
-                    // copy the contents of the original input file into a temporary file
-                    // which will be preprocessed for OCR
-                    TemporaryResources tmp = new TemporaryResources();
-                    try {
-                        File tmpFile = tmp.createTemporaryFile();
-                        FileUtils.copyFile(input, tmpFile);
-                        processImage(tmpFile, config);
-                        doOCR(tmpFile, tmpOCROutputFile, config);
-                    } finally {
-                        if (tmp != null) {
-                            tmp.dispose();
-                        }
-                    }
+            	if (ocrImagePreprocess) {
+	            	// Process image if ImageMagick Tool is present
+	            	if(hasImageMagick(config)) {
+	                    // copy the contents of the original input file into a temporary file
+	                    // which will be preprocessed for OCR
+	                    TemporaryResources tmp = new TemporaryResources();
+	                    try {
+	                        File tmpFile = tmp.createTemporaryFile();
+	                        FileUtils.copyFile(input, tmpFile);
+	                        processImage(tmpFile, config, metadata);
+	                        doOCR(tmpFile, tmpOCROutputFile, config);
+	                    } finally {
+	                        if (tmp != null) {
+	                            tmp.dispose();
+	                        }
+	                    }
+	            	} else {
+	            		LOG.error("Image preprocessing requested but ImageMagick not found so it has been skipped");
+	                    doOCR(input, tmpOCROutputFile, config);
+	                }
             	} else {
-                    doOCR(input, tmpOCROutputFile, config);
-                }
+            		doOCR(input, tmpOCROutputFile, config);
+            	}
 
                 // Tesseract appends the output type (.txt or .hocr) to output file name
                 tmpTxtOutput = new File(tmpOCROutputFile.getAbsolutePath() + "." +
@@ -386,6 +417,8 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
                         }
                     }
                 }
+            } else {
+            	LOG.warn("Image size {} bytes outside configured range {} - {} for OCR", new Object[]{size, config.getMinFileSizeToOcr(), config.getMaxFileSizeToOcr()});
             }
         } finally {
             if (tmpTxtOutput != null) {
@@ -410,17 +443,17 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
         //this will incorrectly trigger for people who turn off Tesseract
         //by sending in a bogus tesseract path via a custom TesseractOCRConfig.
         //TODO: figure out how to solve that.
-        if (! hasWarned()) {
-            if (hasTesseract(DEFAULT_CONFIG)) {
-                problemHandler.handleInitializableProblem(this.getClass().getName(),
-                        "Tesseract OCR is installed and will be automatically applied to image files unless\n" +
-                                "you've excluded the TesseractOCRParser from the default parser.\n"+
-                                "Tesseract may dramatically slow down content extraction (TIKA-2359).\n" +
-                                "As of Tika 1.15 (and prior versions), Tesseract is automatically called.\n" +
-                                "In future versions of Tika, users may need to turn the TesseractOCRParser on via TikaConfig.");
-                warn();
-            }
-        }
+//        if (! hasWarned()) {
+//            if (hasTesseract(DEFAULT_CONFIG)) {
+//                problemHandler.handleInitializableProblem(this.getClass().getName(),
+//                        "Tesseract OCR is installed and will be automatically applied to image files unless\n" +
+//                                "you've excluded the TesseractOCRParser from the default parser.\n"+
+//                                "Tesseract may dramatically slow down content extraction (TIKA-2359).\n" +
+//                                "As of Tika 1.15 (and prior versions), Tesseract is automatically called.\n" +
+//                                "In future versions of Tika, users may need to turn the TesseractOCRParser on via TikaConfig.");
+//                warn();
+//            }
+//        }
     }
     // TIKA-1445 workaround parser
     private static Parser _TMP_IMAGE_METADATA_PARSER = new CompositeImageParser();
@@ -452,6 +485,7 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
      *           if an input error occurred
      */
     private void doOCR(File input, File output, TesseractOCRConfig config) throws IOException, TikaException {
+    	Timer t = new Timer();
         String[] cmd = { config.getTesseractPath() + getTesseractProg(), input.getPath(), output.getPath(), "-l",
                 config.getLanguage(), "-psm", config.getPageSegMode(),
                 config.getOutputType().name().toLowerCase(Locale.US),
@@ -490,6 +524,11 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
             waitThread.interrupt();
             process.destroy();
             throw new TikaException("TesseractOCRParser timeout", e);
+        } finally {
+        	t.stop();
+        	tesseractTime.addAndGet(t.elapsedSecs());
+        	Long n = count.incrementAndGet();
+        	if (n % 10 == 0) LOG.info("doOCR: OCR count = {}, Python {} secs, ImageMagik {} secs, Tesseract {} secs", new Object[]{n, pythonTime.get(), imageMagikTime.get(), tesseractTime.get()});
         }
     }
 

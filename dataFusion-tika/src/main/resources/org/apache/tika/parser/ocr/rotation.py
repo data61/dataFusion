@@ -70,3 +70,4 @@ def main(argv):
 
 if __name__ == "__main__":
         main(sys.argv[1:])
+        # print('{:.2f}'.format(0))

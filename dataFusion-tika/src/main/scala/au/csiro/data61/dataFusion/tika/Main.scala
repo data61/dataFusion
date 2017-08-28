@@ -15,11 +15,12 @@ import resource.managed
 import spray.json.pimpAny
 import java.io.InputStream
 import java.net.URL
+import org.apache.tika.parser.ocr.TesseractOCRParser
 
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(startId: Long, numWorkers: Int)
+  case class CliOption(startId: Long, numWorkers: Int, ocrImagePreprocess: Boolean, ocrImageDeskew: Boolean)
   
   /**
    * if path starts with "http:" use HTTP GET else read local file.
@@ -31,6 +32,9 @@ object Main {
   // modified from dataFusion-ner cliNer
   def cliTika(cliOption: CliOption) = {
     import scala.io.Source
+    
+    TesseractOCRParser.ocrImagePreprocess = cliOption.ocrImagePreprocess
+    TesseractOCRParser.ocrImageDeskew = cliOption.ocrImageDeskew
             
     // identify path for which runtime is long, perhaps infinite, so we can add it to black list next run
     val inProgress = TrieMap.empty[String, Long] // path -> start time
@@ -95,7 +99,7 @@ object Main {
     System.setProperty("sun.java2d.cmm", "sun.java2d.cmm.kcms.KcmsServiceProvider")
     System.setProperty("org.apache.pdfbox.rendering.UsePureJavaCMYKConversion", "true")
     
-    val defaultCliOption = CliOption(0L, Runtime.getRuntime.availableProcessors)
+    val defaultCliOption = CliOption(0L, Runtime.getRuntime.availableProcessors, true, false)
 
     val parser = new scopt.OptionParser[CliOption]("dataFusion-tika") {
       head("dataFusion-tika", "0.x")
@@ -106,6 +110,12 @@ object Main {
       opt[Int]('w', "numWorkers") action { (v, c) =>
         c.copy(numWorkers = v)
       } text (s"numWorkers, (default ${defaultCliOption.numWorkers} the number of CPUs)")
+      opt[Boolean]('p', "ocrImagePreprocess") action { (v, c) =>
+        c.copy(ocrImagePreprocess = v)
+      } text (s"whether to preprocess images with ImageMagik prior to OCR, (default ${defaultCliOption.ocrImagePreprocess})")
+      opt[Boolean]('p', "ocrImageDescew") action { (v, c) =>
+        c.copy(ocrImageDeskew = v)
+      } text (s"whether to determine image scew using rotation.py so ImageMagik can descew, (default ${defaultCliOption.ocrImageDeskew})")
       help("help") text ("prints this usage text")
     }
     

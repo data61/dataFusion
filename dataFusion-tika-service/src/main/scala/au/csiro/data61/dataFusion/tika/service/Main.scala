@@ -30,6 +30,7 @@ import io.swagger.annotations.{ Api, ApiOperation, ApiParam, ApiResponses, ApiRe
 import javax.ws.rs.{ Consumes, Path, QueryParam }
 import resource.managed
 import java.util.concurrent.atomic.AtomicLong
+import org.apache.tika.parser.ocr.TesseractOCRParser
 
 object Main {
   private val log = Logger(getClass)
@@ -113,6 +114,9 @@ object Main {
   }
   
   def start(cliOption: CliOption) = {
+    TesseractOCRParser.ocrImagePreprocess = cliOption.ocrImagePreprocess
+    TesseractOCRParser.ocrImageDeskew = cliOption.ocrImageDeskew
+    
     val conf = ConfigFactory.load
     val host = conf.getString("http.host")
     val port = conf.getInt("http.port")
@@ -137,14 +141,14 @@ Test with:
 """)
   }
   
-  case class CliOption(startId: Long, numWorkers: Int)
+  case class CliOption(startId: Long, ocrImagePreprocess: Boolean, ocrImageDeskew: Boolean)
   
   def main(args: Array[String]): Unit = {
     // https://pdfbox.apache.org/2.0/migration.html#pdf-rendering
     System.setProperty("sun.java2d.cmm", "sun.java2d.cmm.kcms.KcmsServiceProvider")
     System.setProperty("org.apache.pdfbox.rendering.UsePureJavaCMYKConversion", "true")
     
-    val defaultCliOption = CliOption(0L, 0)
+    val defaultCliOption = CliOption(0L, true, false)
 
     val parser = new scopt.OptionParser[CliOption]("dataFusion-tika-service") {
       head("dataFusion-tika-service", "0.x")
@@ -152,6 +156,12 @@ Test with:
       opt[Long]('i', "startId") action { (v, c) =>
         c.copy(startId = v)
       } text (s"id's allocated incrementally starting with this value, (default ${defaultCliOption.startId})")
+      opt[Boolean]('p', "ocrImagePreprocess") action { (v, c) =>
+        c.copy(ocrImagePreprocess = v)
+      } text (s"whether to preprocess images with ImageMagik prior to OCR, (default ${defaultCliOption.ocrImagePreprocess})")
+      opt[Boolean]('p', "ocrImageDescew") action { (v, c) =>
+        c.copy(ocrImageDeskew = v)
+      } text (s"whether to determine image scew using rotation.py so ImageMagik can descew, (default ${defaultCliOption.ocrImageDeskew})")
       help("help") text ("prints this usage text")
     }
     

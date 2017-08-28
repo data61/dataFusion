@@ -75,7 +75,7 @@ object TikaUtil {
 	  val ocrConf = { 
 	    val c = new TesseractOCRConfig
 	    val timeout = conf.getInt("tika.timeout")
-  	  log.info(s"context: changing ocr timeout from ${c.getTimeout} sec, to $timeout sec")
+  	  log.info(s"context: changing ocr timeout from ${c.getTimeout} sec to $timeout sec")
   	  c.setTimeout(timeout)
   	  c
 	  }
@@ -128,7 +128,7 @@ object TikaUtil {
   /** convert from Tika data struct to ours, add language metadata, with a little metadata filtering and cleaning */
   def toEmbedded(fileName: String)(m: Metadata): Embedded = {
     // we pull X-TIKA:content out of metadata and exclude some metadata from images that is large and not likely to be useful to us
-    val largeNotUseful = Set("X-TIKA:content", "Chroma Palette PaletteEntry", "LocalColorTable ColorTableEntry", "Strip Byte Counts", "Strip Offsets", "PLTE PLTEEntry")
+    val largeNotUseful = Set("X-TIKA:content", "Chroma Palette PaletteEntry", "LocalColorTable ColorTableEntry", "Strip Byte Counts", "Strip Offsets", "PLTE PLTEEntry", "Blue TRC", "Green TRC", "Red TRC")
 
     val content = cleanText(fileName, Option(m.get("X-TIKA:content")))
     // TODO: if Spanish we should repeat the OCR  telling tesseract its Spanish or use -l eng+esp ?
