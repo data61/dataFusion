@@ -15,6 +15,7 @@ export LD_LIBRARY_PATH=${DFUS_DIR}/dataFusion-ner/MITIE-native # directory conta
 export NER_MITIE_ENGLISH_MODEL=${DFUS_DIR}/dataFusion-ner/MITIE-models/english/ner_model.dat
 # export NER_MITIE_SPANISH_MODEL=${DFUS_DIR}/dataFusion-ner/MITIE-models/spanish/ner_model.dat
 
+export SEARCH_SYNONYMS=${DFUS_DIR}/dataFusion-search/synonyms.txt
 export SEARCH_DOC_INDEX=${DFUS_DIR}/dataFusion-search/docIndex
 export SEARCH_META_INDEX=${DFUS_DIR}/dataFusion-search/metaIndex
 export SEARCH_NER_INDEX=${DFUS_DIR}/dataFusion-search/nerIndex

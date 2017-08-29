@@ -1,0 +1,5 @@
+# Grammar: https://lucene.apache.org/core/6_6_0/analyzers-common/index.html?org/apache/lucene/analysis/synonym/SolrSynonymParser.html
+# e.g.   i-pod, i pod => ipod
+
+proprietary => pty
+limited => ltd

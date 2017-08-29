@@ -24,6 +24,14 @@ import LuceneUtil.tokenIter
 import au.csiro.data61.dataFusion.common.Timer
 import spray.json.{ pimpAny, pimpString }
 import spray.json.DefaultJsonProtocol, DefaultJsonProtocol._
+import org.apache.lucene.analysis.synonym.SynonymGraphFilter
+import org.apache.lucene.analysis.synonym.SolrSynonymParser
+import java.io.FileReader
+import org.apache.lucene.analysis.synonym.SynonymMap
+import java.io.InputStreamReader
+import java.io.FileInputStream
+import java.nio.charset.Charset
+import org.apache.lucene.analysis.core.FlattenGraphFilter
 
 
 
@@ -33,6 +41,7 @@ import spray.json.DefaultJsonProtocol, DefaultJsonProtocol._
 object DataFusionLucene {
   private val log = Logger(getClass)
   
+  val utf8 = Charset.forName("UTF-8")
   val conf = ConfigFactory.load.getConfig("search")
   
   val Seq(docIndex, metaIndex, nerIndex) = 
@@ -66,15 +75,43 @@ object DataFusionLucene {
   val F_TYP = "typ"
   val F_IMPL = "impl"
   
-  // searching for names, we don't want stop words or stemming
+  /** Create SynonymMap by reading a file in Solr synonym format.
+   *  See: https://lucene.apache.org/core/6_6_0/analyzers-common/org/apache/lucene/analysis/synonym/SolrSynonymParser.html
+   */
+  val synonyms = {
+    val synAnalyzer = new Analyzer {
+      override protected def createComponents(fieldName: String): TokenStreamComponents = {
+        val src = new StandardTokenizer
+        val lcf = new LowerCaseFilter(src)
+        new TokenStreamComponents(src, lcf) 
+      }
+    }
+    val parser = new SolrSynonymParser(true, false, synAnalyzer); // bools are dedup, expand
+    parser.parse(new InputStreamReader(new FileInputStream(conf.getString("synonyms")), utf8))
+    parser.build
+  }
+  
+  // for metadata values & named entity mention text, we don't want stop words or stemming, just lower casing
   val lowerAnalyzer = new Analyzer {
     override protected def createComponents(fieldName: String): TokenStreamComponents = {
       val src = new StandardTokenizer
-      new TokenStreamComponents(src, new LowerCaseFilter(src)) 
+      val f1 = new LowerCaseFilter(src)
+      new TokenStreamComponents(src, f1)
+    }
+  }
+  // for doc content, we don't want stop words or stemming, just lower casing and synonyms
+  // TODO: may need another version without FlattenGraphFilter for queries?
+  val synonymAnalyzer = new Analyzer {
+    override protected def createComponents(fieldName: String): TokenStreamComponents = {
+      val src = new StandardTokenizer
+      val f1 = new LowerCaseFilter(src)
+      val f2 = new SynonymGraphFilter(f1, synonyms, false)
+      val f3 = new FlattenGraphFilter(f2)
+      new TokenStreamComponents(src, f3)
     }
   }
   val kwAnalyzer = new KeywordAnalyzer
-  val analyzer = new PerFieldAnalyzerWrapper(kwAnalyzer, Map(F_CONTENT -> lowerAnalyzer, F_VAL -> lowerAnalyzer, F_TEXT -> lowerAnalyzer).asJava)
+  val analyzer = new PerFieldAnalyzerWrapper(kwAnalyzer, Map(F_CONTENT -> synonymAnalyzer, F_VAL -> lowerAnalyzer, F_TEXT -> lowerAnalyzer).asJava)
     
   object DFIndexing {
     val indexedKeywordType = {
