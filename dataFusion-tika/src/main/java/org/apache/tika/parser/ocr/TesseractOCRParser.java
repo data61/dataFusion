@@ -341,7 +341,7 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
             } catch(Exception e) {	
             	String err = outputStream.toString("UTF-8").trim();
             	if (err.length() > 0 && metadata != null) metadata.set("X-TIKA:Skew-Error", err);
-            	LOG.error("Can't run rotation.py to determine skew. Python said: " + err, e);
+            	LOG.error("Can't run rotation.py to determine skew, so assume zero skew. Python said: " + err, e);
             }
             t.stop();
             pythonTime.addAndGet(t.elapsedSecs());
@@ -363,7 +363,7 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
 		} catch(Exception e) {
 			String err = outputStream.toString("UTF-8").trim();
 			if (metadata != null) metadata.set("X-TIKA:ImageMagick-Error", err);
-			LOG.error("Can't run ImageMagick. ImageMagick said: " + err, e);
+			LOG.error("ImageMagick failed so OCR orig image. ImageMagick said: " + err, e);
 		} 
 		t.stop();
 		imageMagickTime.addAndGet(t.elapsedSecs());
@@ -528,7 +528,7 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
         	t.stop();
         	tesseractTime.addAndGet(t.elapsedSecs());
         	Long n = count.incrementAndGet();
-        	if (n % 10 == 0) LOG.info("doOCR: OCR count = {}, Python {} secs, ImageMagick {} secs, Tesseract {} secs", new Object[]{n, pythonTime.get(), imageMagickTime.get(), tesseractTime.get()});
+        	LOG.info("doOCR: OCR count = {}, Python {} secs, ImageMagick {} secs, Tesseract {} secs", new Object[]{n, pythonTime.get(), imageMagickTime.get(), tesseractTime.get()});
         }
     }
 
