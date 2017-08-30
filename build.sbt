@@ -67,14 +67,14 @@ lazy val tikaService = (project in file("dataFusion-tika-service")).
   dependsOn(tika).
   settings(commonSettings: _*)
   
-// lazy val db = (project in file("dataFusion-db")).
-//   dependsOn(common).
-//   settings(commonSettings: _*)
-// 
-// lazy val dbService = (project in file("dataFusion-db-service")).
-//   dependsOn(common).
-//   dependsOn(db).
-//   settings(commonSettings: _*)
+lazy val db = (project in file("dataFusion-db")).
+  dependsOn(common).
+  settings(commonSettings: _*)
+
+lazy val dbService = (project in file("dataFusion-db-service")).
+  dependsOn(common).
+  dependsOn(db).
+  settings(commonSettings: _*)
 
 lazy val graphService = (project in file("dataFusion-graph-service")).
   dependsOn(common).

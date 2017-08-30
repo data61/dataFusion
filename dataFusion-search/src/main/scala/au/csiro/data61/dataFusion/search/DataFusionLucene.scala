@@ -347,60 +347,7 @@ object DataFusionLucene {
         // Scoring is fast enough: scoring took 0.462 sec, searching took 113.58 sec
         PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.query, q.clnt_intrnl_id)
       }
-      
-//      /**
-//       * Lucene includes a length normalisation, so one mention in a short doc scores more than one mention in a long doc.
-//       * We don't want this, so try using just IDF above.
-//       */
-//      def searchSpansLuceneScore(searcher: IndexSearcher, lq: SpanNearQuery, q: PosQuery, numTerms: Int) = {
-//        val timer = Timer()
-//        val weight = lq.createWeight(searcher, true) // needsScores
-//        val collector = new MySpanCollector
-//        val hits = (for {
-//          lrc <- searcher.getIndexReader.getContext.leaves.asScala
-//          spans <- Option(weight.getSpans(lrc, SpanWeight.Postings.OFFSETS)).toList
-//          // scoring code modified from org.apache.lucene.search.spans.SpanScorer
-//          docScorer = weight.getSimScorer(lrc)
-//          docId <- Iterator.continually(spans.nextDoc).takeWhile(_ !=  DocIdSetIterator.NO_MORE_DOCS)
-//          doc = ldoc(lrc.reader.document(docId)) // docId relative to lrc, not searcher.getIndexReader
-//          posns = Iterator.continually(spans.nextStartPosition).takeWhile(_ !=  Spans.NO_MORE_POSITIONS).map { _ =>
-//            val freq = docScorer.computeSlopFactor(spans.width)
-//            val score = docScorer.score(docId, freq)
-//            log.debug(s"provide scores: docId = $docId, width = ${spans.width}, freq = $freq, score = $score")
-//            collector.reset
-//            spans.collect(collector)
-//            collector.posInfo(score, doc.content)
-//          }.filter(p => p.posEnd - p.posStr == numTerms).toList
-//          // TODO: handle duplicate terms in query - same num terms in query and match
-//          // e.g. search for "Aaron H Aaron" cannot match "H Aaron"
-//          // is this good enough? what about "H H H"?
-//        } yield LPosDoc(doc.docId, doc.embIdx, posns, doc.path)).filter(_.posInfos.nonEmpty).toList
-//        PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.query, q.clnt_intrnl_id)
-//      }
-  
-      /** TODO: posInfo.score always set to 1.0. Is it faster without scoring? */
-//      def searchSpansNoScore(searcher: IndexSearcher, lq: SpanNearQuery, q: PosQuery, numTerms: Int) = {
-//        val timer = Timer()
-//        val weight = lq.createWeight(searcher, false) // not needsScores
-//        val collector = new MySpanCollector
-//        val hits = (for {
-//          lrc <- searcher.getIndexReader.getContext.leaves.asScala
-//          spans <- Option(weight.getSpans(lrc, SpanWeight.Postings.OFFSETS)).toList
-//          docId <- Iterator.continually(spans.nextDoc).takeWhile(_ !=  DocIdSetIterator.NO_MORE_DOCS)
-//          doc = ldoc(lrc.reader.document(docId)) // docId relative to lrc, not searcher.getIndexReader
-//          posns = Iterator.continually(spans.nextStartPosition).takeWhile(_ !=  Spans.NO_MORE_POSITIONS)
-//            .map { _ =>
-//              collector.reset
-//              spans.collect(collector)
-//              collector.posInfo(1.0f, doc.content)
-//            }.filter(p => p.posEnd - p.posStr == numTerms).toList
-//            // TODO: handle duplicate terms in query - same num terms in query and match
-//            // e.g. search for "Aaron H Aaron" cannot match "H Aaron"
-//            // is this good enough? what about "H H H"?
-//        } yield LPosDoc(doc.docId, doc.embIdx, posns, doc.path)).filter(_.posInfos.nonEmpty).toList
-//        PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.query, q.clnt_intrnl_id)
-//      }
-      
+            
     }
   
     object MetaSearch {

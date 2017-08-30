@@ -1,13 +1,13 @@
 <configuration>
 
-<!--   <appender name="CONS" class="ch.qos.logback.core.ConsoleAppender"> -->
-<!--     <encoder> -->
-<!--       <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern> -->
-<!--     </encoder> -->
-<!--   </appender> -->
+  <appender name="CONS" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
   
   <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-    <file>search.log</file>
+    <file>db.log</file>
     <encoder>
       <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
     </encoder>
@@ -16,6 +16,6 @@
 <!--   <logger name="au.csiro.data61" level="DEBUG" /> -->
   
   <root level="INFO">
-    <appender-ref ref="FILE" />
+    <appender-ref ref="CONS" />
   </root>
 </configuration>

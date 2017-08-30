@@ -197,9 +197,6 @@ object TikaUtil {
    *  Case where it opens `in` more than once: if there is an exception from parsing an Excel spreadsheet
    *  we convert it to Open Document Spreadsheet format and parse that instead (because the OpenOffice
    *  conversion often succeeds on Excel files that Tika cannot parse).
-   *  Tesseract OCR of scanned PDFs gets text from different lines mixed up if there is too much skew.
-   *  TODO: Pre-processing to descew images can greatly improve OCR results. Is it needed?
-   *  ocrmypdf does descrew but timeouts on tesseract 4, perhaps due to old versions of ghostscript in ubuntu repo.
    */
   def tika(inCtor: => InputStream, fileName: String, id: Long): Try[Doc] = {
     
