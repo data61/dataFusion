@@ -20,7 +20,7 @@ import org.apache.tika.parser.ocr.TesseractOCRParser
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(startId: Long, numWorkers: Int, ocrImagePreprocess: Boolean, ocrImageDeskew: Boolean)
+  case class CliOption(startId: Long, numWorkers: Int, ocrImagePreprocess: Boolean, ocrImageDeskew: Boolean, ocrTimeout: Int, ocrResize: Int, ocrPreserveInterwordSpacing: Boolean)
   
   /**
    * if path starts with "http:" use HTTP GET else read local file.
@@ -35,6 +35,9 @@ object Main {
     
     TesseractOCRParser.ocrImagePreprocess = cliOption.ocrImagePreprocess
     TesseractOCRParser.ocrImageDeskew = cliOption.ocrImageDeskew
+    TesseractOCRParser.ocrTimeout = cliOption.ocrTimeout
+    TesseractOCRParser.ocrResize = cliOption.ocrResize
+    TesseractOCRParser.ocrPreserveInterwordSpacing = cliOption.ocrPreserveInterwordSpacing
             
     // identify path for which runtime is long, perhaps infinite, so we can add it to black list next run
     val inProgress = TrieMap.empty[String, Long] // path -> start time
@@ -99,23 +102,32 @@ object Main {
     System.setProperty("sun.java2d.cmm", "sun.java2d.cmm.kcms.KcmsServiceProvider")
     System.setProperty("org.apache.pdfbox.rendering.UsePureJavaCMYKConversion", "true")
     
-    val defaultCliOption = CliOption(0L, Runtime.getRuntime.availableProcessors, true, false)
+    val defaultCliOption = CliOption(0L, Runtime.getRuntime.availableProcessors, true, false, 300, 200, true)
 
     val parser = new scopt.OptionParser[CliOption]("dataFusion-tika") {
       head("dataFusion-tika", "0.x")
       note("Tika text and metadata extraction CLI. Stdin contains local file paths or http URL's, one per line.")
-      opt[Long]('i', "startId") action { (v, c) =>
+      opt[Long]("startId") action { (v, c) =>
         c.copy(startId = v)
       } text (s"id's allocated incrementally starting with this value, (default ${defaultCliOption.startId})")
-      opt[Int]('w', "numWorkers") action { (v, c) =>
+      opt[Int]("numWorkers") action { (v, c) =>
         c.copy(numWorkers = v)
       } text (s"numWorkers, (default ${defaultCliOption.numWorkers} the number of CPUs)")
-      opt[Boolean]('p', "ocrImagePreprocess") action { (v, c) =>
+      opt[Boolean]("ocrImagePreprocess") action { (v, c) =>
         c.copy(ocrImagePreprocess = v)
       } text (s"whether to preprocess images with ImageMagik prior to OCR, (default ${defaultCliOption.ocrImagePreprocess})")
-      opt[Boolean]('p', "ocrImageDescew") action { (v, c) =>
+      opt[Boolean]("ocrImageDeskew") action { (v, c) =>
         c.copy(ocrImageDeskew = v)
-      } text (s"whether to determine image scew using rotation.py so ImageMagik can descew, (default ${defaultCliOption.ocrImageDeskew})")
+      } text (s"whether to determine image skew using rotation.py so ImageMagik can deskew, (default ${defaultCliOption.ocrImageDeskew})")
+      opt[Int]("ocrTimeout") action { (v, c) =>
+        c.copy(ocrTimeout = v)
+      } text (s"ocr timeout secs, (default ${defaultCliOption.ocrTimeout})")
+      opt[Int]("ocrResize") action { (v, c) =>
+        c.copy(ocrResize = v)
+      } text (s"resize image to ocrResize% of original prior to OCR, (default ${defaultCliOption.ocrResize})")
+      opt[Boolean]("ocrPreserveInterwordSpacing") action { (v, c) =>
+        c.copy(ocrPreserveInterwordSpacing = v)
+      } text (s"whether OCR should preserve interword spacing, (default ${defaultCliOption.ocrPreserveInterwordSpacing})")
       help("help") text ("prints this usage text")
     }
     

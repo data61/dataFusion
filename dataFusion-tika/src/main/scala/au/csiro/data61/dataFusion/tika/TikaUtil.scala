@@ -72,24 +72,9 @@ object TikaUtil {
   }
   
 	val context = {
-	  val ocrConf = { 
-	    val c = new TesseractOCRConfig
-	    val timeout = conf.getInt("tika.timeout")
-  	  log.info(s"context: changing ocr timeout from ${c.getTimeout} sec to $timeout sec")
-  	  c.setTimeout(timeout)
-  	  c
-	  }
-	  val pdfConf = {
-	    val c = new PDFParserConfig
-	    // TODO: add command line overrides for tika options?
-//	    c.setExtractInlineImages(false)
-//	    c.setSortByPosition(true)
-//	    c.setOcrStrategy(OCR_STRATEGY.NO_OCR)
-	    c
-	  }
 	  val c = new ParseContext
-    c.set(classOf[TesseractOCRConfig], ocrConf)
-    c.set(classOf[PDFParserConfig], pdfConf)
+    c.set(classOf[TesseractOCRConfig], new TesseractOCRConfig)
+    c.set(classOf[PDFParserConfig], new PDFParserConfig)
 	  c
 	}
     

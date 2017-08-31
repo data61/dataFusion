@@ -117,6 +117,9 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
     // these are set by dataFusion-tika{,-service} Main from command line options
     public static boolean ocrImagePreprocess = true;
     public static boolean ocrImageDeskew = true;
+    public static int ocrTimeout = 300;
+    public static int ocrResize = 200;
+    public static boolean ocrPreserveInterwordSpacing = true;
     
     // timing
     private static AtomicLong count = new AtomicLong();
@@ -227,6 +230,9 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
     public void parse(InputStream stream, ContentHandler handler, Metadata metadata, ParseContext parseContext)
             throws IOException, SAXException, TikaException {
         TesseractOCRConfig config = parseContext.get(TesseractOCRConfig.class, DEFAULT_CONFIG);
+        config.setTimeout(ocrTimeout);
+        config.setResize(ocrResize);
+        config.setPreserveInterwordSpacing(ocrPreserveInterwordSpacing);
         // If Tesseract is not on the path with the current config, do not try to run OCR
         // getSupportedTypes shouldn't have listed us as handling it, so this should only
         //  occur if someone directly calls this parser, not via DefaultParser or similar
@@ -341,7 +347,7 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
             } catch(Exception e) {	
             	String err = outputStream.toString("UTF-8").trim();
             	if (err.length() > 0 && metadata != null) metadata.set("X-TIKA:Skew-Error", err);
-            	LOG.error("Can't run rotation.py to determine skew, so assume zero skew. Python said: " + err, e);
+            	LOG.warn("Can't run rotation.py to determine skew, so assume zero skew. Python said: " + err, e);
             }
             t.stop();
             pythonTime.addAndGet(t.elapsedSecs());
@@ -363,7 +369,7 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
 		} catch(Exception e) {
 			String err = outputStream.toString("UTF-8").trim();
 			if (metadata != null) metadata.set("X-TIKA:ImageMagick-Error", err);
-			LOG.error("ImageMagick failed so OCR orig image. ImageMagick said: " + err, e);
+			LOG.warn("ImageMagick failed so OCR orig image. ImageMagick said: " + err, e);
 		} 
 		t.stop();
 		imageMagickTime.addAndGet(t.elapsedSecs());
