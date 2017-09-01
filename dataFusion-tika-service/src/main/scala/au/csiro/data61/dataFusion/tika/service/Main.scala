@@ -31,6 +31,7 @@ import javax.ws.rs.{ Consumes, Path, QueryParam }
 import resource.managed
 import java.util.concurrent.atomic.AtomicLong
 import org.apache.tika.parser.ocr.TesseractOCRParser
+import au.csiro.data61.dataFusion.tika.Main.CliOption
 
 object Main {
   private val log = Logger(getClass)
@@ -38,7 +39,7 @@ object Main {
   @Api(value = "tika", description = "tika service", produces = "application/json")
   @Path("")
   class TikaService(cliOption: CliOption)(implicit materializer: Materializer, val executionContext: ExecutionContext)  {
-
+    val tikaUtil = new TikaUtil(cliOption)
     val id = new AtomicLong(cliOption.startId)  
     
 //    // isn't getting executed
@@ -85,7 +86,7 @@ object Main {
       data: Array[Byte]
     ): Try[Doc] = {
       log.debug(s"tika: path = $path, data size = ${data.size}")
-      val d = TikaUtil.tika(new ByteArrayInputStream(data), path, id.getAndIncrement) // stream opened/closed in parseTextMeta
+      val d = tikaUtil.tika(new ByteArrayInputStream(data), path, id.getAndIncrement) // stream opened/closed in parseTextMeta
       log.info(s"TikaService: next id would be ${id.get}")
       d
     }
@@ -141,27 +142,41 @@ Test with:
 """)
   }
   
-  case class CliOption(startId: Long, ocrImagePreprocess: Boolean, ocrImageDeskew: Boolean)
-  
   def main(args: Array[String]): Unit = {
     // https://pdfbox.apache.org/2.0/migration.html#pdf-rendering
     System.setProperty("sun.java2d.cmm", "sun.java2d.cmm.kcms.KcmsServiceProvider")
     System.setProperty("org.apache.pdfbox.rendering.UsePureJavaCMYKConversion", "true")
     
-    val defaultCliOption = CliOption(0L, true, false)
+    val defaultCliOption = CliOption(0L, Runtime.getRuntime.availableProcessors, "no_ocr", true, true, false, 300, 200, true)
 
     val parser = new scopt.OptionParser[CliOption]("dataFusion-tika-service") {
       head("dataFusion-tika-service", "0.x")
       note("Tika text and metadata extraction web service.")
-      opt[Long]('i', "startId") action { (v, c) =>
+      opt[Long]("startId") action { (v, c) =>
         c.copy(startId = v)
       } text (s"id's allocated incrementally starting with this value, (default ${defaultCliOption.startId})")
-      opt[Boolean]('p', "ocrImagePreprocess") action { (v, c) =>
+      // CliOption.numWorkers not used
+      opt[String]("pdfOcrStrategy") action { (v, c) =>
+        c.copy(pdfOcrStrategy = v)
+      } text (s"pdfOcrStrategy = no_ocr|ocr_only|ocr_and_text, (default ${defaultCliOption.pdfOcrStrategy}). no_ocr means use the text in the PDF, but still OCR embedded images. ocr_only means render the whole page (text and images) as an image and OCR that, otherwise ignoring the text in the PDF.")
+      opt[Boolean]("pdfExtractInlineImages") action { (v, c) =>
+        c.copy(pdfExtractInlineImages = v)
+      } text (s"whether to extract and OCR inline images in PDF, (default ${defaultCliOption.pdfExtractInlineImages})")
+      opt[Boolean]("ocrImagePreprocess") action { (v, c) =>
         c.copy(ocrImagePreprocess = v)
       } text (s"whether to preprocess images with ImageMagik prior to OCR, (default ${defaultCliOption.ocrImagePreprocess})")
-      opt[Boolean]('p', "ocrImageDescew") action { (v, c) =>
+      opt[Boolean]("ocrImageDeskew") action { (v, c) =>
         c.copy(ocrImageDeskew = v)
-      } text (s"whether to determine image scew using rotation.py so ImageMagik can descew, (default ${defaultCliOption.ocrImageDeskew})")
+      } text (s"whether to determine image skew using rotation.py so ImageMagik can deskew (can be very slow, default ${defaultCliOption.ocrImageDeskew})")
+      opt[Int]("ocrTimeout") action { (v, c) =>
+        c.copy(ocrTimeout = v)
+      } text (s"ocr timeout secs, (default ${defaultCliOption.ocrTimeout})")
+      opt[Int]("ocrResize") action { (v, c) =>
+        c.copy(ocrResize = v)
+      } text (s"resize image to ocrResize% of original prior to OCR (too large can be very slow, default ${defaultCliOption.ocrResize})")
+      opt[Boolean]("ocrPreserveInterwordSpacing") action { (v, c) =>
+        c.copy(ocrPreserveInterwordSpacing = v)
+      } text (s"whether OCR should preserve interword spacing, (default ${defaultCliOption.ocrPreserveInterwordSpacing})")
       help("help") text ("prints this usage text")
     }
     

@@ -20,8 +20,6 @@ import org.apache.tika.parser.ocr.TesseractOCRParser
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(startId: Long, numWorkers: Int, ocrImagePreprocess: Boolean, ocrImageDeskew: Boolean, ocrTimeout: Int, ocrResize: Int, ocrPreserveInterwordSpacing: Boolean)
-  
   /**
    * if path starts with "http:" use HTTP GET else read local file.
    */
@@ -33,11 +31,7 @@ object Main {
   def cliTika(cliOption: CliOption) = {
     import scala.io.Source
     
-    TesseractOCRParser.ocrImagePreprocess = cliOption.ocrImagePreprocess
-    TesseractOCRParser.ocrImageDeskew = cliOption.ocrImageDeskew
-    TesseractOCRParser.ocrTimeout = cliOption.ocrTimeout
-    TesseractOCRParser.ocrResize = cliOption.ocrResize
-    TesseractOCRParser.ocrPreserveInterwordSpacing = cliOption.ocrPreserveInterwordSpacing
+    val tikaUtil = new TikaUtil(cliOption)
             
     // identify path for which runtime is long, perhaps infinite, so we can add it to black list next run
     val inProgress = TrieMap.empty[String, Long] // path -> start time
@@ -80,7 +74,7 @@ object Main {
       def work(pathIdx: (String, Long)): Try[Doc] = {
         val path = pathIdx._1
         inProgress += path -> System.currentTimeMillis
-        val d = TikaUtil.tika(inputStream(path), path, pathIdx._2) // stream opened/closed in parseTextMeta
+        val d = tikaUtil.tika(inputStream(path), path, pathIdx._2) // stream opened/closed in parseTextMeta
         inProgress.remove(path)
         d
       }
@@ -97,12 +91,14 @@ object Main {
     // logThread.join // not necessary with daemon thread, can take up to 1 min to wake up
   }
   
+  case class CliOption(startId: Long, numWorkers: Int, pdfOcrStrategy: String, pdfExtractInlineImages: Boolean, ocrImagePreprocess: Boolean, ocrImageDeskew: Boolean, ocrTimeout: Int, ocrResize: Int, ocrPreserveInterwordSpacing: Boolean)
+  
   def main(args: Array[String]): Unit = {
     // https://pdfbox.apache.org/2.0/migration.html#pdf-rendering
     System.setProperty("sun.java2d.cmm", "sun.java2d.cmm.kcms.KcmsServiceProvider")
     System.setProperty("org.apache.pdfbox.rendering.UsePureJavaCMYKConversion", "true")
     
-    val defaultCliOption = CliOption(0L, Runtime.getRuntime.availableProcessors, true, false, 300, 200, true)
+    val defaultCliOption = CliOption(0L, Runtime.getRuntime.availableProcessors, "no_ocr", true, true, false, 300, 200, true)
 
     val parser = new scopt.OptionParser[CliOption]("dataFusion-tika") {
       head("dataFusion-tika", "0.x")
@@ -113,18 +109,24 @@ object Main {
       opt[Int]("numWorkers") action { (v, c) =>
         c.copy(numWorkers = v)
       } text (s"numWorkers, (default ${defaultCliOption.numWorkers} the number of CPUs)")
+      opt[String]("pdfOcrStrategy") action { (v, c) =>
+        c.copy(pdfOcrStrategy = v)
+      } text (s"pdfOcrStrategy = no_ocr|ocr_only|ocr_and_text, (default ${defaultCliOption.pdfOcrStrategy}). no_ocr means use the text in the PDF, but still OCR embedded images. ocr_only means render the whole page (text and images) as an image and OCR that, otherwise ignoring the text in the PDF.")
+      opt[Boolean]("pdfExtractInlineImages") action { (v, c) =>
+        c.copy(pdfExtractInlineImages = v)
+      } text (s"whether to extract and OCR inline images in PDF, (default ${defaultCliOption.pdfExtractInlineImages})")
       opt[Boolean]("ocrImagePreprocess") action { (v, c) =>
         c.copy(ocrImagePreprocess = v)
       } text (s"whether to preprocess images with ImageMagik prior to OCR, (default ${defaultCliOption.ocrImagePreprocess})")
       opt[Boolean]("ocrImageDeskew") action { (v, c) =>
         c.copy(ocrImageDeskew = v)
-      } text (s"whether to determine image skew using rotation.py so ImageMagik can deskew, (default ${defaultCliOption.ocrImageDeskew})")
+      } text (s"whether to determine image skew using rotation.py so ImageMagik can deskew (can be very slow, default ${defaultCliOption.ocrImageDeskew})")
       opt[Int]("ocrTimeout") action { (v, c) =>
         c.copy(ocrTimeout = v)
       } text (s"ocr timeout secs, (default ${defaultCliOption.ocrTimeout})")
       opt[Int]("ocrResize") action { (v, c) =>
         c.copy(ocrResize = v)
-      } text (s"resize image to ocrResize% of original prior to OCR, (default ${defaultCliOption.ocrResize})")
+      } text (s"resize image to ocrResize% of original prior to OCR (too large can be very slow, default ${defaultCliOption.ocrResize})")
       opt[Boolean]("ocrPreserveInterwordSpacing") action { (v, c) =>
         c.copy(ocrPreserveInterwordSpacing = v)
       } text (s"whether OCR should preserve interword spacing, (default ${defaultCliOption.ocrPreserveInterwordSpacing})")

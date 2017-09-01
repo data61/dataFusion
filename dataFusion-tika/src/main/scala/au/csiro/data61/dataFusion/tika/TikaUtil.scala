@@ -35,12 +35,21 @@ import java.io.FileInputStream
 import java.io.FileNotFoundException
 import scala.collection.mutable.Buffer
 import scala.collection.mutable.ListBuffer
+import au.csiro.data61.dataFusion.tika.Main.CliOption
+import org.apache.tika.parser.ocr.TesseractOCRParser
 
-object TikaUtil {
+class TikaUtil(cliOption: CliOption) {
   private val log = Logger(getClass)
 
   val conf = ConfigFactory.load
   
+  // TesseractOCRParser modified to override its config with these values
+  TesseractOCRParser.ocrImagePreprocess = cliOption.ocrImagePreprocess
+  TesseractOCRParser.ocrImageDeskew = cliOption.ocrImageDeskew
+  TesseractOCRParser.ocrTimeout = cliOption.ocrTimeout
+  TesseractOCRParser.ocrResize = cliOption.ocrResize
+  TesseractOCRParser.ocrPreserveInterwordSpacing = cliOption.ocrPreserveInterwordSpacing
+    
   // modified from org.apache.tika.server.resource.TikaResource
   def createParser: AutoDetectParser = {
     val p = new AutoDetectParser(TikaConfig.getDefaultConfig)
@@ -74,7 +83,12 @@ object TikaUtil {
 	val context = {
 	  val c = new ParseContext
     c.set(classOf[TesseractOCRConfig], new TesseractOCRConfig)
-    c.set(classOf[PDFParserConfig], new PDFParserConfig)
+    c.set(classOf[PDFParserConfig], {
+      val p = new PDFParserConfig
+      p.setOcrStrategy(cliOption.pdfOcrStrategy)
+      p.setExtractInlineImages(cliOption.pdfExtractInlineImages)
+      p
+    })
 	  c
 	}
     
