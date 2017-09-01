@@ -156,11 +156,13 @@ object Main {
         }
       }
       
-      def work(d: Doc): Try[Doc] =  {
+      def work(d: Doc): Doc =  {
         inProgress += d.path -> System.currentTimeMillis
-        val o = Try(impl.langNer(d))
-        inProgress.remove(d.path)
-        o
+        try {
+          impl.langNer(d)
+        } finally {
+          inProgress.remove(d.path)
+        }
       }
       
       def out(d: Doc): Unit = {

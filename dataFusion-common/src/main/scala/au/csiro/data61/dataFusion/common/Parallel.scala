@@ -14,7 +14,7 @@ object Parallel {
    * One thread does `out`,
    * `numWorkers` threads do `work`.
    */
-  def doParallel[I, O](in: Iterator[I], work: I => Try[O], out: O => Unit, inDone: I, outDone: O, numWorkers: Int) = {
+  def doParallel[I, O](in: Iterator[I], work: I => O, out: O => Unit, inDone: I, outDone: O, numWorkers: Int) = {
     val qFactor = 10
     val qSize = numWorkers * qFactor
     val iq = new ArrayBlockingQueue[I](qSize)
@@ -40,7 +40,7 @@ object Parallel {
     
     val workers = (0 until numWorkers).map { i => new Thread {
       override def run = {
-        Iterator.continually(iq.take) takeWhile(_ != inDone) foreach { i => oq.put(work(i)) }
+        Iterator.continually(iq.take) takeWhile(_ != inDone) foreach { i => oq.put(Try{ work(i) }) }
         iq.put(inDone) // tell another worker
       }        
     } }

@@ -71,7 +71,7 @@ object Main {
         x
       }
       
-      def work(pathIdx: (String, Long)): Try[Doc] = {
+      def work(pathIdx: (String, Long)): Doc = {
         val path = pathIdx._1
         inProgress += path -> System.currentTimeMillis
         val d = tikaUtil.tika(inputStream(path), path, pathIdx._2) // stream opened/closed in parseTextMeta
@@ -92,14 +92,20 @@ object Main {
   }
   
   case class CliOption(startId: Long, numWorkers: Int, pdfOcrStrategy: String, pdfExtractInlineImages: Boolean, ocrImagePreprocess: Boolean, ocrImageDeskew: Boolean, ocrTimeout: Int, ocrResize: Int, ocrPreserveInterwordSpacing: Boolean)
-  
-  def main(args: Array[String]): Unit = {
+  val defaultCliOption = CliOption(0L, Runtime.getRuntime.availableProcessors, "no_ocr", true, true, false, 300, 200, true)
+
+  def initSystemProperties: Unit = {
     // https://pdfbox.apache.org/2.0/migration.html#pdf-rendering
     System.setProperty("sun.java2d.cmm", "sun.java2d.cmm.kcms.KcmsServiceProvider")
     System.setProperty("org.apache.pdfbox.rendering.UsePureJavaCMYKConversion", "true")
-    
-    val defaultCliOption = CliOption(0L, Runtime.getRuntime.availableProcessors, "no_ocr", true, true, false, 300, 200, true)
 
+    // On CentOS had: java.lang.NoClassDefFoundError: Could not initialize class sun.awt.X11GraphicsEnvironment
+    System.setProperty("java.awt.headless", "true")
+  }
+  
+  def main(args: Array[String]): Unit = {
+    initSystemProperties
+    
     val parser = new scopt.OptionParser[CliOption]("dataFusion-tika") {
       head("dataFusion-tika", "0.x")
       note("Tika text and metadata extraction CLI. Stdin contains local file paths or http URL's, one per line.")

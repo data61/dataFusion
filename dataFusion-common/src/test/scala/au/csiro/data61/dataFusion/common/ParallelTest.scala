@@ -12,7 +12,7 @@ class ParallelTest extends FlatSpec with Matchers {
 
   "Threads" should "do stuff in parallel" in {
     val l = ListBuffer[String]()
-    Parallel.doParallel(Iterator.range(0, 1000).map(_.toString), (s: String) => Success(s), (s: String) => l += s, "done", "done", 4)
+    Parallel.doParallel(Iterator.range(0, 1000).map(_.toString), (s: String) => s, (s: String) => l += s, "done", "done", 4)
     l.size should be(1000)
     for {
       (a, b) <- l.map(_.toInt).sortBy(identity).zipWithIndex

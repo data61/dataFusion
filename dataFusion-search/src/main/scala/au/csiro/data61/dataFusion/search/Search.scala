@@ -114,7 +114,7 @@ object Search {
     
     for (w <- managed(new OutputStreamWriter(System.out, "UTF-8"))) {
       val in = Source.fromInputStream(System.in, "UTF-8").getLines.map(_.parseJson.convertTo[PosQuery])
-      def work(q: PosQuery): Try[PHits] = Try(PosDocSearcher.search(c.slop, c.posQuery, q))
+      def work(q: PosQuery): PHits = PosDocSearcher.search(c.slop, c.posQuery, q)
       def out(h: PHits): Unit = {
         w.write(h.toJson.compactPrint)
         w.write('\n')

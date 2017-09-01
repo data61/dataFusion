@@ -95,7 +95,7 @@ class TikaUtil(cliOption: CliOption) {
   /**
    * modified from  org.apache.tika.server.resource.RecursiveMetadataResource
    */
-  def parseMetadata(is: InputStream, fileName: String): Try[List[Metadata]] = Try {
+  def parseMetadata(is: InputStream, fileName: String): List[Metadata] = {
 		val metadata = new Metadata		
 		val parser = createParser
 		fillMetadata(parser, metadata, fileName)
@@ -143,16 +143,16 @@ class TikaUtil(cliOption: CliOption) {
   }
   
   /** parse `in` to produce a Doc */
-  def parseDoc(fileName: String, id: Long)(in: InputStream): Try[Doc] = parseMetadata(in, fileName).map { l =>
-    val (x :: xs) = l.map(toEmbedded(fileName)) 
+  def parseDoc(fileName: String, id: Long)(in: InputStream): Doc = {
+    val (x :: xs) = parseMetadata(in, fileName).map(toEmbedded(fileName))
     Doc(id, x.content, x.meta, fileName, List.empty, xs)
   }
     
   /** convert spreadsheet `in` to Open Document Spreadsheet format and parse that instead of `in` to produce a Doc
    *  (use after parsing original spreadsheet has failed)
    */
-  def convertAndParseDoc(inCtor: => InputStream, fileName: String, id: Long): Try[Doc] = {
-    val outFile = Try {
+  def convertAndParseDoc(inCtor: => InputStream, fileName: String, id: Long): Doc = {
+    val outFile = {
       import scala.sys.process._
       
       def dir(p: String) = {
@@ -174,7 +174,7 @@ class TikaUtil(cliOption: CliOption) {
       val outBuf = new ListBuffer[String]
       val errBuf = new ListBuffer[String]
       val env = "-env:UserInstallation=file:///$HOME/.libreoffice-headless/" // TODO: check LibreOffice version between 4.5 and 5.3
-      val exitCode = s"soffice $env --convert-to ods --outdir ${outDir} ${inFile}" ! ProcessLogger(outBuf +=, errBuf +=)
+      val exitCode = s"soffice $env --headless --convert-to ods --outdir ${outDir} ${inFile}" ! ProcessLogger(outBuf +=, errBuf +=)
       log.info(s"convertAndParseDoc: soffice exit code = $exitCode, stdout = ${outBuf.mkString("\n")}, stderr = ${errBuf.mkString("\n")}") // says 0 even on error
       inFile.delete
       val f = new File(outDir, s"${inFile.getName}.ods")
@@ -183,11 +183,9 @@ class TikaUtil(cliOption: CliOption) {
     }
     
     // run parse on outFile
-    outFile flatMap { f => 
-      val d = managed(new FileInputStream(f)) acquireAndGet parseDoc(fileName, id)
-      f.delete
-      d
-    }
+    val d = managed(new FileInputStream(outFile)) acquireAndGet parseDoc(fileName, id)
+    outFile.delete
+    d
   }
     
   /** run Tika to produce a Doc (Failure for unparsable input, timeout etc.)
@@ -197,23 +195,26 @@ class TikaUtil(cliOption: CliOption) {
    *  we convert it to Open Document Spreadsheet format and parse that instead (because the OpenOffice
    *  conversion often succeeds on Excel files that Tika cannot parse).
    */
-  def tika(inCtor: => InputStream, fileName: String, id: Long): Try[Doc] = {
-    
-    managed(inCtor) acquireAndGet parseDoc(fileName, id) recoverWith {
-      case e: TikaException =>
-        // Exceptions seen so far are:
-        //   org.apache.poi.hssf.record.RecordInputStream$LeftoverDataException:
-        //   Initialisation of record 0x23(ExternalNameRecord) left 22 bytes remaining still to be read.
-        // and:
-        //   org.apache.poi.hssf.record.RecordFormatException:
-        //   The content of an excel record cannot exceed 8224 bytes
-        // Closest common ancestor is java.lang.RuntimeException, hence matching on the package name ...
-        if (e.getCause.getClass.getName.startsWith("org.apache.poi.hssf.record")) {
-          log.warn(s"attempting recovery from POI exception on path: $fileName", e)
-          convertAndParseDoc(inCtor, fileName, id)
-        } else new Failure(e)
-    } recoverWith {
-      case NonFatal(e) => new Failure(new TikaException(s"error processing path: $fileName", e))
+  def tika(inCtor: => InputStream, fileName: String, id: Long): Doc = {
+    try {
+      try {
+        managed(inCtor) acquireAndGet parseDoc(fileName, id)
+      } catch {
+        case e: TikaException =>
+          // Exceptions seen so far are:
+          //   org.apache.poi.hssf.record.RecordInputStream$LeftoverDataException:
+          //   Initialisation of record 0x23(ExternalNameRecord) left 22 bytes remaining still to be read.
+          // and:
+          //   org.apache.poi.hssf.record.RecordFormatException:
+          //   The content of an excel record cannot exceed 8224 bytes
+          // Closest common ancestor is java.lang.RuntimeException, hence matching on the package name ...
+          if (e.getCause.getClass.getName.startsWith("org.apache.poi.hssf.record")) {
+            log.warn(s"attempting recovery from POI exception on path: $fileName", e)
+            convertAndParseDoc(inCtor, fileName, id)
+          } else throw e
+      }
+    } catch {
+      case NonFatal(e) => throw new TikaException(s"error processing path: $fileName", e)
     }
   }
 }

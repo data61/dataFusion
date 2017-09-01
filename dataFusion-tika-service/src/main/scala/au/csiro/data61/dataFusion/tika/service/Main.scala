@@ -31,7 +31,7 @@ import javax.ws.rs.{ Consumes, Path, QueryParam }
 import resource.managed
 import java.util.concurrent.atomic.AtomicLong
 import org.apache.tika.parser.ocr.TesseractOCRParser
-import au.csiro.data61.dataFusion.tika.Main.CliOption
+import au.csiro.data61.dataFusion.tika.Main.{ CliOption, defaultCliOption, initSystemProperties }
 
 object Main {
   private val log = Logger(getClass)
@@ -85,10 +85,7 @@ object Main {
       @ApiParam(value = "file name, may be used as a hint for the data format", required = true) @QueryParam("path") path: String, 
       data: Array[Byte]
     ): Try[Doc] = {
-      log.debug(s"tika: path = $path, data size = ${data.size}")
-      val d = tikaUtil.tika(new ByteArrayInputStream(data), path, id.getAndIncrement) // stream opened/closed in parseTextMeta
-      log.info(s"TikaService: next id would be ${id.get}")
-      d
+      Try { tikaUtil.tika(new ByteArrayInputStream(data), path, id.getAndIncrement) } // stream opened/closed in parseTextMeta
     }
     
     def tikaRoute = put { path("tika") { parameters("path") { path => { extractDataBytes { src =>
@@ -143,12 +140,8 @@ Test with:
   }
   
   def main(args: Array[String]): Unit = {
-    // https://pdfbox.apache.org/2.0/migration.html#pdf-rendering
-    System.setProperty("sun.java2d.cmm", "sun.java2d.cmm.kcms.KcmsServiceProvider")
-    System.setProperty("org.apache.pdfbox.rendering.UsePureJavaCMYKConversion", "true")
+    initSystemProperties
     
-    val defaultCliOption = CliOption(0L, Runtime.getRuntime.availableProcessors, "no_ocr", true, true, false, 300, 200, true)
-
     val parser = new scopt.OptionParser[CliOption]("dataFusion-tika-service") {
       head("dataFusion-tika-service", "0.x")
       note("Tika text and metadata extraction web service.")
