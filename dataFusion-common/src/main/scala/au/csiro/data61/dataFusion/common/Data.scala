@@ -13,6 +13,8 @@ object Data {
 
   /** metadata key for language code e.g. "en" or "es" */
   val META_LANG_CODE = "language-code"
+  val META_LANG_PROB = "language-prob"
+  val META_EN_SCORE = "english-score"
   
   case class Embedded(content: Option[String], meta: Map[String, String], ner: List[Ner])
   case class Doc(id: Long, content: Option[String], meta: Map[String, String], path: String, ner: List[Ner], embedded: List[Embedded])

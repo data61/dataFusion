@@ -38,6 +38,11 @@ import scala.collection.mutable.ListBuffer
 import au.csiro.data61.dataFusion.tika.Main.CliOption
 import org.apache.tika.parser.ocr.TesseractOCRParser
 
+object TikaUtil {
+  case class Feat(wordLike: Boolean, initCap: Boolean, endsDot: Boolean)
+}
+import TikaUtil.Feat
+
 class TikaUtil(cliOption: CliOption) {
   private val log = Logger(getClass)
 
@@ -131,15 +136,18 @@ class TikaUtil(cliOption: CliOption) {
 
     val content = cleanText(fileName, Option(m.get("X-TIKA:content")))
     // TODO: if Spanish we should repeat the OCR  telling tesseract its Spanish or use -l eng+esp ?
-    val langMeta = content.flatMap(LangDetect.lang).map(l => Map(META_LANG_CODE -> l.lang, "language-prob" -> l.prob.toString)).getOrElse(Map.empty)
+    val langMeta = content.toList.flatMap(c => {
+      (META_EN_SCORE -> englishScore(c).toString) +: 
+      LangDetect.lang(c).toList.flatMap(l => List(META_LANG_CODE -> l.lang, META_LANG_PROB -> l.prob.toString))
+    }).toMap
     
-    val meta = langMeta ++ (for {
+    val meta = for {
       key <- m.names.view if !largeNotUseful.contains(key)
       vs <- Option(m.getValues(key))
       v = vs.map(stripTrailingNull).mkString("; ") if v.nonEmpty
-    } yield key -> v)
+    } yield key -> v
     
-    Embedded(content, meta, List.empty)
+    Embedded(content, langMeta ++ meta, List.empty)
   }
   
   /** parse `in` to produce a Doc */
@@ -217,4 +225,55 @@ class TikaUtil(cliOption: CliOption) {
       case NonFatal(e) => throw new TikaException(s"error processing path: $fileName", e)
     }
   }
+  
+  // The next bit is about a metric for English text quality.
+  // Near enough is good enough, no need to handle voweless works like "sky" or apostrophes.  
+  
+  val word = """\S+""".r
+  val vowels = "AEIOUaeiou".toSet
+  val upper = ('A' to 'Z').toSet
+  val letter = upper ++ upper.map(Character.toLowerCase)
+  val punct = ",;:'\"!@#$%^&*()-_+=/[]{}.".toSet
+
+  def word2feat(w: String) = {
+    val numVowel = w.count(vowels contains _)
+    val numLetter = w.count(letter contains _)
+    val numUpper = w.count(upper contains _)
+    val startsPunct = punct contains w.head 
+    val endsPunct = punct contains w.last
+    val endsDot = w.endsWith(".")
+    val expectedLetters = w.length - (if (startsPunct) 1 else 0) - (if (endsPunct) 1 else 0)
+    val initCap = numUpper == 1 && (startsPunct && w.length > 1 && Character.isUpperCase(w(1))|| Character.isUpperCase(w.head))
+    val wordLike = w.length < 30 && numLetter == expectedLetters && (numUpper == 0 || initCap) && numVowel > 0
+    // log.debug(s"word2feat: numVowel = $numVowel, numLetter = $numLetter, numUpper = $numUpper, startsPunct = $startsPunct, endsPunct = $endsPunct, endsDot = $endsDot, initCap = $initCap, length = ${w.length}, expectedLetters = $expectedLetters, wordLike = $wordLike")
+    Feat(wordLike, initCap, endsDot)
+  }
+
+  def englishScore(text: String) = {
+    val feats = word.findAllIn(text).map(word2feat).toSeq
+    val numWords = feats.count(_.wordLike)
+    val wordScore = numWords.toDouble / feats.size // ratio
+    
+    // unit test with text from wikipedia is getting a very low sentenceScore, so disabled for now
+//    val numSentence = feats.sliding(2).count { case Seq(a, b) => a.wordLike && a.endsDot && b.wordLike && b.initCap }
+//    val avgSentenceLength = numWords.toDouble / numSentence
+//    // mean & stdev taken from http://hearle.nahoo.net/Academic/Maths/Sentence.html
+//    val slMean = 24.4
+//    val slStdev = 3.9
+//    // try chi squared: mean = k, sd^2 = 2k, k = 4, just want some distribution starting at 0 and with a long tail on the right
+//    val chiK = 4.0
+//    // scale to mean=0, stdev=1
+//    val x0 = (avgSentenceLength - slMean) / slStdev
+//    // scale to mean=k, stdev=sqrt(2k)
+//    val x1 = x0 * Math.sqrt(2.0 * chiK) + chiK
+//    val dist = new ChiSquaredDistribution(chiK)
+//    // max density for k=4 is a bit less than 0.2, so / 0.2 to normalize range to ~1 
+//    val sentenceScore = dist.density(Math.max(0.0, x1)) / 0.2
+//    
+//    log.debug(s"englishScore: numSentence = $numSentence, numWords = $numWords, x1 = $x1, wordScore = $wordScore, sentenceScore = $sentenceScore")
+//    wordScore * 0.7 + sentenceScore * 0.3
+    
+    wordScore
+  }
+
 }
