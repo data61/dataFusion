@@ -255,25 +255,17 @@ class TikaUtil(cliOption: CliOption) {
     val wordScore = numWords.toDouble / feats.size // ratio
     
     // unit test with text from wikipedia is getting a very low sentenceScore, so disabled for now
-//    val numSentence = feats.sliding(2).count { case Seq(a, b) => a.wordLike && a.endsDot && b.wordLike && b.initCap }
-//    val avgSentenceLength = numWords.toDouble / numSentence
-//    // mean & stdev taken from http://hearle.nahoo.net/Academic/Maths/Sentence.html
-//    val slMean = 24.4
-//    val slStdev = 3.9
-//    // try chi squared: mean = k, sd^2 = 2k, k = 4, just want some distribution starting at 0 and with a long tail on the right
-//    val chiK = 4.0
-//    // scale to mean=0, stdev=1
-//    val x0 = (avgSentenceLength - slMean) / slStdev
-//    // scale to mean=k, stdev=sqrt(2k)
-//    val x1 = x0 * Math.sqrt(2.0 * chiK) + chiK
-//    val dist = new ChiSquaredDistribution(chiK)
-//    // max density for k=4 is a bit less than 0.2, so / 0.2 to normalize range to ~1 
-//    val sentenceScore = dist.density(Math.max(0.0, x1)) / 0.2
-//    
-//    log.debug(s"englishScore: numSentence = $numSentence, numWords = $numWords, x1 = $x1, wordScore = $wordScore, sentenceScore = $sentenceScore")
-//    wordScore * 0.7 + sentenceScore * 0.3
+    val numSentence = feats.sliding(2).count { case Seq(a, b) => a.wordLike && a.endsDot && b.wordLike && b.initCap }
+    val x = numWords.toDouble / numSentence // avgSentenceLength
+    // See http://hearle.nahoo.net/Academic/Maths/Sentence.html
+    // try piece-wise linear score
+    val sentenceScore = if (x < 10.0) 0.6 + 0.4 * x/10.0
+      else if (x < 30.0) 1.0
+      else if (x < 100.0) 1.0 - 0.8 * (x - 30.0)/70.0 
+      else 0.2
     
-    wordScore
+    log.debug(s"englishScore: numSentence = $numSentence, numWords = $numWords, wordScore = $wordScore, sentenceScore = $sentenceScore")
+    wordScore * sentenceScore
   }
 
 }
