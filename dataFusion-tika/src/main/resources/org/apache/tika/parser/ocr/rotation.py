@@ -21,6 +21,8 @@ from skimage.transform import radon
 from PIL import Image
 from numpy import asarray, mean, array, blackman
 from numpy.fft import rfft
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.mlab import rms_flat
 
