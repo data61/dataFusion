@@ -18,9 +18,9 @@ libraryDependencies ++= Seq(
   "com.optimaize.languagedetector" % "language-detector" % "0.6", // tika-langdetect-1.15 dependency is 0.5, but we use language-detector directly, not via tika-langdetect
   // "org.apache.commons" % "commons-math3" % "3.6.1",            // distribution for sentence length statistics
   "com.typesafe" % "config" % "1.3.1",
-  "com.github.scopt" %% "scopt" % "3.5.0",
+  "com.github.scopt" %% "scopt" % "3.7.0",
   "com.jsuereth" %% "scala-arm" % "2.0",
-  "org.scalatest" %% "scalatest" % "3.0.0" % "test"
+  "org.scalatest" %% "scalatest" % "3.0.4" % "test"
 )
   
 com.github.retronym.SbtOneJar.oneJarSettings

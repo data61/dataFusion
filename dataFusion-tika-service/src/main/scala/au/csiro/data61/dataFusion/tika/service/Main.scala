@@ -107,7 +107,7 @@ object Main {
     // override def swaggerConfig = new Swagger().basePath(prependSlashIfNecessary(basePath)) // don't specify protocol://host basePath
     override val host = s"${hst}:${prt}" // the url of your api, not swagger's json endpoint
     override val basePath = "/"          // the basePath for the API you are exposing
-    override val info = new io.swagger.models.Info()                    // provides license and other description details
+    override val info = new com.github.swagger.akka.model.Info()                    // provides license and other description details
     override val apiDocsPath = "api-docs"   // http://host:port/api-docs/swagger.json
   }
   

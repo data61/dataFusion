@@ -72,7 +72,10 @@ object TikaUtil {
     val wordScore = numWords.toDouble / feats.size // ratio
     
     // unit test with text from wikipedia is getting a very low sentenceScore, so disabled for now
-    val numSentence = feats.sliding(2).count { case Seq(a, b) => a.wordLike && a.endsDot && b.wordLike && b.initCap }
+    val numSentence = feats.sliding(2).count {
+      case Seq(a, b) => a.wordLike && a.endsDot && b.wordLike && b.initCap
+      case _ => false
+    }
     val x = numWords.toDouble / numSentence // avgSentenceLength
     // See http://hearle.nahoo.net/Academic/Maths/Sentence.html
     // try piece-wise linear score

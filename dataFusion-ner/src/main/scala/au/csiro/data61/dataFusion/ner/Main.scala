@@ -14,18 +14,17 @@ import com.typesafe.scalalogging.Logger
 import au.csiro.data61.dataFusion.common.Data.{ Doc, Embedded }
 import au.csiro.data61.dataFusion.common.Data.{ META_LANG_CODE, Ner }
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol.docFormat
-import au.csiro.data61.dataFusion.common.Parallel.doParallel
+import au.csiro.data61.dataFusion.common.Parallel.{ bufWriter, doParallel }
 import au.csiro.data61.dataFusion.common.Timer
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
 import spray.json.DefaultJsonProtocol._
 import scala.util.Try
+import java.io.File
 
 object Main {
   val log = Logger(getClass)
   
-  case class CliOption(all: Boolean, corenlp: Boolean, opennlp: Boolean, mitie: Boolean, preprocess: Boolean, cliNer: Boolean, continueFrom: List[String], exclude: Option[String], blackList: List[String], numWorkers: Int)
-
   case class Docs(docOuts: List[Doc])
   
   object JsonProtocol {
@@ -38,18 +37,18 @@ object Main {
     // parallel initialization
     def tasksIf[A](p: Boolean, t: Seq[Future[A]]) = if (p) t else Seq.empty
     val parallelInit = Future.sequence(
-      tasksIf(cliOption.all || cliOption.corenlp, Seq(Future { CoreNLP.English }/*, Future { CoreNLP.Spanish }*/)) ++
-      tasksIf(cliOption.all || cliOption.opennlp, Seq(Future { OpenNLP.English }/*, Future { OpenNLP.Spanish }*/)) ++
-      tasksIf(cliOption.all || cliOption.mitie,   Seq(Future { MITIE.English }/*, Future { MITIE.Spanish }*/))
+      tasksIf(cliOption.corenlp, Seq(Future { CoreNLP.English }/*, Future { CoreNLP.Spanish }*/)) ++
+      tasksIf(cliOption.opennlp, Seq(Future { OpenNLP.English }/*, Future { OpenNLP.Spanish }*/)) ++
+      tasksIf(cliOption.mitie,   Seq(Future { MITIE.English }/*, Future { MITIE.Spanish }*/))
     )
     Await.result(parallelInit, 5 minutes)
     log.info("NLP models loaded")
         
     type nerT = (String, String) => List[Ner] // (lang, content)
     def nerIf(p: Boolean, n: nerT) = if (p) List(n) else List.empty
-    val ners = nerIf(cliOption.all || cliOption.corenlp, CoreNLP.ner) ++
-      nerIf(cliOption.all || cliOption.opennlp, OpenNLP.ner) ++
-      nerIf(cliOption.all || cliOption.mitie, MITIE.ner)
+    val ners = nerIf(cliOption.corenlp, CoreNLP.ner) ++
+      nerIf(cliOption.opennlp, OpenNLP.ner) ++
+      nerIf(cliOption.mitie, MITIE.ner)
       // ++ List(forever _)
     
     def ordering(a: Ner, b: Ner) = a.posStr < b.posStr || a.posStr == b.posStr && a.posEnd < b.posEnd
@@ -81,34 +80,7 @@ object Main {
   
   def cliNer(impl: Impl) = {
     // implicit val utf8 = Codec.UTF8
-    
-    val prevDone = {
-      val t = Timer()
-      
-      val blackList = for {
-        bFile <- impl.cliOption.blackList
-        path <- Source.fromFile(bFile).getLines
-      } yield path
-      log.info(s"Loaded ${blackList.size} black listed paths in ${t.elapsedSecs} sec")
-      
-      val prev = for {
-        f <- impl.cliOption.continueFrom.iterator
-        json <- Source.fromFile(f).getLines
-        d = json.parseJson.convertTo[Doc]
-      } yield d.path
-      val set = (blackList.toIterator ++ prev).toSet
-      log.info(s"Loaded ${set.size} black listed and previously processed paths in ${t.elapsedSecs} sec")
-      set
-    }
-
-    val processPred: String => Boolean =
-      if (impl.cliOption.exclude.isDefined) {
-        val re = impl.cliOption.exclude.get.r.unanchored
-        s => re.findFirstIn(s).isEmpty && !prevDone.contains(s)
-      } else {
-        s => !prevDone.contains(s)
-      }
-        
+          
     // identify path for which runtime is long, perhaps infinite, so we can add it to black list next run
     val inProgress = TrieMap.empty[String, Long] // path -> start time
     @volatile var t0 = System.currentTimeMillis
@@ -137,19 +109,15 @@ object Main {
     logThread.setDaemon(true)
     logThread.start
       
-    for (w <- managed(new OutputStreamWriter(System.out, "UTF-8"))) {
+    for (w <- managed(bufWriter(impl.cliOption.output))) {
       
       var cntIn = 0
-      var cntProc = 0
       val in = Source.fromInputStream(System.in, "UTF-8").getLines.flatMap { json =>
-        if (cntIn % 1000 == 0) log.info(s"NerCli.run() in: read $cntIn, queued for processing $cntProc")
+        if (cntIn % 1000 == 0) log.info(s"NerCli.run() in: read $cntIn")
         try {
           val d = json.parseJson.convertTo[Doc]
           cntIn += 1
-          if (processPred(d.path)) {
-            cntProc += 1
-            Iterator.single(d)
-          } else Iterator.empty 
+          Iterator.single(d)
         } catch { case NonFatal(e) =>
           log.error(s"Couldn't decode json as Doc: json = $json", e)
           Iterator.empty
@@ -177,33 +145,29 @@ object Main {
     // logThread.join // not necessary with daemon thread, can take up to 1 min to wake up
   }
   
+  case class CliOption(output: File, corenlp: Boolean, opennlp: Boolean, mitie: Boolean, preprocess: Boolean, numWorkers: Int)
+  val defaultCliOption = CliOption(new File("ner.json"), true, true, true, true, Runtime.getRuntime.availableProcessors)
+
   def main(args: Array[String]): Unit = {
-    val defaultCliOption = CliOption(true, false, false, false, false, false, List.empty, None, List.empty, Runtime.getRuntime.availableProcessors)
     
     val parser = new scopt.OptionParser[CliOption]("dataFusion-ner") {
       head("dataFusion-ner", "0.x")
-      note("Named Entity Recognition CLI.\nIf none of corenlp, opennlp, mitie are specified then all are used, otherwise only those specified.")
-      opt[Unit]('c', "corenlp") action { (_, c) =>
-        c.copy(all = false, corenlp = true)
+      note("Named Entity Recognition CLI.")
+      opt[File]("output") action { (v, c) =>
+        c.copy(output = v)
+      } text (s"output JSON file, (default ${defaultCliOption.output.getPath})")
+      opt[Boolean]('c', "corenlp") action { (v, c) =>
+        c.copy(corenlp = v)
       } text (s"Use CoreNLP (default ${defaultCliOption.corenlp})")
-      opt[Unit]('o', "opennlp") action { (_, c) =>
-        c.copy(all = false, opennlp = true)
+      opt[Boolean]('o', "opennlp") action { (v, c) =>
+        c.copy(opennlp = v)
       } text (s"Use OpenNLP (default ${defaultCliOption.opennlp})")
-      opt[Unit]('m', "mitie") action { (_, c) =>
-        c.copy(all = false, mitie = true)
+      opt[Boolean]('m', "mitie") action { (v, c) =>
+        c.copy(mitie = v)
       } text (s"Use MITIE (default ${defaultCliOption.mitie})")
-      opt[Unit]('p', "preprocess") action { (_, c) =>
-        c.copy(preprocess = true)
+      opt[Boolean]('p', "preprocess") action { (v, c) =>
+        c.copy(preprocess = v)
       } text (s"Preprocess text by adding `.` between consecutive new lines (default ${defaultCliOption.preprocess})")
-      opt[String]('f', "continueFrom").optional().unbounded() action { (v, c) =>
-        c.copy(continueFrom = v :: c.continueFrom)
-      } text (s"Path to output from previous cliNer run, to carry on where it left off, option can be repeated (default ${defaultCliOption.continueFrom})")
-      opt[String]('x', "exclude") action { (v, c) =>
-        c.copy(exclude = Some(v))
-      } text (s"regex to match paths which are not to be processed (default ${defaultCliOption.exclude})")
-      opt[String]('b', "blackList").optional().unbounded() action { (v, c) =>
-        c.copy(blackList = v :: c.blackList)
-      } text (s"File containing paths which are not to be processed, one per line, option can be repeated (default ${defaultCliOption.blackList})")
       opt[Int]('n', "numWorkers") action { (v, c) =>
         c.copy(numWorkers = v)
       } text (s"numWorkers (default ${defaultCliOption.numWorkers} the number of CPUs)")

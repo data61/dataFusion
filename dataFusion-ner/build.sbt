@@ -6,9 +6,9 @@ libraryDependencies ++= Seq(
   "org.apache.opennlp" % "opennlp-tools" % "1.8.1",
   // "com.google.protobuf" % "protobuf-java" % "3.1.0", // undeclared dependency of corenlp?
   "com.typesafe" % "config" % "1.3.1",
-  "com.github.scopt" %% "scopt" % "3.5.0",
+  "com.github.scopt" %% "scopt" % "3.7.0",
   "com.jsuereth" %% "scala-arm" % "2.0",
-  "org.scalatest" %% "scalatest" % "3.0.0" % "test"
+  "org.scalatest" %% "scalatest" % "3.0.4" % "test"
 )
 
 com.github.retronym.SbtOneJar.oneJarSettings

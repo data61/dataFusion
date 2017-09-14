@@ -8,7 +8,8 @@ for a in "$@"; do
 done
 
 # if manually built and installed
-ROOT=/usr/local
+# ROOT=/usr/local
+ROOT=/usr
 # put *.traindata files under $ROOT/share
 # mv $ROOT/share/tessdata/pdf.ttf $ROOT/share
 LD_LIBRARY_PATH=$ROOT/lib TESSDATA_PREFIX=$ROOT/share/tessdata $ROOT/bin/tesseract "${args[@]}"

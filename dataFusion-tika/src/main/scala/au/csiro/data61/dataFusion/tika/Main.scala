@@ -1,24 +1,20 @@
 package au.csiro.data61.dataFusion.tika
 
-import java.io.{ FileInputStream, OutputStreamWriter }
+import java.io.{ BufferedWriter, File, FileInputStream, FileOutputStream, InputStream, OutputStreamWriter }
+import java.net.URL
 
 import scala.collection.concurrent.TrieMap
+import scala.io.Source
 import scala.language.postfixOps
-import scala.util.{ Failure, Success, Try }
 
 import com.typesafe.scalalogging.Logger
 
-import au.csiro.data61.dataFusion.common.Data._
+import au.csiro.data61.dataFusion.common.Data.Doc
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol.docFormat
-import au.csiro.data61.dataFusion.common.Parallel.doParallel
+import au.csiro.data61.dataFusion.common.Data.META_EN_SCORE
+import au.csiro.data61.dataFusion.common.Parallel.{ bufWriter, doParallel }
 import resource.managed
-import spray.json.pimpAny
-import java.io.InputStream
-import java.net.URL
-import org.apache.tika.parser.ocr.TesseractOCRParser
-import scala.io.Source
 import spray.json.{ pimpAny, pimpString }
-import spray.json.DefaultJsonProtocol._
 
 object Main {
   private val log = Logger(getClass)
@@ -27,12 +23,13 @@ object Main {
    * reprocess json, resetting englishScore in metadata or id.
    */
   def resetEnglishScoreId(cliOption: CliOption) = {
-    for (w <- managed(new OutputStreamWriter(System.out, "UTF-8"))) {
+    for (w <- managed(bufWriter(cliOption.output))) {
       var cntIn = 0
       var id = cliOption.startId
       
       val in = Source.fromInputStream(System.in, "UTF-8").getLines.map { json =>
-        if (cntIn % 1000 == 0) log.info(s"setEnglishScore in: read $cntIn")
+        if (cntIn % 1000 == 0) log.info(s"resetEnglishScoreId in: read $cntIn")
+        cntIn += 1
         val d = json.parseJson.convertTo[Doc]
         if (cliOption.resetId) {
           val d2 = d.copy(id = id)
@@ -110,7 +107,7 @@ object Main {
     logThread.setDaemon(true)
     logThread.start
       
-    for (w <- managed(new OutputStreamWriter(System.out, "UTF-8"))) {
+    for (w <- managed(bufWriter(cliOption.output))) {
       
       var id = cliOption.startId
       val in = Source.fromInputStream(System.in, "UTF-8").getLines.map { path =>
@@ -140,8 +137,8 @@ object Main {
     // logThread.join // not necessary with daemon thread, can take up to 1 min to wake up
   }
   
-  case class CliOption(startId: Long, numWorkers: Int, pdfOcrStrategy: String, pdfExtractInlineImages: Boolean, ocrImagePreprocess: Boolean, ocrImageDeskew: Boolean, ocrTimeout: Int, ocrResize: Int, ocrPreserveInterwordSpacing: Boolean, resetEnglishScore: Boolean, resetId: Boolean)
-  val defaultCliOption = CliOption(0L, Runtime.getRuntime.availableProcessors, "no_ocr", true, true, false, 300, 200, true, false, false)
+  case class CliOption(output: File, startId: Long, numWorkers: Int, pdfOcrStrategy: String, pdfExtractInlineImages: Boolean, ocrImagePreprocess: Boolean, ocrImageDeskew: Boolean, ocrTimeout: Int, ocrResize: Int, ocrPreserveInterwordSpacing: Boolean, resetEnglishScore: Boolean, resetId: Boolean)
+  val defaultCliOption = CliOption(new File("tika.json"), 0L, Runtime.getRuntime.availableProcessors, "no_ocr", true, true, false, 300, 200, true, false, false)
 
   def initSystemProperties: Unit = {
     // https://pdfbox.apache.org/2.0/migration.html#pdf-rendering
@@ -158,6 +155,9 @@ object Main {
     val parser = new scopt.OptionParser[CliOption]("dataFusion-tika") {
       head("dataFusion-tika", "0.x")
       note("Tika text and metadata extraction CLI. Stdin contains local file paths or http URL's, one per line.")
+      opt[File]("output") action { (v, c) =>
+        c.copy(output = v)
+      } text (s"output JSON file, (default ${defaultCliOption.output.getPath})")
       opt[Long]("startId") action { (v, c) =>
         c.copy(startId = v)
       } text (s"id's allocated incrementally starting with this value, (default ${defaultCliOption.startId})")
