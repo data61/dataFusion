@@ -19,17 +19,26 @@ object Split {
   def containsWordLike(line: String) = line.split(" +") exists wordLike
     
   /**
-   * CoreNLP can't handle long input, so split on lines where containsWordLike is false,
+   * CoreNLP doesn't terminate on long input, so split on lines where containsWordLike is false
+   * (that includes blank lines so it splits on paragraphs),
    * but don't split again for the next splitmin lines.
+   * Paragraphs longer than splitmax are split in segments of splitmax lines, without considering sentence breaks.
+   * This is a bit drastic, but less so than non-terminating processing.
+   * This handles spreadsheet data with potentially very long "paragraphs".
    */
-  def split(lines: IndexedSeq[String], splitmin: Int): Iterator[(Int, Int, String)] = {
-    val splits = for ((l, i) <- lines.zipWithIndex if !containsWordLike(l)) yield i
+  def splitParagraphs(lines: IndexedSeq[String], splitmin: Int, splitmax: Int): Iterator[(Int, Int, String)] = {
+    val splits = (for ((l, i) <- lines.zipWithIndex if !containsWordLike(l)) yield i) :+ lines.size
     // log.debug(s"main: splits = $splits")
-    val splitsFiltered = (lines.size :: (splits.foldLeft((splitmin, -splitmin, List(0))){ case ((maxi, prev, result), x) => 
-      if (x <= maxi) (maxi, x, result) // drop values within range of splitmin
-      else (x + splitmin, x, x :: result)
-    })._3).reverse
-    // log.debug(s"main: splitsFiltered = $splitsFiltered")
+    val splitsFiltered = (splits.foldLeft((splitmin, 0, List(0))){ case ((maxi, prev, result), x) => 
+      log.debug(s"splitParagraphs: x = $x, maxi = $maxi")
+      if (x <= maxi) {
+        (maxi, x, result) // drop values within range of splitmin
+      } else {
+        val z = ((prev + splitmax) until x by splitmax).toList :+ x // if bigger than splitmax then split every splitmax
+        (x + splitmin, x, z.reverse ++ result)
+      }
+    })._3.reverse
+    log.debug(s"splitParagraphs: splitsFiltered = $splitsFiltered")
     splitsFiltered.sliding(2).flatMap {
       case a :: b :: Nil if a < b => List((a, b, lines.slice(a, b).mkString("", "\n", "\n"))) // include trailing \n so concatenating splits gives original String 
       case _ => List.empty

@@ -5,7 +5,7 @@ import org.scalatest.{ Finders, FlatSpec, Matchers }
 import com.typesafe.scalalogging.Logger
 
 import au.csiro.data61.dataFusion.common.Data.Ner
-import CoreNLP.{ ner, nerSplit }
+import CoreNLP._
 
 class CoreNLPTest extends FlatSpec with Matchers {
   val log = Logger(getClass)
@@ -31,7 +31,7 @@ Este hecho impulsó decisivamente la expansión mundial de la civilización euro
 """
   
   "CoreNLP NER" should "get English entities" in {
-    val ners = nerSplit(en, enTxt, 1) // split into small chunks
+    val ners = nerSplitParagraphs(en, enTxt, 1, 1) // split into small chunks
     log.debug(s"ners = ${ners}")
     assert(ners.contains(Ner(12, 15, 67, 79, 1.0, "World War II", "MISC", "CoreNLP")))
     assert(ners.contains(Ner(98, 100, 566, 577, 1.0, "August 1943", "DATE", "CoreNLP")))

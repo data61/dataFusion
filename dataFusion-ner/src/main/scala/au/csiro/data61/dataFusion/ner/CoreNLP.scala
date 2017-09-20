@@ -107,8 +107,8 @@ object CoreNLP {
     (ners, tokenIdx)
   }
   
-  def nerSplit(lang: String, in: String, splitmin: Int): List[Ner] = {
-    Split.split(in.split("\n"), splitmin).foldLeft((List.empty[Ner], 0, 0)) { case ((l, pos, off), (lineStr, lineEnd, lines)) =>
+  def nerSplitParagraphs(lang: String, in: String, splitmin: Int, splitmax: Int): List[Ner] = {
+    Split.splitParagraphs(in.split("\n"), splitmin, splitmax).foldLeft((List.empty[Ner], 0, 0)) { case ((l, pos, off), (lineStr, lineEnd, lines)) =>
       val (ners, nextPos) = nersPosEndOffEnd(lang, lines)
 //      log.debug(s"nerSplit: lineStr = $lineStr, lineEnd = $lineEnd, pos = $pos, off = $off, nextPos = $nextPos")
 //      log.debug(s"nerSplit: lines = $lines")
@@ -132,5 +132,5 @@ object CoreNLP {
    * 13 cases with million, 1 case with billion
    * TODO: either fix in CoreNLP or pre-process text to avoid "150.9million" issue?
    */
-  def ner(lang: String, in: String): List[Ner] = nerSplit(lang, in, 100) // process no more than ~100 lines at a time
+  def ner(lang: String, in: String): List[Ner] = nerSplitParagraphs(lang, in, 50, 200) // process 50 to 200 lines at a time
 }

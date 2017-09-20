@@ -12,57 +12,57 @@ class TikaTest extends FlatSpec with Matchers {
   private val log = Logger(getClass)
   val tikaUtil = new TikaUtil(Main.defaultCliOption)
   
-//  "Tika" should "extract 1 page of PDF" in {
-//    val path = "/exampleData/PDF002.pdf" // born digital, has logo image with no text
-//    val docIn = tikaUtil.tika(getClass.getResourceAsStream(path), path, 0L)
-//    // log.debug(s"docIn = ${docIn}")
-//    docIn.content.map(_.size).getOrElse(0) > 100 should be(true) // born digital text
-//    docIn.embedded.size should be(1) // has 1 embedded doc - the logo
-//    docIn.embedded(0).content.isEmpty should be(true) // for which we get no text
-//  }
-//  
-//  it should "extract 5 pages of PDF" in {
-//    val path = "/exampleData/PDF003.pdf" // scanned doc
-//    val docIn = tikaUtil.tika(getClass.getResourceAsStream(path), path, 0L)
-//    // log.debug(s"docIn = ${docIn}")
-//    docIn.content.map(_.size).getOrElse(0) > 100 should be(true) // text OCR by scanner
-//    docIn.embedded.size should be(5) // 5 embedded page images
-//    docIn.embedded.foreach(_.content.map(_.size).getOrElse(0) > 100 should be(true)) // tesseract got text from each page
-//  }
-//  
-//  it should "extract from good Excel" in {
-//    val path = "/exampleData/xls001.xls"
-//    val d = tikaUtil.tika(getClass.getResourceAsStream(path), path, 0L)
-//    // log.debug(s"d = $d")
-//    d.content.get.contains("Principality of Liechtenstein") should be(true)
-//    d.meta.get("Content-Type") should be(Some("application/vnd.ms-excel"))
-//  }
-//  
-//  it should "convert good Excel to opendocument.spreadsheet (only when explicitly asked to) and extract" in {
-//    val path = "/exampleData/xls001.xls"
-//    val d = tikaUtil.convertAndParseDoc(getClass.getResourceAsStream(path), path, 0L)
-//    // log.debug(s"d = $d")
-//    d.content.get.contains("Principality of Liechtenstein") should be(true)
-//    d.meta.get("Content-Type") should be(Some("application/vnd.oasis.opendocument.spreadsheet"))
-//  }
-//    
-//  it should "convert bad Excel to opendocument.spreadsheet (when not explicitly asked to) and extract" in {
-//    // test Excel file is attachment from: https://bz.apache.org/bugzilla/show_bug.cgi?id=57104
-//    val path = "/exampleData/data-prob-2-12.XLS"
-//    val d = tikaUtil.tika(getClass.getResourceAsStream(path), path, 0L)
-//    // log.debug(s"d = $d")
-//    d.content.get.contains("562.03") should be(true)
-//    d.meta.get("Content-Type") should be(Some("application/vnd.oasis.opendocument.spreadsheet"))
-//  }
+  "Tika" should "extract 1 page of PDF" in {
+    val path = "/exampleData/PDF002.pdf" // born digital, has logo image with no text
+    val docIn = tikaUtil.tika(getClass.getResourceAsStream(path), path, 0L)
+    // log.debug(s"docIn = ${docIn}")
+    docIn.content.map(_.size).getOrElse(0) > 100 should be(true) // born digital text
+    docIn.embedded.size should be(1) // has 1 embedded doc - the logo
+    docIn.embedded(0).content.isEmpty should be(true) // for which we get no text
+  }
+  
+  it should "extract 5 pages of PDF" in {
+    val path = "/exampleData/PDF003.pdf" // scanned doc
+    val docIn = tikaUtil.tika(getClass.getResourceAsStream(path), path, 0L)
+    // log.debug(s"docIn = ${docIn}")
+    docIn.content.map(_.size).getOrElse(0) > 100 should be(true) // text OCR by scanner
+    docIn.embedded.size should be(5) // 5 embedded page images
+    docIn.embedded.foreach(_.content.map(_.size).getOrElse(0) > 100 should be(true)) // tesseract got text from each page
+  }
+  
+  it should "extract from good Excel" in {
+    val path = "/exampleData/xls001.xls"
+    val d = tikaUtil.tika(getClass.getResourceAsStream(path), path, 0L)
+    // log.debug(s"d = $d")
+    d.content.get.contains("Principality of Liechtenstein") should be(true)
+    d.meta.get("Content-Type") should be(Some("application/vnd.ms-excel"))
+  }
+  
+  it should "convert good Excel to opendocument.spreadsheet (only when explicitly asked to) and extract" in {
+    val path = "/exampleData/xls001.xls"
+    val d = tikaUtil.convertAndParseDoc(getClass.getResourceAsStream(path), path, 0L)
+    // log.debug(s"d = $d")
+    d.content.get.contains("Principality of Liechtenstein") should be(true)
+    d.meta.get("Content-Type") should be(Some("application/vnd.oasis.opendocument.spreadsheet"))
+  }
+    
+  it should "convert bad Excel to opendocument.spreadsheet (when not explicitly asked to) and extract" in {
+    // test Excel file is attachment from: https://bz.apache.org/bugzilla/show_bug.cgi?id=57104
+    val path = "/exampleData/data-prob-2-12.XLS"
+    val d = tikaUtil.tika(getClass.getResourceAsStream(path), path, 0L)
+    // log.debug(s"d = $d")
+    d.content.get.contains("562.03") should be(true)
+    d.meta.get("Content-Type") should be(Some("application/vnd.oasis.opendocument.spreadsheet"))
+  }
   
   "word2feat" should "analyze words" in {
     val words = Seq("The", "man", "O'Brian", "lived", "in", "County", "Clair.")
     // wordLike: Boolean, initCap: Boolean, endsDot: Boolean
     val expected = Seq(Feat(true,true,false), Feat(true,false,false), Feat(false,false,false), Feat(true,false,false), Feat(true,false,false), Feat(true,true,false), Feat(true,true,true))
-    for ((w, e) <- words zip expected) tikaUtil.word2feat(w) should be(e)
+    for ((w, e) <- words zip expected) TikaUtil.word2feat(w) should be(e)
   }
   
-  "textQualityEn" should "analyze text" in {
+  "englishScore" should "say it's OK" in {
     // from wikipedia
     val text = """
 Oxygen is a chemical element with symbol O and atomic number 8. It is a member of the chalcogen group on the periodic table and is a highly reactive nonmetal and oxidizing agent that readily forms oxides with most elements as well as other compounds. By mass, oxygen is the third-most abundant element in the universe, after hydrogen and helium. At standard temperature and pressure, two atoms of the element bind to form dioxygen, a colorless and odorless diatomic gas with the formula O
@@ -108,7 +108,7 @@ In 1891 Scottish chemist James Dewar was able to produce enough liquid oxygen fo
 In 1923, the American scientist Robert H. Goddard became the first person to develop a rocket engine that burned liquid fuel; the engine used gasoline for fuel and liquid oxygen as the oxidizer. Goddard successfully flew a small liquid-fueled rocket 56 m at 97 km/h on March 16, 1926 in Auburn, Massachusetts, US.[21][22]
 Oxygen levels in the atmosphere are trending slightly downward globally, possibly because of fossil-fuel burning.[23]
 """
-    val score = tikaUtil.englishScore(text)
+    val score = TikaUtil.englishScore(text)
     log.debug(s"score = $score")
     score > 0.8 should be(true)
   }
