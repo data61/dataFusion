@@ -110,16 +110,16 @@ object CoreNLP {
   def nerSplitParagraphs(lang: String, in: String, splitmin: Int, splitmax: Int): List[Ner] = {
     Split.splitParagraphs(in.split("\n"), splitmin, splitmax).foldLeft((List.empty[Ner], 0, 0)) { case ((l, pos, off), (lineStr, lineEnd, lines)) =>
       val (ners, nextPos) = nersPosEndOffEnd(lang, lines)
-//      log.debug(s"nerSplit: lineStr = $lineStr, lineEnd = $lineEnd, pos = $pos, off = $off, nextPos = $nextPos")
-//      log.debug(s"nerSplit: lines = $lines")
-//      log.debug(s"nerSplit: ners = $ners")
+      log.debug(s"nerSplit: lineStr = $lineStr, lineEnd = $lineEnd, pos = $pos, off = $off, nextPos = $nextPos")
+      log.debug(s"nerSplit: lines = $lines")
+      log.debug(s"nerSplit: ners = $ners")
       val ners2 = ners.map(n => n.copy(posStr = n.posStr + pos, posEnd = n.posEnd + pos, offStr = n.offStr + off, offEnd = n.offEnd + off))
       (l ++ ners2, pos + nextPos, off + lines.size)
     }._1.toList
   }
   
   /**
-   * Processing born-digital company reports:
+   * Processing born-digital company reports (same for scanned):
    * 
    * WARN  edu.stanford.nlp.ie.NumberNormalizer - java.lang.NumberFormatException:
    * Bad number put into wordToNumber.  Word is: "150.9million", originally part of "150.9million", piece # 0
@@ -129,8 +129,7 @@ object CoreNLP {
 	 * caught and logged @ findNumbers(NumberNormalizer.java:646)
 	 * so they don’t mess up finding other NEs in the same text.
    * 
-   * 13 cases with million, 1 case with billion
-   * TODO: either fix in CoreNLP or pre-process text to avoid "150.9million" issue?
+   * 13 cases with million, 1 case with billion. Now fixed in modified copy of edu.stanford.nlp.ie.NumberNormalizer.
    * 
    * Time processing 300kB of tab separated values data (from metadata of company reports downloaded from the internet).
    * # flatten all meta data into lines of tab separated text: "${key}\t${value}"
@@ -149,5 +148,5 @@ object CoreNLP {
 	 * 11:57:44.85	11:58:18.01		11:59:02.00			20 – 60 lines
 	 *							33.1590000000	43.99799999999  elasped secs	bit quicker but not dramatically so
    */
-  def ner(lang: String, in: String): List[Ner] = nerSplitParagraphs(lang, in, 20, 60) // process 20 -60 lines at a time
+  def ner(lang: String, in: String): List[Ner] = nerSplitParagraphs(lang, in, 20, 60) // process 20 - 60 lines at a time
 }
