@@ -1,21 +1,24 @@
 package au.csiro.data61.dataFusion.search
 
-import scala.reflect.runtime.universe.typeOf
+import java.io.File
+
 import scala.util.control.NonFatal
 
-import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(indexer: Boolean, docFreq: Boolean, export: Boolean, filterQuery: Boolean, nerToQuery: Boolean, posQuery: String, slop: Int, numWorkers: Int)
+  case class CliOption(output: File, indexer: Boolean, docFreq: Boolean, export: Boolean, filterQuery: Boolean, nerToQuery: Boolean, posQuery: String, slop: Int, numWorkers: Int)
   
-  val defaultCliOption = CliOption(false, false, false, false, false, "unord", 0, Runtime.getRuntime.availableProcessors)
+  val defaultCliOption = CliOption(new File("hits.json"), false, false, false, false, false, "unord", 0, Runtime.getRuntime.availableProcessors)
   
   val parser = new scopt.OptionParser[CliOption]("search") {
     head("search", "0.x")
-    note("Run Lucene search web service unless one of --indexer, --docFreq or --filterQuery is specified.")
+    note("Run Lucene search CLI unless one of --indexer, --docFreq or --filterQuery is specified.")
+    opt[File]('o', "output") action { (v, c) =>
+      c.copy(output = v)
+    } text (s"output JSON file, (default ${defaultCliOption.output.getPath})")
     opt[Unit]('i', "indexer") action { (_, c) =>
       c.copy(indexer = true)
     } text (s"create Lucene indices (default ${defaultCliOption.indexer})")

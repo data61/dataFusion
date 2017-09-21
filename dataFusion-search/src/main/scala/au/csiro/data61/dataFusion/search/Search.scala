@@ -16,7 +16,7 @@ import DataFusionLucene.{ F_CONTENT, F_JSON, F_TEXT, F_VAL, analyzer, docIndex, 
 import DataFusionLucene.DFSearching.{ Query, Stats, DocSearch, PosDocSearch, MetaSearch, NerSearch }
 import LuceneUtil.{ Searcher, directory }
 import Main.CliOption
-import au.csiro.data61.dataFusion.common.Parallel.doParallel
+import au.csiro.data61.dataFusion.common.Parallel.{ doParallel, bufWriter }
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
 
@@ -112,7 +112,7 @@ object Search {
   def cliPosDocSearch(c: CliOption): Unit = {
     import PosDocSearch.{ PosQuery, PHits }, PosDocSearch.JsonProtocol._
     
-    for (w <- managed(new OutputStreamWriter(System.out, "UTF-8"))) {
+    for (w <- managed(bufWriter(c.output))) {
       val in = Source.fromInputStream(System.in, "UTF-8").getLines.map(_.parseJson.convertTo[PosQuery])
       def work(q: PosQuery): PHits = PosDocSearcher.search(c.slop, c.posQuery, q)
       def out(h: PHits): Unit = {
