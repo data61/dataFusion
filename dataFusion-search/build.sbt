@@ -8,6 +8,7 @@ libraryDependencies ++= Seq(
 ).map("org.apache.lucene" % _ % "6.6.0")
 
 libraryDependencies ++= Seq(
+  "com.google.guava" % "guava" % "18.0", // not "23.0", for compatability with search-service dependencies
   "com.typesafe" % "config" % "1.3.1",
   "com.github.scopt" %% "scopt" % "3.5.0",
   "com.jsuereth" %% "scala-arm" % "2.0",

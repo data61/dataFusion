@@ -9,9 +9,9 @@ import com.typesafe.scalalogging.Logger
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(output: File, indexer: Boolean, docFreq: Boolean, export: Boolean, filterQuery: Boolean, nerToQuery: Boolean, posQuery: String, slop: Int, numWorkers: Int)
+  case class CliOption(output: File, indexer: Boolean, docFreq: Boolean, export: Boolean, filterQueryOnly: Boolean, filterQuery: Boolean, nerToQuery: Boolean, posQuery: String, slop: Int, numWorkers: Int)
   
-  val defaultCliOption = CliOption(new File("hits.json"), false, false, false, false, false, "unord", 0, Runtime.getRuntime.availableProcessors)
+  val defaultCliOption = CliOption(new File("hits.json"), false, false, false, false, true, false, "unord", 0, Runtime.getRuntime.availableProcessors)
   
   val parser = new scopt.OptionParser[CliOption]("search") {
     head("search", "0.x")
@@ -28,9 +28,12 @@ object Main {
     opt[Unit]('e', "export") action { (_, c) =>
       c.copy(export = true)
     } text (s"output the stored JSON for each doc (default ${defaultCliOption.export})")
-    opt[Unit]('f', "filterQuery") action { (_, c) =>
-      c.copy(filterQuery = true)
-    } text (s"filter Query JSON from stdin to stdout, outputing only lines with all specified query terms in the index (default ${defaultCliOption.filterQuery})")
+    opt[Unit]('g', "filterQueryOnly") action { (_, c) =>
+      c.copy(filterQueryOnly = true)
+    } text (s"filter Query JSON from stdin to stdout, outputing only lines with all query terms most likely in the index (default ${defaultCliOption.filterQueryOnly})")
+    opt[Boolean]('f', "filterQuery") action { (v, c) =>
+      c.copy(filterQuery = v)
+    } text (s"search CLI skips search if any query term is definitely not in the index (default ${defaultCliOption.filterQuery})")
     opt[Unit]('q', "nerToQuery") action { (_, c) =>
       c.copy(nerToQuery = true)
     } text (s"filter JSON names from stdin to stdout, outputing queries only for lines with all specified query terms in the index (default ${defaultCliOption.filterQuery})")
@@ -53,7 +56,7 @@ object Main {
       parser.parse(args, defaultCliOption).foreach { c => 
         if (c.indexer) Indexer.run(c)
         else if (c.docFreq) DocFreq.writeDocFreqs(c)
-        else if (c.filterQuery) DocFreq.filterQuery(c)
+        else if (c.filterQueryOnly) DocFreq.filterQuery(c)
         else if (c.nerToQuery) DocFreq.nerToQuery(c)
         else if (c.export) Search.cliExportDocIds(c)
         else Search.cliPosDocSearch(c)

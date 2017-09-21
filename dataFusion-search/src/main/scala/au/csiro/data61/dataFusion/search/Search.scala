@@ -112,14 +112,27 @@ object Search {
   def cliPosDocSearch(c: CliOption): Unit = {
     import PosDocSearch.{ PosQuery, PHits }, PosDocSearch.JsonProtocol._
     
+    val termFilter = if (c.filterQuery) Some(DocFreq.loadTermFilter) else None
+    
     for (w <- managed(bufWriter(c.output))) {
       val in = Source.fromInputStream(System.in, "UTF-8").getLines.map(_.parseJson.convertTo[PosQuery])
-      def work(q: PosQuery): PHits = PosDocSearcher.search(c.slop, c.posQuery, q)
+      
+      def workFilter(q: PosQuery): PHits = {
+        if (DocFreq.containsAllTokens(termFilter.get, q.query)) {
+          PosDocSearcher.search(c.slop, c.posQuery, q)
+        } else {
+          PHits(Stats(0, 0), List.empty, None, q.query, q.clnt_intrnl_id)
+        }
+      }
+      
+      def workNoFilter(q: PosQuery): PHits = PosDocSearcher.search(c.slop, c.posQuery, q)
+      
       def out(h: PHits): Unit = {
         w.write(h.toJson.compactPrint)
         w.write('\n')
       }
-      doParallel(in, work, out, PosQuery("done", 0L), PHits(Stats(0, 0), List.empty, None, "done", 0L), c.numWorkers)
+      
+      doParallel(in, if (termFilter.isDefined) workFilter else workNoFilter, out, PosQuery("done", 0L), PHits(Stats(0, 0), List.empty, None, "done", 0L), c.numWorkers)
     }
   }
   
