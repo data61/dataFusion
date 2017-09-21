@@ -35,7 +35,7 @@ object Main {
   class Impl(val cliOption: CliOption)(implicit ec: ExecutionContext)  {
   
     // parallel initialization
-    def tasksIf[A](p: Boolean, t: Seq[Future[A]]) = if (p) t else Seq.empty
+    def tasksIf[A](p: Boolean, t: => Seq[Future[A]]) = if (p) t else Seq.empty
     val parallelInit = Future.sequence(
       tasksIf(cliOption.corenlp, Seq(Future { CoreNLP.English }/*, Future { CoreNLP.Spanish }*/)) ++
       tasksIf(cliOption.opennlp, Seq(Future { OpenNLP.English }/*, Future { OpenNLP.Spanish }*/)) ++

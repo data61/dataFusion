@@ -131,6 +131,23 @@ object CoreNLP {
    * 
    * 13 cases with million, 1 case with billion
    * TODO: either fix in CoreNLP or pre-process text to avoid "150.9million" issue?
+   * 
+   * Time processing 300kB of tab separated values data (from metadata of company reports downloaded from the internet).
+   * # flatten all meta data into lines of tab separated text: "${key}\t${value}"
+   * jq -r '(.meta | to_entries) + ([ .embedded[].meta | to_entries ] | flatten) | .[] | (.key + "\t" + .value)' tika-reports.json  > meta-reports.tsv
+   * head -8000 meta-reports.tsv > tika-300k.json
+   * ls 300k.txt | dfus tika --output tika-300k.json
+   * time dfus -m 6 ner --opennlp false --mitie false --preprocess false --output ner-300k.json --numWorkers 1  < tika-300k.json
+   * 
+   * started			models loaded	work complete		
+   * 11:40:34.02	11:41:13.81		11:42:01.66			50 – 200 lines
+	 * 							39.7869999999	47.857000000003	elapsed secs
+	 * 	
+	 * 11:52:00.49	11:52:33.94		11:53:21.07			fixed skipping loading opennlp & mitie
+	 *							33.4499999999	47.130000000004	elapsed secs	
+	 * 
+	 * 11:57:44.85	11:58:18.01		11:59:02.00			20 – 60 lines
+	 *							33.1590000000	43.99799999999  elasped secs	bit quicker but not dramatically so
    */
-  def ner(lang: String, in: String): List[Ner] = nerSplitParagraphs(lang, in, 50, 200) // process 50 to 200 lines at a time
+  def ner(lang: String, in: String): List[Ner] = nerSplitParagraphs(lang, in, 20, 60) // process 20 -60 lines at a time
 }
