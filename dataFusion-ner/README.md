@@ -7,7 +7,8 @@ It performs [Named Entity Recognition](https://en.wikipedia.org/wiki/Named-entit
 
 ## Build, Configuration and Running
 
-This is mostly covered by the top level README, however MITIE has some particular requirements.
+This is mostly covered by the top level README, however MITIE has some particular requirements and
+we use a local build of CoreNLP to get a bug fix made since the latest 3.8.0 release.
 
 ## MITIE Requirements
 
@@ -68,5 +69,14 @@ Configuration to run in Eclipse:
 
 Select `Build Path` > `Configure Build Path` > `Source` > `dataFusion-ner/src/main/scala` > `Native library location`
 and add the MITIE-native directory.
+
+## CoreNLP Local Build
+
+    git clone https://github.com/stanfordnlp/CoreNLP.git
+    cd CoreNLP
+    vi pom.xml   # set version to 3.8.1-20170922, must match what is in build.sbt
+    # download the latest stanford-corenlp-current-models.jar from the github page
+    mv ~/Downloads/stanford-corenlp-current-models.jar stanford-corenlp-3.7.0-models.jar # yes 3.7.0 for mvn to find it
+    mvn install  # install to ~/.m2/repository/
 
 
