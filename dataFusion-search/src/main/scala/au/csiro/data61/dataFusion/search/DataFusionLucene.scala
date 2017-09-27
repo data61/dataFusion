@@ -257,7 +257,7 @@ object DataFusionLucene {
     }
     
     object PosDocSearch {
-      case class PosQuery(query: String, clnt_intrnl_id: Long)
+      case class PosQuery(query: String, ordered: Boolean, clnt_intrnl_id: Long)
       case class PosMultiQuery(queries: List[PosQuery])
       case class PosInfo(score: Float, posStr: Int, posEnd: Int, offStr: Int, offEnd: Int, text: String)
       case class LPosDoc(docId: Long, embIdx: Int, posInfos: List[PosInfo], path: String)
@@ -265,7 +265,7 @@ object DataFusionLucene {
       case class PMultiHits(pHits: List[PHits])
       
       object JsonProtocol {
-        implicit val posQueryCodec = jsonFormat2(PosQuery)
+        implicit val posQueryCodec = jsonFormat3(PosQuery)
         implicit val posMultiQueryCodec = jsonFormat1(PosMultiQuery)
         implicit val posInfoCodec = jsonFormat6(PosInfo)
         implicit val lposDocCodec = jsonFormat4(LPosDoc)
@@ -306,7 +306,7 @@ object DataFusionLucene {
        * this is a phrase search
        * a single term results in: java.lang.IllegalArgumentException: Less than 2 subSpans.size():1
        */
-      def searchSpans(searcher: IndexSearcher, slop: Int, posQuery: String, q: PosQuery) = {
+      def searchSpans(searcher: IndexSearcher, slop: Int, q: PosQuery) = {
         val timer = Timer()
         val reader = searcher.getIndexReader
         val terms = tokenIter(analyzer, F_CONTENT, q.query).map(new Term(F_CONTENT, _)).toList
@@ -321,7 +321,7 @@ object DataFusionLucene {
 //        searchSpansScoreTimer.stop
         
 //        searchSpansNonScoreTimer.start
-        val snq = new SpanNearQuery(terms.map(new SpanTermQuery(_)).toArray, slop, posQuery == "ord")
+        val snq = new SpanNearQuery(terms.map(new SpanTermQuery(_)).toArray, slop, q.ordered)
         log.debug(s"PosDocSearch.searchSpans: snq = $snq")
         
         val weight = snq.createWeight(searcher, false) // not needsScores

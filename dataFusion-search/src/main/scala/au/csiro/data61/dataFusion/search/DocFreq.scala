@@ -92,7 +92,7 @@ object DocFreq {
       for (line <- Source.fromInputStream(System.in, "UTF-8").getLines) {
         val query = clean(line.parseJson.toString)
         if (query.length >= 6 && containsAllTokens(termFilter, query)) {
-          val q = PosQuery(query, -1L)
+          val q = PosQuery(query, true, -1L)
           w.write(q.toJson.compactPrint)
           w.write('\n')
         } else log.debug(s"nerToQuery: shorter than 6 chars or not all tokens in index")

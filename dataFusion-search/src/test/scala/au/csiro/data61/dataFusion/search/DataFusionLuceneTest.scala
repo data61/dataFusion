@@ -35,8 +35,8 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
     log.debug(s"numDocs = ${searcher.getIndexReader.numDocs}")
     
     {
-      val q = PosQuery("AA AA Proprietary Ltd.", 1L)
-      val x = searchSpans(searcher, 0, "ord", q)
+      val q = PosQuery("AA AA Proprietary Ltd.", true, 1L)
+      val x = searchSpans(searcher, 0, q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(1)
       x.hits.size should be(1)
@@ -45,8 +45,8 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
     }
     
     {
-      val q = PosQuery("Jones Sarah", 2L)
-      val x = searchSpans(searcher, 0, "unord", q)
+      val q = PosQuery("Jones Sarah", false, 2L)
+      val x = searchSpans(searcher, 0, q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(1)
       x.hits.size should be(1)
@@ -59,8 +59,8 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
     }
     
     {
-      val q = PosQuery("AA AA", 1L)
-      val x = searchSpans(searcher, 0, "unord", q)
+      val q = PosQuery("AA AA", false, 1L)
+      val x = searchSpans(searcher, 0, q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(1)
       x.hits.size should be(1)
@@ -69,8 +69,8 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
     }
     
     {
-      val q = PosQuery("AA AA BB", 1L)
-      val x = searchSpans(searcher, 0, "unord", q)
+      val q = PosQuery("AA AA BB", false, 1L)
+      val x = searchSpans(searcher, 0, q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(1)
       x.hits.size should be(1)
@@ -80,8 +80,8 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
 
     
     {
-      val q = PosQuery("AA AA CC", 1L)
-      val x = searchSpans(searcher, 0, "unord", q)
+      val q = PosQuery("AA AA CC", false, 1L)
+      val x = searchSpans(searcher, 0, q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(0)
     }

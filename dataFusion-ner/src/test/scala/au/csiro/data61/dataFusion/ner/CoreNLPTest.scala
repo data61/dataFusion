@@ -37,6 +37,7 @@ The Manhattan District Engineer, Kenneth Nichols, moved the Manhattan District h
     assert(ners.contains(Ner(98, 100, 566, 577, 1.0, "August 1943", "DATE", "CoreNLP")))
   }
   
+  // CoreNLP 3.8.0 (latest release) fails this test, latest in github on 2017-09-22 passes.
   it should "handle no space between digits and mutiplier" in {
     for (mult <- Seq("hundred", "thousand", "million", "billion", "trillion")) {
       val text = "Henry bought Sally a new car for $3.75" + mult + " for her birthday."

@@ -19,8 +19,8 @@ import Main.CliOption
 import au.csiro.data61.dataFusion.common.Parallel.{ doParallel, bufWriter }
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
-
-
+import PosDocSearch.{ PosQuery, PHits }, PosDocSearch.JsonProtocol._
+   
 object Search {
   private val log = Logger(getClass)
     
@@ -54,9 +54,9 @@ object Search {
      * Building the queries programatically rather than with a QueryParser allows us to search for terms that would match
      * QueryParser keywords such as "and".
      */
-    def search(slop: Int, posQuery: String, q: PosQuery) = 
+    def search(slop: Int, q: PosQuery) = 
       try {
-        searchSpans(indexSearcher, slop, posQuery, q)
+        searchSpans(indexSearcher, slop, q)
       } catch {
         case NonFatal(e) => {
           log.error("PosDocSearcher error", e)
@@ -64,8 +64,8 @@ object Search {
         }
       }
       
-    def multiSearch(slop: Int, posQuery: String, qs: PosMultiQuery) =
-      PMultiHits(qs.queries.map { q => PosDocSearcher.search(slop, posQuery, q) })
+    def multiSearch(slop: Int, qs: PosMultiQuery) =
+      PMultiHits(qs.queries.map { q => PosDocSearcher.search(slop, q) })
   }
   
   object MetaSearcher {
@@ -105,34 +105,80 @@ object Search {
   }
 
   /**
+   * return the indices of the fields for: id, organisation name and person's: family, first given and other given names.
+   * @param cvsHdr the header line from the CSV file
+   */
+  def csvHeaderToIndices(c: CliOption, cvsHdr: String): Seq[Int] = {
+    val hdrs = cvsHdr.split(c.cvsDelim)
+    val fields = c.cvsId +: c.cvsOrg +: c.cvsPerson
+    val hdrIdx = fields map hdrs.indexOf
+    val missing = for ((f, i) <- fields zip hdrIdx if i == -1) yield f
+    if (!missing.isEmpty) throw new Exception(s"CSV header is missing fields: ${missing.mkString(",")}")
+    hdrIdx
+  }
+  
+  /**
+   * Map the input CSV lines to PosQuery's
+   */
+  def inCsv(c: CliOption, iter: Iterator[String]): Iterator[PosQuery] = {
+    if (iter.hasNext) {
+      val indices = csvHeaderToIndices(c: CliOption, iter.next.toUpperCase)
+      val maxIdx = indices.max
+      val alpha = "[A-Z]".r
+      val nameOKRE = "^[A-Z](?:[' A-Z-]*[A-Z])?$".r
+      def nameOK(n: String) = nameOKRE.unapplySeq(n).isDefined // matches
+      iter.flatMap { line =>
+        val data = line.toUpperCase.split(c.cvsDelim) // data is all upper, but make sure
+        if (data.size > maxIdx) {
+          val Seq(idStr, org, fam, gvn, oth) = indices.map(data(_).trim)
+          val id = idStr.toLong
+          
+          val orgQuery = alpha.findFirstMatchIn(org).map(_ => PosQuery(org, true, id))
+          if (org.nonEmpty && orgQuery.isEmpty) log.warn(s"Rejected organisation: $org")
+          
+          val perQuery = if (nameOK(fam) && nameOK(gvn) && (oth.isEmpty || nameOK(oth))) Some(PosQuery(s"$fam $gvn $oth", false, id)) else None
+          if ((fam.nonEmpty || gvn.nonEmpty) && perQuery.isEmpty) log.warn(s"Rejected person: family = '$fam', given = '$gvn', other = '$oth'")
+          
+          orgQuery.iterator ++ perQuery.iterator
+        } else {
+          Iterator.empty
+        }
+      }
+    } else {
+      Iterator.empty
+    }
+  }
+      
+  /**
    * CLI method to run bulk searches:
    * + way simpler than JSON web service + client (and no timeout issues)
    * + parallelism using doParallel
    */
   def cliPosDocSearch(c: CliOption): Unit = {
-    import PosDocSearch.{ PosQuery, PHits }, PosDocSearch.JsonProtocol._
+    val in: Iterator[PosQuery] = {
+      val iter = Source.fromInputStream(System.in, "UTF-8").getLines
+      if (c.searchJson) iter.map(_.parseJson.convertTo[PosQuery]) else inCsv(c, iter)
+    }
     
-    val termFilter = if (c.filterQuery) Some(DocFreq.loadTermFilter) else None
-    
-    for (w <- managed(bufWriter(c.output))) {
-      val in = Source.fromInputStream(System.in, "UTF-8").getLines.map(_.parseJson.convertTo[PosQuery])
+    val work: PosQuery => PHits = {
+      def workNoFilter(q: PosQuery) = PosDocSearcher.search(c.slop, q)
       
-      def workFilter(q: PosQuery): PHits = {
-        if (DocFreq.containsAllTokens(termFilter.get, q.query)) {
-          PosDocSearcher.search(c.slop, c.posQuery, q)
-        } else {
-          PHits(Stats(0, 0), List.empty, None, q.query, q.clnt_intrnl_id)
-        }
+      def workFilter(q: PosQuery) = {
+        val termFilter = DocFreq.loadTermFilter
+        if (DocFreq.containsAllTokens(termFilter, q.query)) workNoFilter(q)
+        else PHits(Stats(0, 0), List.empty, None, q.query, q.clnt_intrnl_id)
       }
+    
+      if (c.filterQuery) workFilter else workNoFilter
+    }
       
-      def workNoFilter(q: PosQuery): PHits = PosDocSearcher.search(c.slop, c.posQuery, q)
-      
+    for (w <- managed(bufWriter(c.output))) {
       def out(h: PHits): Unit = {
         w.write(h.toJson.compactPrint)
         w.write('\n')
       }
       
-      doParallel(in, if (termFilter.isDefined) workFilter else workNoFilter, out, PosQuery("done", 0L), PHits(Stats(0, 0), List.empty, None, "done", 0L), c.numWorkers)
+      doParallel[PosQuery, PHits](in, work, out, PosQuery("done", true, 0L), PHits(Stats(0, 0), List.empty, None, "done", 0L), c.numWorkers)
     }
   }
   

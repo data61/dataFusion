@@ -58,7 +58,7 @@ object Main {
     @Path("pos/search")
     @ApiOperation(httpMethod = "POST", response = classOf[PHits], value = "search hits matching the query")
     @Consumes(Array(MediaType.APPLICATION_JSON))
-    def posSearch(q: PosQuery): PHits = PosDocSearcher.search(cliOption.slop, cliOption.posQuery, q)
+    def posSearch(q: PosQuery): PHits = PosDocSearcher.search(cliOption.slop, q)
     
     def posSearchRoute =
       post { path("pos/search") { entity(as[PosQuery]) { q => complete {
@@ -70,7 +70,7 @@ object Main {
     @Path("pos/multiSearch")
     @ApiOperation(httpMethod = "POST", response = classOf[PMultiHits], value = "search hits matching the query")
     @Consumes(Array(MediaType.APPLICATION_JSON))
-    def posMultiSearch(qs: PosMultiQuery): PMultiHits = PosDocSearcher.multiSearch(cliOption.slop, cliOption.posQuery, qs)
+    def posMultiSearch(qs: PosMultiQuery): PMultiHits = PosDocSearcher.multiSearch(cliOption.slop, qs)
     
     def posMultiSearchRoute =
       post { path("pos/multiSearch") { entity(as[PosMultiQuery]) { qs => complete {
