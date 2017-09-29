@@ -37,9 +37,8 @@ object DocFreq {
     }
   }
 
-  def loadTermFilter = {
+  def loadTermFilter(expectedInsertions: Int) = {
     val timer = Timer()
-    val expectedInsertions = 100000
     val termFilter = BloomFilter.create(Funnels.stringFunnel(Charset.forName("UTF-8")), expectedInsertions)
     var n = 0
     for {
@@ -64,7 +63,7 @@ object DocFreq {
   }
   
   def filterQuery(c: CliOption) = {
-    val termFilter = loadTermFilter
+    val termFilter = loadTermFilter(c.maxTerms)
     for (w <- managed(new OutputStreamWriter(System.out, "UTF-8"))) {
       for (line <- Source.fromInputStream(System.in, "UTF-8").getLines) {
         val q = line.parseJson.convertTo[PosQuery]
@@ -87,7 +86,7 @@ object DocFreq {
       rBigSpace.replaceAllIn(q2, " ")
     }
     
-    val termFilter = loadTermFilter
+    val termFilter = loadTermFilter(c.maxTerms)
     for (w <- managed(new OutputStreamWriter(System.out, "UTF-8"))) {
       for (line <- Source.fromInputStream(System.in, "UTF-8").getLines) {
         val query = clean(line.parseJson.toString)

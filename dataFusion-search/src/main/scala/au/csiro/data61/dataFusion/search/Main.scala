@@ -9,9 +9,9 @@ import com.typesafe.scalalogging.Logger
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(output: File, index: Boolean, searchJson: Boolean, searchCsv: Boolean, cvsDelim: Char, cvsPerson: Seq[String], cvsOrg: String, cvsId: String, docFreq: Boolean, export: Boolean, filterQueryOnly: Boolean, filterQuery: Boolean, nerToQuery: Boolean, slop: Int, numWorkers: Int)
+  case class CliOption(output: File, index: Boolean, searchJson: Boolean, searchCsv: Boolean, cvsDelim: Char, cvsPerson: Seq[String], cvsOrg: String, cvsId: String, docFreq: Boolean, export: Boolean, filterQueryOnly: Boolean, filterQuery: Boolean, maxTerms: Int, nerToQuery: Boolean, slop: Int, numWorkers: Int)
   
-  val defaultCliOption = CliOption(new File("hits.json"), false, false, false, '|', Seq("STRCTRD_FMLY_NM", "STRCTRD_GVN_NM", "STRCTRD_OTHR_GVN_NM"), "USTRCTRD_FULL_NM", "CLNT_INTRNL_ID", false, false, false, true, false, 0, Runtime.getRuntime.availableProcessors)
+  val defaultCliOption = CliOption(new File("hits.json"), false, false, false, '\t', Seq("STRCTRD_FMLY_NM", "STRCTRD_GVN_NM", "STRCTRD_OTHR_GVN_NM"), "USTRCTRD_FULL_NM", "CLNT_INTRNL_ID", false, false, false, true, 10000000, false, 0, Runtime.getRuntime.availableProcessors)
   
   val parser = new scopt.OptionParser[CliOption]("search") {
     head("search", "0.x")
@@ -30,7 +30,7 @@ object Main {
     } text (s"search with CSV queries on stdin (default ${defaultCliOption.searchCsv})")
     opt[String]("cvsDelim") action { (v, c) =>
       c.copy(cvsDelim = v.headOption.getOrElse(defaultCliOption.cvsDelim))
-    } text (s"CSV field delimeter (default ${defaultCliOption.cvsDelim})")
+    } text (s"CSV field delimeter (default ${if (defaultCliOption.cvsDelim == '\t') "tab" else defaultCliOption.cvsDelim.toString})")
     opt[Seq[String]]("cvsPerson") action { (v, c) =>
       c.copy(cvsPerson = v)
     } validate { v =>
@@ -43,25 +43,28 @@ object Main {
     opt[String]("cvsId") action { (v, c) =>
       c.copy(cvsId = v)
     } text (s"CSV field name for ID (default ${defaultCliOption.cvsId})")
-    opt[Unit]('d', "docFreq") action { (_, c) =>
+    opt[Unit]("docFreq") action { (_, c) =>
       c.copy(docFreq = true)
     } text (s"output term document frequencies from index as CSV (default ${defaultCliOption.docFreq})")
-    opt[Unit]('e', "export") action { (_, c) =>
+    opt[Unit]("export") action { (_, c) =>
       c.copy(export = true)
     } text (s"output the stored JSON for each doc (default ${defaultCliOption.export})")
-    opt[Unit]('g', "filterQueryOnly") action { (_, c) =>
+    opt[Unit]("filterQueryOnly") action { (_, c) =>
       c.copy(filterQueryOnly = true)
     } text (s"filter Query JSON from stdin to stdout, outputing only lines with all query terms most likely in the index (default ${defaultCliOption.filterQueryOnly})")
-    opt[Boolean]('f', "filterQuery") action { (v, c) =>
+    opt[Boolean]("filterQuery") action { (v, c) =>
       c.copy(filterQuery = v)
     } text (s"search CLI skips search if any query term is definitely not in the index (default ${defaultCliOption.filterQuery})")
-    opt[Unit]('q', "nerToQuery") action { (_, c) =>
+    opt[Int]("maxTerms") action { (v, c) =>
+      c.copy(maxTerms = v)
+    } text (s"maxTerms for Bloom Filter used with filterQuery, (default ${defaultCliOption.maxTerms})")
+    opt[Unit]("nerToQuery") action { (_, c) =>
       c.copy(nerToQuery = true)
     } text (s"filter JSON names from stdin to stdout, outputing queries only for lines with all specified query terms in the index (default ${defaultCliOption.filterQuery})")
-    opt[Int]('s', "slop") action { (v, c) =>
+    opt[Int]("slop") action { (v, c) =>
       c.copy(slop = v)
     } text (s"slop for posQuery, (default ${defaultCliOption.slop})")
-    opt[Int]('n', "numWorkers") action { (v, c) =>
+    opt[Int]("numWorkers") action { (v, c) =>
       c.copy(numWorkers = v)
     } text (s"numWorkers for CLI queries, (default ${defaultCliOption.numWorkers} the number of CPUs)")
     help("help") text ("prints this usage text")

@@ -126,11 +126,8 @@ object Main {
       
       def work(d: Doc): Doc =  {
         inProgress += d.path -> System.currentTimeMillis
-        try {
-          impl.langNer(d)
-        } finally {
-          inProgress.remove(d.path)
-        }
+        try impl.langNer(d)
+        finally inProgress.remove(d.path)
       }
       
       def out(d: Doc): Unit = {

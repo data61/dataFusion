@@ -120,9 +120,8 @@ object Main {
       def work(pathIdx: (String, Long)): Doc = {
         val path = pathIdx._1
         inProgress += path -> System.currentTimeMillis
-        val d = tikaUtil.tika(inputStream(path), path, pathIdx._2) // stream opened/closed in parseTextMeta
-        inProgress.remove(path)
-        d
+        try tikaUtil.tika(inputStream(path), path, pathIdx._2) // stream opened/closed in parseTextMeta
+        finally inProgress.remove(path)
       }
       
       def out(d: Doc): Unit = { 

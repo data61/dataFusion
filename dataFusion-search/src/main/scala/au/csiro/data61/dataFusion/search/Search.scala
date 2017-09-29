@@ -20,6 +20,7 @@ import au.csiro.data61.dataFusion.common.Parallel.{ doParallel, bufWriter }
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
 import PosDocSearch.{ PosQuery, PHits }, PosDocSearch.JsonProtocol._
+import com.google.common.hash.BloomFilter
    
 object Search {
   private val log = Logger(getClass)
@@ -125,6 +126,7 @@ object Search {
       val indices = csvHeaderToIndices(c: CliOption, iter.next.toUpperCase)
       val maxIdx = indices.max
       val alpha = "[A-Z]".r
+      val space = "\\s".r
       val nameOKRE = "^[A-Z](?:[' A-Z-]*[A-Z])?$".r
       def nameOK(n: String) = nameOKRE.unapplySeq(n).isDefined // matches
       iter.flatMap { line =>
@@ -133,7 +135,11 @@ object Search {
           val Seq(idStr, org, fam, gvn, oth) = indices.map(data(_).trim)
           val id = idStr.toLong
           
-          val orgQuery = alpha.findFirstMatchIn(org).map(_ => PosQuery(org, true, id))
+          // ToDo: are any one word org names valid? If so we have to do a non-phrase search for them
+          val orgQuery = for {
+            _ <- alpha.findFirstMatchIn(org)
+            _ <- space.findFirstMatchIn(org)
+          } yield PosQuery(org, true, id)
           if (org.nonEmpty && orgQuery.isEmpty) log.warn(s"Rejected organisation: $org")
           
           val perQuery = if (nameOK(fam) && nameOK(gvn) && (oth.isEmpty || nameOK(oth))) Some(PosQuery(s"$fam $gvn $oth", false, id)) else None
@@ -163,13 +169,12 @@ object Search {
     val work: PosQuery => PHits = {
       def workNoFilter(q: PosQuery) = PosDocSearcher.search(c.slop, q)
       
-      def workFilter(q: PosQuery) = {
-        val termFilter = DocFreq.loadTermFilter
+      def workFilter(termFilter: BloomFilter[CharSequence])(q: PosQuery) = {
         if (DocFreq.containsAllTokens(termFilter, q.query)) workNoFilter(q)
         else PHits(Stats(0, 0), List.empty, None, q.query, q.clnt_intrnl_id)
       }
     
-      if (c.filterQuery) workFilter else workNoFilter
+      if (c.filterQuery) workFilter(DocFreq.loadTermFilter(c.maxTerms)) else workNoFilter
     }
       
     for (w <- managed(bufWriter(c.output))) {
