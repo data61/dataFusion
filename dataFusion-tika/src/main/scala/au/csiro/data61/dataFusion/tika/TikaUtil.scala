@@ -156,7 +156,7 @@ class TikaUtil(cliOption: CliOption) {
 		for(tikaInputStream <- managed(TikaInputStream.get(is)))
       wrapper.parse(tikaInputStream, null, metadata, context)
 		
-    wrapper.getMetadata.asScala.toList
+    Option(wrapper.getMetadata).map(_.asScala.toList).getOrElse(List.empty)
   }
   
   /**
