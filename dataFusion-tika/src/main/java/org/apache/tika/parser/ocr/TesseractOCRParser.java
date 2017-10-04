@@ -60,6 +60,7 @@ import org.apache.tika.exception.TikaException;
 import org.apache.tika.io.TemporaryResources;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaMetadataKeys;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.mime.MediaTypeRegistry;
 import org.apache.tika.parser.AbstractParser;
@@ -116,6 +117,7 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
     
     // these are set by dataFusion-tika{,-service} Main from command line options
     public static boolean ocrImagePreprocess = true;
+    public static long ocrImPreMaxTifSize = 5000000L;
     public static boolean ocrImageDeskew = true;
     public static int ocrTimeout = 300;
     public static int ocrResize = 200;
@@ -377,6 +379,16 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
         tmp.close();
     }
     
+    private boolean tiffPredicate(long size, Metadata metadata) {
+    	String typ = metadata.get(org.apache.tika.metadata.HttpHeaders.CONTENT_TYPE);
+    	boolean tooBig = "image/tiff".equals(typ) && size > ocrImPreMaxTifSize;
+    	if (tooBig) {
+    		String path = metadata.get(TikaMetadataKeys.RESOURCE_NAME_KEY);
+    		LOG.warn("Preprocessing skipped for TIFF image {} size {} because it's > {}", path, size, ocrImPreMaxTifSize);
+    	}
+    	return !tooBig;
+    }
+    
     private void parse(TikaInputStream tikaInputStream, File tmpOCROutputFile, ParseContext parseContext,
                        XHTMLContentHandler xhtml, TesseractOCRConfig config, Metadata metadata)
             throws IOException, SAXException, TikaException {
@@ -386,7 +398,7 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
             long size = tikaInputStream.getLength();
 
             if (size >= config.getMinFileSizeToOcr() && size <= config.getMaxFileSizeToOcr()) {
-            	if (ocrImagePreprocess) {
+            	if (ocrImagePreprocess && tiffPredicate(size, metadata)) {
 	            	// Process image if ImageMagick Tool is present
 	            	if(hasImageMagick(config)) {
 	                    // copy the contents of the original input file into a temporary file

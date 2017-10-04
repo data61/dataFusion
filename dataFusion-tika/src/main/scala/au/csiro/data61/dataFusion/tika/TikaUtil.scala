@@ -97,6 +97,7 @@ class TikaUtil(cliOption: CliOption) {
   
   // TesseractOCRParser modified to override its config with these values
   TesseractOCRParser.ocrImagePreprocess = cliOption.ocrImagePreprocess
+  TesseractOCRParser.ocrImPreMaxTifSize = cliOption.ocrImPreMaxTifSize
   TesseractOCRParser.ocrImageDeskew = cliOption.ocrImageDeskew
   TesseractOCRParser.ocrTimeout = cliOption.ocrTimeout
   TesseractOCRParser.ocrResize = cliOption.ocrResize

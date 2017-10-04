@@ -136,8 +136,8 @@ object Main {
     // logThread.join // not necessary with daemon thread, can take up to 1 min to wake up
   }
   
-  case class CliOption(output: File, startId: Long, numWorkers: Int, pdfOcrStrategy: String, pdfExtractInlineImages: Boolean, ocrImagePreprocess: Boolean, ocrImageDeskew: Boolean, ocrTimeout: Int, ocrResize: Int, ocrPreserveInterwordSpacing: Boolean, resetEnglishScore: Boolean, resetId: Boolean)
-  val defaultCliOption = CliOption(new File("tika.json"), 0L, Runtime.getRuntime.availableProcessors, "no_ocr", true, true, false, 300, 200, true, false, false)
+  case class CliOption(output: File, startId: Long, numWorkers: Int, pdfOcrStrategy: String, pdfExtractInlineImages: Boolean, ocrImagePreprocess: Boolean, ocrImPreMaxTifSize: Long, ocrImageDeskew: Boolean, ocrTimeout: Int, ocrResize: Int, ocrPreserveInterwordSpacing: Boolean, resetEnglishScore: Boolean, resetId: Boolean)
+  val defaultCliOption = CliOption(new File("tika.json"), 0L, Runtime.getRuntime.availableProcessors, "no_ocr", true, true, 5000000L, false, 300, 200, true, false, false)
 
   def initSystemProperties: Unit = {
     // https://pdfbox.apache.org/2.0/migration.html#pdf-rendering
@@ -156,22 +156,26 @@ object Main {
       note("Tika text and metadata extraction CLI. Stdin contains local file paths or http URL's, one per line.")
       opt[File]("output") action { (v, c) =>
         c.copy(output = v)
-      } text (s"output JSON file, (default ${defaultCliOption.output.getPath})")
+      } text (s"output JSON file (default ${defaultCliOption.output.getPath})")
       opt[Long]("startId") action { (v, c) =>
         c.copy(startId = v)
-      } text (s"id's allocated incrementally starting with this value, (default ${defaultCliOption.startId})")
+      } text (s"id's allocated incrementally starting with this value (default ${defaultCliOption.startId})")
       opt[Int]("numWorkers") action { (v, c) =>
         c.copy(numWorkers = v)
-      } text (s"numWorkers, (default ${defaultCliOption.numWorkers} the number of CPUs)")
+      } text (s"numWorkers (default ${defaultCliOption.numWorkers} the number of CPUs)")
       opt[String]("pdfOcrStrategy") action { (v, c) =>
         c.copy(pdfOcrStrategy = v)
-      } text (s"pdfOcrStrategy = no_ocr|ocr_only|ocr_and_text, (default ${defaultCliOption.pdfOcrStrategy}). no_ocr means use the text in the PDF, but still OCR embedded images. ocr_only means render the whole page (text and images) as an image and OCR that, otherwise ignoring the text in the PDF.")
+      } text (s"pdfOcrStrategy = no_ocr|ocr_only|ocr_and_text (default ${defaultCliOption.pdfOcrStrategy}). no_ocr means use the text in the PDF, but still OCR embedded images. ocr_only means render the whole page (text and images) as an image and OCR that, otherwise ignoring the text in the PDF.")
       opt[Boolean]("pdfExtractInlineImages") action { (v, c) =>
         c.copy(pdfExtractInlineImages = v)
-      } text (s"whether to extract and OCR inline images in PDF, (default ${defaultCliOption.pdfExtractInlineImages})")
+      } text (s"whether to extract and OCR inline images in PDF (default ${defaultCliOption.pdfExtractInlineImages})")
       opt[Boolean]("ocrImagePreprocess") action { (v, c) =>
         c.copy(ocrImagePreprocess = v)
-      } text (s"whether to preprocess images with ImageMagik prior to OCR, (default ${defaultCliOption.ocrImagePreprocess})")
+      } text (s"whether to preprocess images with ImageMagik prior to OCR (default ${defaultCliOption.ocrImagePreprocess})")
+      // ocrImPreMaxTifSize
+      opt[Long]("ocrImPreMaxTifSize") action { (v, c) =>
+        c.copy(ocrImPreMaxTifSize = v)
+      } text (s"max TIF image size to preprocess (bytes, default ${defaultCliOption.ocrImPreMaxTifSize})")
       opt[Boolean]("ocrImageDeskew") action { (v, c) =>
         c.copy(ocrImageDeskew = v)
       } text (s"whether to determine image skew using rotation.py so ImageMagik can deskew (can be very slow, default ${defaultCliOption.ocrImageDeskew})")
@@ -183,7 +187,7 @@ object Main {
       } text (s"resize image to ocrResize% of original prior to OCR (too large can be very slow, default ${defaultCliOption.ocrResize})")
       opt[Boolean]("ocrPreserveInterwordSpacing") action { (v, c) =>
         c.copy(ocrPreserveInterwordSpacing = v)
-      } text (s"whether OCR should preserve interword spacing, (default ${defaultCliOption.ocrPreserveInterwordSpacing})")
+      } text (s"whether OCR should preserve interword spacing (default ${defaultCliOption.ocrPreserveInterwordSpacing})")
       opt[Unit]("resetEnglishScore") action { (_, c) =>
         c.copy(resetEnglishScore = true)
       } text (s"reset englishScore in metdata (to reprocess after a change to the scoring, default ${defaultCliOption.resetEnglishScore})")
