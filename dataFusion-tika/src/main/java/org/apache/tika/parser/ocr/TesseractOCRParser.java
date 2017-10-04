@@ -129,6 +129,10 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
     private static AtomicDouble imageMagickTime  = new AtomicDouble();
     private static AtomicDouble tesseractTime = new AtomicDouble();
 
+    public static String getTimers() {
+    	return String.format("OCR count = %d, Python $0.2f secs, ImageMagick $0.2f secs, Tesseract $0.2f secs", count.get(), pythonTime.get(), imageMagickTime.get(), tesseractTime.get());
+    }
+
     @Override
     public Set<MediaType> getSupportedTypes(ParseContext context) {
         // If Tesseract is installed, offer our supported image types
@@ -545,11 +549,10 @@ public class TesseractOCRParser extends AbstractParser implements Initializable 
         } finally {
         	t.stop();
         	tesseractTime.addAndGet(t.elapsedSecs());
-        	Long n = count.incrementAndGet();
-        	LOG.info("doOCR: OCR count = {}, Python {} secs, ImageMagick {} secs, Tesseract {} secs", new Object[]{n, pythonTime.get(), imageMagickTime.get(), tesseractTime.get()});
+        	count.incrementAndGet();
         }
     }
-
+    
     /**
      * Reads the contents of the given stream and write it to the given XHTML
      * content handler. The stream is closed once fully processed.

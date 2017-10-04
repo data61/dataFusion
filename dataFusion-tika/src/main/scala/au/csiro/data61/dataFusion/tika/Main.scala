@@ -1,11 +1,13 @@
 package au.csiro.data61.dataFusion.tika
 
-import java.io.{ BufferedWriter, File, FileInputStream, FileOutputStream, InputStream, OutputStreamWriter }
+import java.io.{ BufferedWriter, File, FileInputStream, InputStream }
 import java.net.URL
 
 import scala.collection.concurrent.TrieMap
 import scala.io.Source
 import scala.language.postfixOps
+
+
 
 import com.typesafe.scalalogging.Logger
 
@@ -15,6 +17,7 @@ import au.csiro.data61.dataFusion.common.Data.META_EN_SCORE
 import au.csiro.data61.dataFusion.common.Parallel.{ bufWriter, doParallel }
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
+import org.apache.tika.parser.ocr.TesseractOCRParser
 
 object Main {
   private val log = Logger(getClass)
@@ -75,7 +78,6 @@ object Main {
   
   // modified from dataFusion-ner cliNer
   def cliTika(cliOption: CliOption) = {
-    import scala.io.Source
     
     val tikaUtil = new TikaUtil(cliOption)
             
@@ -92,6 +94,7 @@ object Main {
           (p, t) <- inProgress.iterator if t1 - t > 60000L
         } yield p -> (t1 - t) / 60000f).toList
         log.info(s"$msg: In progress for more than a minute: (path, minutes) = $longerThanMinute")
+        log.info(s"$msg: ${TesseractOCRParser.getTimers}")
         t0 = t1
       }
     }
@@ -130,7 +133,8 @@ object Main {
       }
       
       doParallel(in, work, out, ("done", 0L), Doc(0, None, Map.empty, "done", List.empty, List.empty), cliOption.numWorkers)
-      log.info(s"cliTika: complete, next id would be ${id}")
+      log.info(s"cliTika: complete: ${TesseractOCRParser.getTimers}")
+      log.info(s"cliTika: complete: next id would be ${id}")
     }
     t0 = logDone
     // logThread.join // not necessary with daemon thread, can take up to 1 min to wake up

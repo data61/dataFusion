@@ -1,12 +1,14 @@
 package au.csiro.data61.dataFusion.tika
 
-import java.io.InputStream
+import java.io.{ File, FileInputStream, FileNotFoundException, FileOutputStream, InputStream }
 
 import scala.collection.JavaConverters.asScalaBufferConverter
+import scala.collection.mutable.ListBuffer
+import scala.language.postfixOps
 import scala.reflect.ClassManifestFactory.classType
-import scala.util.{ Failure, Try }
 import scala.util.control.NonFatal
 
+import org.apache.commons.io.IOUtils
 import org.apache.tika.config.TikaConfig
 import org.apache.tika.detect.Detector
 import org.apache.tika.exception.TikaException
@@ -15,7 +17,7 @@ import org.apache.tika.metadata.{ Metadata, TikaMetadataKeys }
 import org.apache.tika.mime.MediaType
 import org.apache.tika.parser.{ AutoDetectParser, ParseContext, Parser, RecursiveParserWrapper }
 import org.apache.tika.parser.html.HtmlParser
-import org.apache.tika.parser.ocr.TesseractOCRConfig
+import org.apache.tika.parser.ocr.{ TesseractOCRConfig, TesseractOCRParser }
 import org.apache.tika.parser.pdf.PDFParserConfig
 import org.apache.tika.sax.BasicContentHandlerFactory
 import org.apache.tika.sax.BasicContentHandlerFactory.HANDLER_TYPE
@@ -24,19 +26,9 @@ import org.xml.sax.ContentHandler
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
-import au.csiro.data61.dataFusion.common.Data._
-import resource.managed
-import org.apache.tika.parser.pdf.PDFParserConfig.OCR_STRATEGY
-import java.io.File
-import java.io.FileOutputStream
-import org.apache.commons.io.IOUtils
-import scala.language.postfixOps
-import java.io.FileInputStream
-import java.io.FileNotFoundException
-import scala.collection.mutable.Buffer
-import scala.collection.mutable.ListBuffer
+import au.csiro.data61.dataFusion.common.Data.{ Doc, Embedded, META_EN_SCORE, META_LANG_CODE, META_LANG_PROB }
 import au.csiro.data61.dataFusion.tika.Main.CliOption
-import org.apache.tika.parser.ocr.TesseractOCRParser
+import resource.managed
 
 object TikaUtil {
   private val log = Logger(getClass)
@@ -89,7 +81,7 @@ object TikaUtil {
   }
 
 }
-import TikaUtil.{ log, englishScore }
+import TikaUtil.{ englishScore, log }
 
 class TikaUtil(cliOption: CliOption) {
 
