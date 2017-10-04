@@ -110,8 +110,8 @@ object Search {
    * @param cvsHdr the header line from the CSV file
    */
   def csvHeaderToIndices(c: CliOption, cvsHdr: String): Seq[Int] = {
-    val hdrs = cvsHdr.split(c.cvsDelim)
-    val fields = c.cvsId +: c.cvsOrg +: c.cvsPerson
+    val hdrs = cvsHdr.toUpperCase.split(c.cvsDelim)
+    val fields = (c.cvsId +: c.cvsOrg +: c.cvsPerson).map(_.toUpperCase)
     val hdrIdx = fields map hdrs.indexOf
     val missing = for ((f, i) <- fields zip hdrIdx if i == -1) yield f
     if (!missing.isEmpty) throw new Exception(s"CSV header is missing fields: ${missing.mkString(",")}")
@@ -123,7 +123,7 @@ object Search {
    */
   def inCsv(c: CliOption, iter: Iterator[String]): Iterator[PosQuery] = {
     if (iter.hasNext) {
-      val indices = csvHeaderToIndices(c: CliOption, iter.next.toUpperCase)
+      val indices = csvHeaderToIndices(c: CliOption, iter.next)
       val maxIdx = indices.max
       val alpha = "[A-Z]".r
       val space = "\\s".r
