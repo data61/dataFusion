@@ -141,7 +141,7 @@ object Main {
   }
   
   case class CliOption(output: File, startId: Long, numWorkers: Int, pdfOcrStrategy: String, pdfExtractInlineImages: Boolean, ocrImagePreprocess: Boolean, ocrImPreMaxTifSize: Long, ocrImageDeskew: Boolean, ocrTimeout: Int, ocrResize: Int, ocrPreserveInterwordSpacing: Boolean, resetEnglishScore: Boolean, resetId: Boolean)
-  val defaultCliOption = CliOption(new File("tika.json"), 0L, Runtime.getRuntime.availableProcessors, "no_ocr", true, true, 5000000L, false, 300, 200, true, false, false)
+  val defaultCliOption = CliOption(new File("tika.json"), 0L, Runtime.getRuntime.availableProcessors, "no_ocr", true, true, 10L, false, 300, 200, true, false, false)
 
   def initSystemProperties: Unit = {
     // https://pdfbox.apache.org/2.0/migration.html#pdf-rendering
