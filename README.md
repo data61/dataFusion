@@ -46,7 +46,7 @@ Notes:
 
 The Scala programs are packaged by the build as a [onejar](https://github.com/sbt/sbt-onejar). This is a jar file containing all dependencies and run simply with: `java -jar {filename.jar}` (however dataFusion-ner and dataFusion-ner-service have additional dependencies as as noted in [dataFusion-ner](dataFusion-ner)). The `--help` command line option describes the available options.
 
-A convenience script `sh/dfus` provides shorter command lines. It supports a `-h` option for help.
+A convenience script `sh/dfus` provides shorter command lines. It depends on the environment set by `sh/setenv`. See Recommendations below for usage.
 
 ### Configuration
 These projects have configuration in `src/main/resources/application.conf`, which uses `${?ENV_VAR}` syntax to define environment variables that may be set to override default values set in the file. For example dataFusion-ner's [application.conf](dataFusion-ner/src/main/resources/application.conf) sets the default location for MITIE's English NER model to `MITIE-models/english/ner_model.dat` (relative to whatever directory the program is run from) and allows this to be overridden by setting an environment variable `NER_MITIE_ENGLISH_MODEL`.
@@ -64,8 +64,24 @@ Examples:
      java -jar dataFusion-search/target/scala-2.12/datafusion-search_2.12-0.2-SNAPSHOT-one-jar.jar --help
 
      dfus -h                                # get help for the sh/dfus script
+     dfus tika --help
+     dfus ner --help
      dfus search --help                     # same as java command above
-     dfus -m 7 ner < tika.json > ner.json   # run NER with 7GM memory (uses all CPUs by default)
+     
+     # run tika on all files under /collections; -m 7 to set 7GB Java heap
+     find /collections -type f | dfus -m 7 tika --output tika-all.json
+     
+     # run tika only on the files listed in demoFiles.txt
+     dfus -m 7 tika --output tika-demo.json < demoFiles.txt
+     
+     # run NER
+     dfus -m 7 ner --output ner-demo.json < tika-demo.json
+     
+     # create bulk search index (location set in sh/setenv or you can manually set env vars to override)
+     dfus search --index < ner-demo.json
+     
+     # bulk search for entities in entities.csv
+     dfus search --searchCsv --output hits-demo.json < entities.csv
      
 ## Swagger Support
 
