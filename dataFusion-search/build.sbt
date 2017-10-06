@@ -9,6 +9,7 @@ libraryDependencies ++= Seq(
 
 libraryDependencies ++= Seq(
   "com.google.guava" % "guava" % "18.0", // not "23.0", for compatability with search-service dependencies
+  "commons-io" % "commons-io" % "2.5",
   "com.typesafe" % "config" % "1.3.1",
   "com.github.scopt" %% "scopt" % "3.5.0",
   "com.jsuereth" %% "scala-arm" % "2.0",

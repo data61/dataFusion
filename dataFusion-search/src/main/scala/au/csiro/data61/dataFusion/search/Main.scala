@@ -9,7 +9,7 @@ import com.typesafe.scalalogging.Logger
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(output: File, index: Boolean, searchJson: Boolean, searchCsv: Boolean, cvsDelim: Char, cvsPerson: Seq[String], cvsOrg: String, cvsId: String, docFreq: Boolean, export: Boolean, filterQueryOnly: Boolean, filterQuery: Boolean, maxTerms: Int, nerToQuery: Boolean, slop: Int, numWorkers: Int)
+  case class CliOption(output: File, index: Boolean, searchJson: Boolean, searchCsv: Boolean, csvDelim: Char, csvPerson: Seq[String], csvOrg: String, csvId: String, docFreq: Boolean, export: Boolean, filterQueryOnly: Boolean, filterQuery: Boolean, maxTerms: Int, nerToQuery: Boolean, slop: Int, numWorkers: Int)
   
   val defaultCliOption = CliOption(new File("hits.json"), false, false, false, '\t', Seq("STRCTRD_FMLY_NM", "STRCTRD_GVN_NM", "STRCTRD_OTHR_GVN_NM"), "USTRCTRD_FULL_NM", "CLNT_INTRNL_ID", false, false, false, true, 10000000, false, 0, Runtime.getRuntime.availableProcessors)
   
@@ -28,21 +28,21 @@ object Main {
     opt[Unit]("searchCsv") action { (_, c) =>
       c.copy(searchCsv = true)
     } text (s"search with CSV queries on stdin (default ${defaultCliOption.searchCsv})")
-    opt[String]("cvsDelim") action { (v, c) =>
-      c.copy(cvsDelim = v.headOption.getOrElse(defaultCliOption.cvsDelim))
-    } text (s"CSV field delimeter (default ${if (defaultCliOption.cvsDelim == '\t') "tab" else defaultCliOption.cvsDelim.toString})")
-    opt[Seq[String]]("cvsPerson") action { (v, c) =>
-      c.copy(cvsPerson = v)
+    opt[String]("csvDelim") action { (v, c) =>
+      c.copy(csvDelim = v.headOption.getOrElse(defaultCliOption.csvDelim))
+    } text (s"CSV field delimeter (default ${if (defaultCliOption.csvDelim == '\t') "tab" else defaultCliOption.csvDelim.toString})")
+    opt[Seq[String]]("csvPerson") action { (v, c) =>
+      c.copy(csvPerson = v)
     } validate { v =>
       if (v.size == 3) success
       else failure("3 field names are required")
-    } text (s"CSV field names (3) for person's family, first given and other names (default ${defaultCliOption.cvsPerson.toList})")
-    opt[String]("cvsOrg") action { (v, c) =>
-      c.copy(cvsOrg = v)
-    } text (s"CSV field name for organisation (default ${defaultCliOption.cvsOrg})")
-    opt[String]("cvsId") action { (v, c) =>
-      c.copy(cvsId = v)
-    } text (s"CSV field name for ID (default ${defaultCliOption.cvsId})")
+    } text (s"CSV field names (3) for person's family, first given and other names (default ${defaultCliOption.csvPerson.toList})")
+    opt[String]("csvOrg") action { (v, c) =>
+      c.copy(csvOrg = v)
+    } text (s"CSV field name for organisation (default ${defaultCliOption.csvOrg})")
+    opt[String]("csvId") action { (v, c) =>
+      c.copy(csvId = v)
+    } text (s"CSV field name for ID (default ${defaultCliOption.csvId})")
     opt[Unit]("docFreq") action { (_, c) =>
       c.copy(docFreq = true)
     } text (s"output term document frequencies from index as CSV (default ${defaultCliOption.docFreq})")

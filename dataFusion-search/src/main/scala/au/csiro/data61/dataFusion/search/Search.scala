@@ -1,26 +1,27 @@
 package au.csiro.data61.dataFusion.search
 
-import java.io.OutputStreamWriter
+
 
 import scala.io.Source
 import scala.language.postfixOps
-import scala.util.Try
 import scala.util.control.NonFatal
 
+import org.apache.commons.io.input.BOMInputStream
 import org.apache.lucene.queryparser.classic.QueryParser
 import org.apache.lucene.search.MatchAllDocsQuery
 
+import com.google.common.hash.BloomFilter
 import com.typesafe.scalalogging.Logger
 
 import DataFusionLucene.{ F_CONTENT, F_JSON, F_TEXT, F_VAL, analyzer, docIndex, metaIndex, nerIndex }
-import DataFusionLucene.DFSearching.{ Query, Stats, DocSearch, PosDocSearch, MetaSearch, NerSearch }
+import DataFusionLucene.DFSearching.{ Query, Stats, PosDocSearch, DocSearch, MetaSearch, NerSearch }
+import PosDocSearch.{ PHits, PosQuery }
+import PosDocSearch.JsonProtocol.{ pHitsCodec, posQueryCodec }
 import LuceneUtil.{ Searcher, directory }
 import Main.CliOption
-import au.csiro.data61.dataFusion.common.Parallel.{ doParallel, bufWriter }
+import au.csiro.data61.dataFusion.common.Parallel.{ bufWriter, doParallel }
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
-import PosDocSearch.{ PosQuery, PHits }, PosDocSearch.JsonProtocol._
-import com.google.common.hash.BloomFilter
    
 object Search {
   private val log = Logger(getClass)
@@ -107,11 +108,11 @@ object Search {
 
   /**
    * return the indices of the fields for: id, organisation name and person's: family, first given and other given names.
-   * @param cvsHdr the header line from the CSV file
+   * @param csvHdr the header line from the CSV file
    */
-  def csvHeaderToIndices(c: CliOption, cvsHdr: String): Seq[Int] = {
-    val hdrs = cvsHdr.toUpperCase.split(c.cvsDelim)
-    val fields = (c.cvsId +: c.cvsOrg +: c.cvsPerson).map(_.toUpperCase)
+  def csvHeaderToIndices(c: CliOption, csvHdr: String): Seq[Int] = {
+    val hdrs = csvHdr.toUpperCase.split(c.csvDelim)
+    val fields = (c.csvId +: c.csvOrg +: c.csvPerson).map(_.toUpperCase)
     val hdrIdx = fields map hdrs.indexOf
     val missing = for ((f, i) <- fields zip hdrIdx if i == -1) yield f
     if (!missing.isEmpty) throw new Exception(s"CSV header is missing fields: ${missing.mkString(",")}")
@@ -124,37 +125,32 @@ object Search {
   def inCsv(c: CliOption, iter: Iterator[String]): Iterator[PosQuery] = {
     if (iter.hasNext) {
       val indices = csvHeaderToIndices(c: CliOption, iter.next)
-      val maxIdx = indices.max
       val alpha = "[A-Z]".r
       val space = "\\s".r
       val nameOKRE = "^[A-Z](?:[' A-Z-]*[A-Z])?$".r
       def nameOK(n: String) = nameOKRE.unapplySeq(n).isDefined // matches
       iter.flatMap { line =>
-        val data = line.toUpperCase.split(c.cvsDelim) // data is all upper, but make sure
-        if (data.size > maxIdx) {
-          val Seq(idStr, org, fam, gvn, oth) = indices.map(data(_).trim)
-          val id = idStr.toLong
-          
-          // ToDo: are any one word org names valid? If so we have to do a non-phrase search for them
-          val orgQuery = for {
-            _ <- alpha.findFirstMatchIn(org)
-            _ <- space.findFirstMatchIn(org)
-          } yield PosQuery(org, true, id)
-          if (org.nonEmpty && orgQuery.isEmpty) log.warn(s"Rejected organisation: $org")
-          
-          val perQuery = if (nameOK(fam) && nameOK(gvn) && (oth.isEmpty || nameOK(oth))) Some(PosQuery(s"$fam $gvn $oth", false, id)) else None
-          if ((fam.nonEmpty || gvn.nonEmpty) && perQuery.isEmpty) log.warn(s"Rejected person: family = '$fam', given = '$gvn', other = '$oth'")
-          
-          orgQuery.iterator ++ perQuery.iterator
-        } else {
-          Iterator.empty
-        }
+        val data = line.toUpperCase.split(c.csvDelim).toIndexedSeq.padTo(indices.max + 1, "") // data is all upper, but make sure
+        val Seq(idStr, org, fam, gvn, oth) = indices.map(data(_).trim)
+        val id = idStr.toLong
+        
+        // TODO: are any one word org names valid? If so we have to do a non-phrase search for them
+        val orgQuery = for {
+          _ <- alpha.findFirstMatchIn(org)
+          _ <- space.findFirstMatchIn(org)
+        } yield PosQuery(org, true, id)
+        if (org.nonEmpty && orgQuery.isEmpty) log.warn(s"Rejected organisation: $org")
+        
+        val perQuery = if (nameOK(fam) && nameOK(gvn) && (oth.isEmpty || nameOK(oth))) Some(PosQuery(s"$fam $gvn $oth", false, id)) else None
+        if ((fam.nonEmpty || gvn.nonEmpty || oth.nonEmpty) && perQuery.isEmpty) log.warn(s"Rejected person: family = '$fam', given = '$gvn', other = '$oth'")
+        
+        orgQuery.iterator ++ perQuery.iterator
       }
     } else {
       Iterator.empty
     }
   }
-      
+  
   /**
    * CLI method to run bulk searches:
    * + way simpler than JSON web service + client (and no timeout issues)
@@ -162,7 +158,7 @@ object Search {
    */
   def cliPosDocSearch(c: CliOption): Unit = {
     val in: Iterator[PosQuery] = {
-      val iter = Source.fromInputStream(System.in, "UTF-8").getLines
+      val iter = Source.fromInputStream(new BOMInputStream(System.in), "UTF-8").getLines
       if (c.searchJson) iter.map(_.parseJson.convertTo[PosQuery]) else inCsv(c, iter)
     }
     

@@ -13,11 +13,11 @@ class SearchTest extends FlatSpec with Matchers {
   
   "inCsv" should "parse CSV" in {
     val lines = Seq(
-      "STRCTRD_FMLY_NM|STRCTRD_GVN_NM|STRCTRD_OTHR_GVN_NM|USTRCTRD_FULL_NM|CLNT_INTRNL_ID",
-      "BLOGGS|FREDERICK|A||1",
-      "|||COSMIC HOLDINGS INCORPORATED|2",
+      "Clnt_Intrnl_Id|STRCTRD_FMLY_NM|STRCTRD_GVN_NM|STRCTRD_OTHR_GVN_NM|USTRCTRD_FULL_NM",
+      "1|BLOGGS|FREDERICK|A|",
+      "2||||COSMIC HOLDINGS INCORPORATED",
     )
-    val qs = inCsv(defaultCliOption, lines.iterator).toList
+    val qs = inCsv(defaultCliOption.copy(csvDelim = '|'), lines.iterator).toList
     log.debug(s"qs = $qs")
     qs should be(List(PosQuery("BLOGGS FREDERICK A", false, 1), PosQuery("COSMIC HOLDINGS INCORPORATED", true, 2)))
   }
