@@ -72,7 +72,7 @@ object OpenNLP {
         s <- ner.find(tokens)
         start = sentencePos.getStart + pos(s.getStart).getStart
         end = sentencePos.getStart + pos(s.getEnd - 1).getEnd
-      } yield Ner(tIdx + s.getStart, tIdx + s.getEnd, start, end, s.getProb, in.substring(start, end), s.getType.toUpperCase, "OpenNLP")
+      } yield Ner(tIdx + s.getStart, tIdx + s.getEnd, start, end, s.getProb, in.substring(start, end), s.getType.toUpperCase, "OpenNLP", None)
       
       ners.foreach(_.clearAdaptiveData)
       r.toList

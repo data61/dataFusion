@@ -103,7 +103,7 @@ object MITIE {
         Ner(
           e.getStart, e.getEnd, offStr, offEnd,
           e.getScore, in.substring(offStr, offEnd),
-          neTypes(e.getTag), "MITIE"
+          neTypes(e.getTag), "MITIE", None
         )
       }.toList
     }

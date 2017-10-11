@@ -14,7 +14,8 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-
+import au.csiro.data61.dataFusion.common.Data.JsonProtocol.pHitsCodec
+import au.csiro.data61.dataFusion.common.Data.PHits
 import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.DocSearch.DHits
 import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.DocSearch.JsonProtocol.dHitsCodec
 import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.JsonProtocol.queryCodec
@@ -22,8 +23,8 @@ import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.MetaSearch
 import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.MetaSearch.MHits
 import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.NerSearch.JsonProtocol.nHitsCodec
 import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.NerSearch.NHits
-import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.PosDocSearch.{ PHits, PMultiHits, PosMultiQuery, PosQuery }
-import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.PosDocSearch.JsonProtocol.{ pHitsCodec, pMultiHitsCodec, posMultiQueryCodec, posQueryCodec }
+import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.PosDocSearch.{ PMultiHits, PosMultiQuery, PosQuery }
+import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.PosDocSearch.JsonProtocol.{ pMultiHitsCodec, posMultiQueryCodec, posQueryCodec }
 import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.Query
 import au.csiro.data61.dataFusion.search.Search.{ DocSearcher, MetaSearcher, NerSearcher, PosDocSearcher }
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives.cors

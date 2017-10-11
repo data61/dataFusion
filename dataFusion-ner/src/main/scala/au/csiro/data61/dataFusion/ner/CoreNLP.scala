@@ -71,7 +71,8 @@ object CoreNLP {
         1.0,
         text.substring(tok.beginPosition, offEnd),
         fixNerClass(tok.ner),
-        "CoreNLP"
+        "CoreNLP",
+        None
       )
     }
   }

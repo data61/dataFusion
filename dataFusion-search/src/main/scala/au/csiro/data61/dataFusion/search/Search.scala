@@ -1,5 +1,7 @@
 package au.csiro.data61.dataFusion.search
 
+import java.util.concurrent.atomic.AtomicInteger
+
 import scala.io.Source
 import scala.language.postfixOps
 import scala.util.control.NonFatal
@@ -12,16 +14,18 @@ import com.google.common.hash.BloomFilter
 import com.typesafe.scalalogging.Logger
 
 import DataFusionLucene.{ F_CONTENT, F_JSON, F_TEXT, F_VAL, analyzer, docIndex, metaIndex, nerIndex }
-import DataFusionLucene.DFSearching.{ Query, Stats, PosDocSearch, DocSearch, MetaSearch, NerSearch }
-import PosDocSearch.{ PHits, PosQuery, T_PERSON, T_ORGANIZATION }
-import PosDocSearch.JsonProtocol.{ pHitsCodec, posQueryCodec }
+import DataFusionLucene.DFSearching.{ DocSearch, MetaSearch, NerSearch, PosDocSearch, Query }
+import PosDocSearch.{ PosQuery, T_ORGANIZATION, T_PERSON }
+import PosDocSearch.JsonProtocol.posQueryCodec
 import LuceneUtil.{ Searcher, directory }
 import Main.CliOption
+import au.csiro.data61.dataFusion.common.Timer
+import au.csiro.data61.dataFusion.common.Data.{ PHits, Stats }
+import au.csiro.data61.dataFusion.common.Data.JsonProtocol.pHitsCodec
 import au.csiro.data61.dataFusion.common.Parallel.{ bufWriter, doParallel }
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
-import au.csiro.data61.dataFusion.common.Timer
-import java.util.concurrent.atomic.AtomicInteger
+
    
 object Search {
   private val log = Logger(getClass)
@@ -63,7 +67,7 @@ object Search {
         // TODO: probably wrong to eat exception here, do in Parallel.work instead?
         case NonFatal(e) => {
           log.error("PosDocSearcher error", e)
-          PHits(Stats(0, 0.0f), List.empty, toMsg(e), q.query, q.clnt_intrnl_id, 0.0f, q.typ)
+          PHits(Stats(0, 0.0f), List.empty, toMsg(e), q.query, q.extRefId, 0.0f, q.typ)
         }
       }
       
@@ -183,7 +187,7 @@ object Search {
           workNoFilter(q)
         } else {
           filterCount.incrementAndGet
-          PHits(Stats(0, 0), List.empty, None, q.query, q.clnt_intrnl_id, 0.0f, q.typ)
+          PHits(Stats(0, 0), List.empty, None, q.query, q.extRefId, 0.0f, q.typ)
         }
       }
     

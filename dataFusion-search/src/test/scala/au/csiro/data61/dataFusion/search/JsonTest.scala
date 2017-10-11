@@ -4,8 +4,11 @@ import org.scalatest.{ FlatSpec, Matchers }
 
 import com.typesafe.scalalogging.Logger
 
-import DataFusionLucene.{ EMB_IDX_MAIN, LDoc, IdEmbIdx }
-import DataFusionLucene.DFSearching.{ Stats, DocSearch}, DocSearch.DHits, DocSearch.JsonProtocol._
+import DataFusionLucene.LDoc
+import DataFusionLucene.DFSearching.DocSearch
+import DocSearch.DHits
+import DocSearch.JsonProtocol._
+import au.csiro.data61.dataFusion.common.Data.{ EMB_IDX_MAIN, IdEmbIdx, Stats }
 import spray.json.{ pimpAny, pimpString }
 
 class JsonTest extends FlatSpec with Matchers {

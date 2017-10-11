@@ -58,6 +58,10 @@ unmanagedSourceDirectories := Nil // no sources in top level project
 lazy val common = (project in file("dataFusion-common")).
   settings(commonSettings: _*)
 
+lazy val util = (project in file("dataFusion-util")).
+  dependsOn(common).
+  settings(commonSettings: _*)
+  
 lazy val tika = (project in file("dataFusion-tika")).
   dependsOn(common).
   settings(commonSettings: _*)

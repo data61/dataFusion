@@ -33,8 +33,8 @@ The Manhattan District Engineer, Kenneth Nichols, moved the Manhattan District h
   "CoreNLP NER" should "get English entities" in {
     val ners = nerSplitParagraphs(en, enTxt, 1, 1) // split into small chunks
     log.debug(s"ners = ${ners}")
-    assert(ners.contains(Ner(12, 15, 67, 79, 1.0, "World War II", "MISC", "CoreNLP")))
-    assert(ners.contains(Ner(98, 100, 566, 577, 1.0, "August 1943", "DATE", "CoreNLP")))
+    assert(ners.contains(Ner(12, 15, 67, 79, 1.0, "World War II", "MISC", "CoreNLP", None)))
+    assert(ners.contains(Ner(98, 100, 566, 577, 1.0, "August 1943", "DATE", "CoreNLP", None)))
   }
   
   // CoreNLP 3.8.0 (latest release) fails this test, latest in github on 2017-09-22 passes.

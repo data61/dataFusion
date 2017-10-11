@@ -2,19 +2,20 @@ package au.csiro.data61.dataFusion.search
 
 import scala.io.{ Codec, Source }
 
+import org.apache.lucene.index.IndexWriter
+
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
-import DataFusionLucene.{ EMB_IDX_MAIN, IdEmbIdx, LDoc, LMeta, LNer, docIndex, metaIndex, nerIndex }
+import DataFusionLucene.{ LDoc, LMeta, LNer, docIndex, metaIndex, nerIndex }
 import DataFusionLucene.DFIndexing.{ ldoc2doc, lmeta2doc, lner2doc, mkIndexer }
 import LuceneUtil.directory
 import Main.CliOption
-import au.csiro.data61.dataFusion.common.Data.Doc
+import au.csiro.data61.dataFusion.common.Data.{ EMB_IDX_MAIN, Doc, IdEmbIdx }
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol.docFormat
+import au.csiro.data61.dataFusion.common.Parallel.doParallel
 import resource.managed
 import spray.json.pimpString
-import org.apache.lucene.index.IndexWriter
-import au.csiro.data61.dataFusion.common.Parallel.doParallel
 
 object Indexer {
   private val log = Logger(getClass)

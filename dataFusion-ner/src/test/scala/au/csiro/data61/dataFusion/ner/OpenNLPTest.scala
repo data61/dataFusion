@@ -20,7 +20,7 @@ Efectuó cuatro viajes a las Indias —denominación del continente americano ha
   "OpenNLP NER" should "get English entities" in {
     val ners = ner(en, enTxt)
     log.debug(s"ners = $ners")
-    assert(ners.map(_.copy(score = 1.0)).contains(Ner(78, 80, 436, 445, 1.0, "Oak Ridge", "LOCATION", "OpenNLP")))
+    assert(ners.map(_.copy(score = 1.0)).contains(Ner(78, 80, 436, 445, 1.0, "Oak Ridge", "LOCATION", "OpenNLP", None)))
   }
   
 //  it should "get Spanish entities" in {

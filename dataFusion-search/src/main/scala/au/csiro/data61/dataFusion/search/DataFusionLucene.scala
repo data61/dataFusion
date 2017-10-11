@@ -25,6 +25,8 @@ import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
 import LuceneUtil.tokenIter
+import au.csiro.data61.dataFusion.common.Data.{ IdEmbIdx, LPosDoc, PHits, PosInfo, Stats }
+import au.csiro.data61.dataFusion.common.Data.JsonProtocol.{ idEmbIdxCodec, pHitsCodec, statsCodec }
 import au.csiro.data61.dataFusion.common.Timer
 import spray.json.{ pimpAny, pimpString }
 import spray.json.DefaultJsonProtocol._
@@ -41,15 +43,11 @@ object DataFusionLucene {
   val Seq(docIndex, metaIndex, nerIndex) = 
     Seq("docIndex", "metaIndex", "nerIndex").map(k => new File(conf.getString(k)))
 
-  val EMB_IDX_MAIN = -1 // a searchable value for embIdx to represent main content - not embedded
-
-  case class IdEmbIdx(id: Long, embIdx: Int)
   case class LDoc(idEmbIdx: IdEmbIdx, content: String, path: String)
   case class LMeta(idEmbIdx: IdEmbIdx, key: String, `val`: String)
   case class LNer(idEmbIdx: IdEmbIdx, posStr: Int, posEnd: Int, offStr: Int, offEnd: Int, text: String, typ: String, impl: String)
   
   object JsonProtocol {
-    implicit val lIdEmbIdxCodec = jsonFormat2(IdEmbIdx)
     implicit val ldocCodec = jsonFormat3(LDoc)
     implicit val lmetaCodec = jsonFormat3(LMeta)
     implicit val lnerCodec = jsonFormat8(LNer)  
@@ -236,11 +234,9 @@ object DataFusionLucene {
   object DFSearching {
     
     case class Query(query: String, numHits: Int)
-    case class Stats(totalHits: Int, elapsedSecs: Float)
 
     object JsonProtocol {
       implicit val queryCodec = jsonFormat2(Query)
-      implicit val statsCodec = jsonFormat2(Stats)
     }
     import JsonProtocol._
     
@@ -266,19 +262,13 @@ object DataFusionLucene {
       val T_PERSON = "PERSON"
       val T_ORGANIZATION = "ORGANIZATION" // Z is consistent with NER implementations
       
-      case class PosQuery(query: String, typ: String, clnt_intrnl_id: Long)
+      case class PosQuery(query: String, typ: String, extRefId: Long)
       case class PosMultiQuery(queries: List[PosQuery])
-      case class PosInfo(posStr: Int, posEnd: Int, offStr: Int, offEnd: Int)
-      case class LPosDoc(idEmbIdx: IdEmbIdx, posInfos: List[PosInfo])
-      case class PHits(stats: Stats, hits: List[LPosDoc], error: Option[String], query: String, clnt_intrnl_id: Long, score: Float, typ: String)
       case class PMultiHits(pHits: List[PHits])
       
       object JsonProtocol {
         implicit val posQueryCodec = jsonFormat3(PosQuery)
         implicit val posMultiQueryCodec = jsonFormat1(PosMultiQuery)
-        implicit val posInfoCodec = jsonFormat4(PosInfo)
-        implicit val lposDocCodec = jsonFormat2(LPosDoc)
-        implicit val pHitsCodec = jsonFormat7(PHits)
         implicit val pMultiHitsCodec = jsonFormat1(PMultiHits)
       }
 
@@ -347,7 +337,7 @@ object DataFusionLucene {
         val score = terms.foldLeft(0.0) { (score, t) => score + 1.0 + Math.log10( (reader.numDocs + 1.0) / (reader.docFreq(t) + 1.0)) }.toFloat
         if (terms.size > 1) searchSpansPhrase(searcher, slop, q, terms, score)
         else if (terms.size == 1) searchSpansTerm(searcher, q, terms.head, score)
-        else PHits(Stats(0, 0.0f), List.empty, None, q.query, q.clnt_intrnl_id, score, q.typ)
+        else PHits(Stats(0, 0.0f), List.empty, None, q.query, q.extRefId, score, q.typ)
       }
       
       /** 
@@ -384,7 +374,7 @@ object DataFusionLucene {
 //        if (searchSpansCount % 1000 == 0) log.info(s"searchSpans: scoring took ${searchSpansScoreTimer.elapsedSecs} sec, searching took ${searchSpansNonScoreTimer.elapsedSecs} sec")
         // Scoring is fast enough: scoring took 0.462 sec, searching took 113.58 sec
         timer.stop
-        PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.query, q.clnt_intrnl_id, score, q.typ)
+        PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.query, q.extRefId, score, q.typ)
       }
       
       def searchSpansTerm(searcher: IndexSearcher, q: PosQuery, term: Term, score: Float): PHits = {
@@ -395,7 +385,7 @@ object DataFusionLucene {
         // TODO: this isn't working
         searcher.search(tq, coll)
         val hits = coll.hits
-        PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.query, q.clnt_intrnl_id, score, q.typ)
+        PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.query, q.extRefId, score, q.typ)
       }
             
     }

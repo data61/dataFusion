@@ -15,7 +15,6 @@ object Main {
   
   val parser = new scopt.OptionParser[CliOption]("search") {
     head("search", "0.x")
-    note("Run Lucene search CLI unless one of --index, --docFreq or --filterQuery is specified.")
     opt[File]("output") action { (v, c) =>
       c.copy(output = v)
     } text (s"output JSON file, (default ${defaultCliOption.output.getPath})")
@@ -70,8 +69,6 @@ object Main {
     help("help") text ("prints this usage text")
   }
     
-  // TODO: perhaps use [Guava's BloomFilter](https://github.com/google/guava/blob/master/guava/src/com/google/common/hash/BloomFilter.java)
-  // to internally filter out queries containing terms not in the index, rather than doing this filtering in pre-processing scripts.
   def main(args: Array[String]): Unit = {
     try {
       parser.parse(args, defaultCliOption).foreach { c => 
