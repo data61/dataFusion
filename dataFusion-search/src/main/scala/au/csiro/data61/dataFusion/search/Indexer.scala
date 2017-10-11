@@ -5,7 +5,7 @@ import scala.io.{ Codec, Source }
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
-import DataFusionLucene.{ EMB_IDX_MAIN, LDoc, LMeta, LNer, docIndex, metaIndex, nerIndex }
+import DataFusionLucene.{ EMB_IDX_MAIN, IdEmbIdx, LDoc, LMeta, LNer, docIndex, metaIndex, nerIndex }
 import DataFusionLucene.DFIndexing.{ ldoc2doc, lmeta2doc, lner2doc, mkIndexer }
 import LuceneUtil.directory
 import Main.CliOption
@@ -13,16 +13,39 @@ import au.csiro.data61.dataFusion.common.Data.Doc
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol.docFormat
 import resource.managed
 import spray.json.pimpString
+import org.apache.lucene.index.IndexWriter
+import au.csiro.data61.dataFusion.common.Parallel.doParallel
 
 object Indexer {
   private val log = Logger(getClass)
   implicit val codec = Codec.UTF8
   
+  def indexer(docIndexer: IndexWriter, metaIndexer: IndexWriter, nerIndexer: IndexWriter)(d: Doc): Unit = {
+    val idMain = IdEmbIdx(d.id, EMB_IDX_MAIN)
+    docIndexer.addDocument(LDoc(idMain, d.content.getOrElse(""), d.path))
+    for {
+      (k, v) <- d.meta
+    } metaIndexer.addDocument(LMeta(idMain, k, v))
+    for {
+      n <- d.ner
+    } nerIndexer.addDocument(LNer(idMain, n.posStr, n.posEnd, n.offStr, n.offEnd, n.text, n.typ, n.impl))
+    
+    for {
+      (e, embIdx) <- d.embedded.zipWithIndex
+    } {
+      val idEmb = IdEmbIdx(d.id, embIdx)
+      docIndexer.addDocument(LDoc(idEmb, e.content.getOrElse(""), d.path))
+      for {
+        (k, v) <- e.meta
+      } metaIndexer.addDocument(LMeta(idEmb, k, v))
+      for {
+        n <- e.ner
+      } nerIndexer.addDocument(LNer(idEmb, n.posStr, n.posEnd, n.offStr, n.offEnd, n.text, n.typ, n.impl))
+    }
+  }
+  
   /**
-   * Reads path names from stdin (one per line) and indexes the named JSON files
-   * which must contain an array of DocOut.
-   * 
-   * TODO: Parallelize to speed up from 30 mins? Use a par collection of filenames (because par collection of docs in a bunch might be smaller than the number of cpus).
+   * Reads JSON Doc's from stdin (one per line) and indexes them.
    */
   def run(c: CliOption) = {
     val conf = ConfigFactory.load.getConfig("search")
@@ -32,31 +55,22 @@ object Indexer {
       metaIndexer <- managed(mkIndexer(directory(metaIndex)))
       nerIndexer <- managed(mkIndexer(directory(nerIndex)))
     } {
+      val index: Doc => Unit = indexer(docIndexer, metaIndexer, nerIndexer)
       
-      def index(d: Doc): Unit = {
-        docIndexer.addDocument(LDoc(d.id, EMB_IDX_MAIN, d.content.getOrElse(""), d.path))
-        for {
-          (k, v) <- d.meta
-        } metaIndexer.addDocument(LMeta(d.id, EMB_IDX_MAIN, k, v))
-        for {
-          n <- d.ner
-        } nerIndexer.addDocument(LNer(d.id, EMB_IDX_MAIN, n.posStr, n.posEnd, n.offStr, n.offEnd, n.text, n.typ, n.impl))
-        
-        for {
-          (e, embIdx) <- d.embedded.zipWithIndex
-        } {
-          docIndexer.addDocument(LDoc(d.id, embIdx, e.content.getOrElse(""), d.path))
-          for {
-            (k, v) <- e.meta
-          } metaIndexer.addDocument(LMeta(d.id, embIdx, k, v))
-          for {
-            n <- e.ner
-          } nerIndexer.addDocument(LNer(d.id, embIdx, n.posStr, n.posEnd, n.offStr, n.offEnd, n.text, n.typ, n.impl))
-        }
+      var count = 0
+      val in: Iterator[String] = Source.fromInputStream(System.in).getLines.map { json =>
+        count += 1
+        if (count % 1000 == 0) log.info(s"run.in: Queued $count docs ...")
+        json
       }
-      
-      for (json <- Source.fromInputStream(System.in).getLines) 
+      def work(json: String): Boolean = {
         index(json.parseJson.convertTo[Doc])
+        true
+      }
+      def out(more: Boolean): Unit = ()
+      
+      doParallel(in, work, out, "", false, c.numWorkers)
+      log.info(s"run: complete. Indexed $count docs")
     }
   }
 

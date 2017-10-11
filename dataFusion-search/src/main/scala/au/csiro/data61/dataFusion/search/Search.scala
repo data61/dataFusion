@@ -1,7 +1,5 @@
 package au.csiro.data61.dataFusion.search
 
-
-
 import scala.io.Source
 import scala.language.postfixOps
 import scala.util.control.NonFatal
@@ -15,13 +13,15 @@ import com.typesafe.scalalogging.Logger
 
 import DataFusionLucene.{ F_CONTENT, F_JSON, F_TEXT, F_VAL, analyzer, docIndex, metaIndex, nerIndex }
 import DataFusionLucene.DFSearching.{ Query, Stats, PosDocSearch, DocSearch, MetaSearch, NerSearch }
-import PosDocSearch.{ PHits, PosQuery }
+import PosDocSearch.{ PHits, PosQuery, T_PERSON, T_ORGANIZATION }
 import PosDocSearch.JsonProtocol.{ pHitsCodec, posQueryCodec }
 import LuceneUtil.{ Searcher, directory }
 import Main.CliOption
 import au.csiro.data61.dataFusion.common.Parallel.{ bufWriter, doParallel }
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
+import au.csiro.data61.dataFusion.common.Timer
+import java.util.concurrent.atomic.AtomicInteger
    
 object Search {
   private val log = Logger(getClass)
@@ -60,9 +60,10 @@ object Search {
       try {
         searchSpans(indexSearcher, slop, q)
       } catch {
+        // TODO: probably wrong to eat exception here, do in Parallel.work instead?
         case NonFatal(e) => {
           log.error("PosDocSearcher error", e)
-          PHits(Stats(0, 0.0f), List.empty, toMsg(e), q.query, q.clnt_intrnl_id)
+          PHits(Stats(0, 0.0f), List.empty, toMsg(e), q.query, q.clnt_intrnl_id, 0.0f, q.typ)
         }
       }
       
@@ -119,6 +120,8 @@ object Search {
     hdrIdx
   }
   
+  val inTimer = Timer()
+  
   /**
    * Map the input CSV lines to PosQuery's
    */
@@ -130,6 +133,7 @@ object Search {
       val nameOKRE = "^[A-Z](?:[' A-Z-]*[A-Z])?$".r
       def nameOK(n: String) = nameOKRE.unapplySeq(n).isDefined // matches
       iter.flatMap { line =>
+        inTimer.start
         val data = line.toUpperCase.split(c.csvDelim).toIndexedSeq.padTo(indices.max + 1, "") // data is all upper, but make sure
         val Seq(idStr, org, fam, gvn, oth) = indices.map(data(_).trim)
         val id = idStr.toLong
@@ -138,12 +142,12 @@ object Search {
         val orgQuery = for {
           _ <- alpha.findFirstMatchIn(org)
           _ <- space.findFirstMatchIn(org)
-        } yield PosQuery(org, true, id)
-        if (org.nonEmpty && orgQuery.isEmpty) log.warn(s"Rejected organisation: $org")
+        } yield PosQuery(org, T_ORGANIZATION, id)
+        if (org.nonEmpty && orgQuery.isEmpty) log.warn(s"Rejected organisation: clnt_intrnl_id = $idStr, $org")
         
-        val perQuery = if (nameOK(fam) && nameOK(gvn) && (oth.isEmpty || nameOK(oth))) Some(PosQuery(s"$fam $gvn $oth", false, id)) else None
-        if ((fam.nonEmpty || gvn.nonEmpty || oth.nonEmpty) && perQuery.isEmpty) log.warn(s"Rejected person: family = '$fam', given = '$gvn', other = '$oth'")
-        
+        val perQuery = if (nameOK(fam) && nameOK(gvn) && (oth.isEmpty || nameOK(oth))) Some(PosQuery(s"$fam $gvn $oth", T_PERSON, id)) else None
+        if ((fam.nonEmpty || gvn.nonEmpty || oth.nonEmpty) && perQuery.isEmpty) log.warn(s"Rejected person: clnt_intrnl_id = $idStr, family = '$fam', given = '$gvn', other = '$oth'")
+        inTimer.stop
         orgQuery.iterator ++ perQuery.iterator
       }
     } else {
@@ -157,29 +161,54 @@ object Search {
    * + parallelism using doParallel
    */
   def cliPosDocSearch(c: CliOption): Unit = {
+    log.info("cliPosDocSearch: start")
+    
     val in: Iterator[PosQuery] = {
       val iter = Source.fromInputStream(new BOMInputStream(System.in), "UTF-8").getLines
       if (c.searchJson) iter.map(_.parseJson.convertTo[PosQuery]) else inCsv(c, iter)
     }
     
+    val searchCount = new AtomicInteger
+    val filterCount = new AtomicInteger
+    
     val work: PosQuery => PHits = {
-      def workNoFilter(q: PosQuery) = PosDocSearcher.search(c.slop, q)
+
+      def workNoFilter(q: PosQuery) = {
+        searchCount.incrementAndGet
+        PosDocSearcher.search(c.slop, q)
+      }
       
       def workFilter(termFilter: BloomFilter[CharSequence])(q: PosQuery) = {
-        if (DocFreq.containsAllTokens(termFilter, q.query)) workNoFilter(q)
-        else PHits(Stats(0, 0), List.empty, None, q.query, q.clnt_intrnl_id)
+        if (DocFreq.containsAllTokens(termFilter, q.query)) {
+          workNoFilter(q)
+        } else {
+          filterCount.incrementAndGet
+          PHits(Stats(0, 0), List.empty, None, q.query, q.clnt_intrnl_id, 0.0f, q.typ)
+        }
       }
     
       if (c.filterQuery) workFilter(DocFreq.loadTermFilter(c.maxTerms)) else workNoFilter
     }
       
     for (w <- managed(bufWriter(c.output))) {
+      val outTimer = Timer()
       def out(h: PHits): Unit = {
-        w.write(h.toJson.compactPrint)
-        w.write('\n')
+        if (!h.hits.isEmpty) {
+          outTimer.start
+          w.write(h.toJson.compactPrint)
+          w.write('\n')
+          outTimer.stop
+        }
       }
       
-      doParallel[PosQuery, PHits](in, work, out, PosQuery("done", true, 0L), PHits(Stats(0, 0), List.empty, None, "done", 0L), c.numWorkers)
+      doParallel[PosQuery, PHits](in, work, out, PosQuery("done", T_ORGANIZATION, 0L), PHits(Stats(0, 0), List.empty, None, "done", 0L, 0.0f, ""), c.numWorkers)
+      if (!c.searchJson) log.info(s"cliPosDocSearch: Input CSV thread busy for ${inTimer.elapsedSecs} secs")
+      log.info(s"cliPosDocSearch: Output thread busy for ${outTimer.elapsedSecs} secs")
+      // With nuWorkers 25, runtime 1m42s, inTimer 12.5s, outTimer 22.5s,
+      // so no need to move CSV/reject processing from input thread to workers
+      // and no need to move JSON serialization from output thread to workers.
+      log.info(s"cliPosDocSearch: performed ${searchCount.get} searches, skipped ${filterCount.get} searches containing a term not in the index")
+      log.info(s"cliPosDocSearch: complete")
     }
   }
   

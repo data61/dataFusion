@@ -1,21 +1,25 @@
 package au.csiro.data61.dataFusion.search
 
-import java.io.File
+import java.io.{ File, FileInputStream, InputStreamReader }
+import java.nio.charset.Charset
 
 import scala.collection.JavaConverters.{ asScalaBufferConverter, mapAsJavaMapConverter }
+import scala.collection.mutable.ListBuffer
 import scala.language.implicitConversions
 
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.Analyzer.TokenStreamComponents
 import org.apache.lucene.analysis.LowerCaseFilter
-import org.apache.lucene.analysis.core.KeywordAnalyzer
+import org.apache.lucene.analysis.core.{ FlattenGraphFilter, KeywordAnalyzer }
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 import org.apache.lucene.analysis.standard.StandardTokenizer
-import org.apache.lucene.document.{ Document, Field, FieldType }
-import org.apache.lucene.index.{ IndexOptions, IndexWriter, IndexWriterConfig, PostingsEnum, Term }
-import org.apache.lucene.search.{ DocIdSetIterator, IndexSearcher, ScoreDoc }
+import org.apache.lucene.analysis.synonym.{ SolrSynonymParser, SynonymGraphFilter }
+import org.apache.lucene.document.{ BinaryDocValuesField, Document, Field, FieldType }
+import org.apache.lucene.index.{ IndexOptions, IndexReader, IndexWriter, IndexWriterConfig, PostingsEnum, Term }
+import org.apache.lucene.search.{ DocIdSetIterator, IndexSearcher, ScoreDoc, SimpleCollector, TermQuery }
 import org.apache.lucene.search.spans.{ SpanCollector, SpanNearQuery, SpanTermQuery, SpanWeight, Spans }
 import org.apache.lucene.store.Directory
+import org.apache.lucene.util.BytesRef
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
@@ -23,17 +27,7 @@ import com.typesafe.scalalogging.Logger
 import LuceneUtil.tokenIter
 import au.csiro.data61.dataFusion.common.Timer
 import spray.json.{ pimpAny, pimpString }
-import spray.json.DefaultJsonProtocol, DefaultJsonProtocol._
-import org.apache.lucene.analysis.synonym.SynonymGraphFilter
-import org.apache.lucene.analysis.synonym.SolrSynonymParser
-import java.io.FileReader
-import org.apache.lucene.analysis.synonym.SynonymMap
-import java.io.InputStreamReader
-import java.io.FileInputStream
-import java.nio.charset.Charset
-import org.apache.lucene.analysis.core.FlattenGraphFilter
-
-
+import spray.json.DefaultJsonProtocol._
 
 /**
  * dataFusion specific field names, analyzers etc. for Lucene.
@@ -49,19 +43,24 @@ object DataFusionLucene {
 
   val EMB_IDX_MAIN = -1 // a searchable value for embIdx to represent main content - not embedded
 
-  case class LDoc(docId: Long, embIdx: Int, content: String, path: String)
-  case class LMeta(docId: Long, embIdx: Int, key: String, `val`: String)
-  case class LNer(docId: Long, embIdx: Int, posStr: Int, posEnd: Int, offStr: Int, offEnd: Int, text: String, typ: String, impl: String)
+  case class IdEmbIdx(id: Long, embIdx: Int)
+  case class LDoc(idEmbIdx: IdEmbIdx, content: String, path: String)
+  case class LMeta(idEmbIdx: IdEmbIdx, key: String, `val`: String)
+  case class LNer(idEmbIdx: IdEmbIdx, posStr: Int, posEnd: Int, offStr: Int, offEnd: Int, text: String, typ: String, impl: String)
   
   object JsonProtocol {
-    implicit val ldocCodec = jsonFormat4(LDoc)
-    implicit val lmetaCodec = jsonFormat4(LMeta)
-    implicit val lnerCodec = jsonFormat9(LNer)  
+    implicit val lIdEmbIdxCodec = jsonFormat2(IdEmbIdx)
+    implicit val ldocCodec = jsonFormat3(LDoc)
+    implicit val lmetaCodec = jsonFormat3(LMeta)
+    implicit val lnerCodec = jsonFormat8(LNer)  
   }
   import JsonProtocol._
   
   /** field names */
-  val F_DOC_ID = "docId"
+  
+  val F_ID_EMB_IDX = "idEmbIdx" // for a DocValues, so we can fetch IdEmbIdx without loading the Lucene Document
+  
+  val F_ID = "id"
   val F_EMB_IDX = "embIdx"
   val F_JSON = "json"
   
@@ -167,7 +166,7 @@ object DataFusionLucene {
     val metaTextType = nerTextType
           
     val fieldType = Map(
-      F_DOC_ID -> indexedKeywordType,
+      F_ID -> indexedKeywordType,
       F_EMB_IDX -> indexedKeywordType,
       F_JSON -> jsonType,
       F_CONTENT -> contentType,
@@ -188,6 +187,12 @@ object DataFusionLucene {
         d.add(new Field(f, v, fieldType(f)))
         this
       }
+      
+      def addBinaryDocValue(f: String, v: String): DocBuilder = {
+        d.add(new BinaryDocValuesField(f, new BytesRef(v)))
+        this
+      }
+      
       def get = d
     }
     
@@ -196,24 +201,25 @@ object DataFusionLucene {
     }
     
     implicit def ldoc2doc(x: LDoc): Document = DocBuilder()
-      .add(F_DOC_ID, x.docId.toString)
-      .add(F_EMB_IDX, x.embIdx.toString)
+      .addBinaryDocValue(F_ID_EMB_IDX, x.idEmbIdx.toJson.compactPrint)
+      .add(F_ID, x.idEmbIdx.id.toString)
+      .add(F_EMB_IDX, x.idEmbIdx.embIdx.toString)
       .add(F_JSON, x.toJson.compactPrint)
       .add(F_CONTENT, x.content)
       .add(F_PATH, x.path)
       .get
     
     implicit def lmeta2doc(x: LMeta): Document = DocBuilder()
-      .add(F_DOC_ID, x.docId.toString)
-      .add(F_EMB_IDX, x.embIdx.toString)
+      .add(F_ID, x.idEmbIdx.id.toString)
+      .add(F_EMB_IDX, x.idEmbIdx.embIdx.toString)
       .add(F_JSON, x.toJson.compactPrint)
       .add(F_KEY, x.key)
       .add(F_VAL, x.`val`)
       .get
       
     implicit def lner2doc(x: LNer): Document = DocBuilder()
-      .add(F_DOC_ID, x.docId.toString)
-      .add(F_EMB_IDX, x.embIdx.toString)
+      .add(F_ID, x.idEmbIdx.id.toString)
+      .add(F_EMB_IDX, x.idEmbIdx.embIdx.toString)
       .add(F_JSON, x.toJson.compactPrint)
       .add(F_IMPL, x.impl)
       .add(F_TYP, x.typ)
@@ -257,22 +263,51 @@ object DataFusionLucene {
     }
     
     object PosDocSearch {
-      case class PosQuery(query: String, ordered: Boolean, clnt_intrnl_id: Long)
+      val T_PERSON = "PERSON"
+      val T_ORGANIZATION = "ORGANIZATION" // Z is consistent with NER implementations
+      
+      case class PosQuery(query: String, typ: String, clnt_intrnl_id: Long)
       case class PosMultiQuery(queries: List[PosQuery])
-      case class PosInfo(score: Float, posStr: Int, posEnd: Int, offStr: Int, offEnd: Int, text: String)
-      case class LPosDoc(docId: Long, embIdx: Int, posInfos: List[PosInfo], path: String)
-      case class PHits(stats: Stats, hits: List[LPosDoc], error: Option[String], query: String, clnt_intrnl_id: Long)
+      case class PosInfo(posStr: Int, posEnd: Int, offStr: Int, offEnd: Int)
+      case class LPosDoc(idEmbIdx: IdEmbIdx, posInfos: List[PosInfo])
+      case class PHits(stats: Stats, hits: List[LPosDoc], error: Option[String], query: String, clnt_intrnl_id: Long, score: Float, typ: String)
       case class PMultiHits(pHits: List[PHits])
       
       object JsonProtocol {
         implicit val posQueryCodec = jsonFormat3(PosQuery)
         implicit val posMultiQueryCodec = jsonFormat1(PosMultiQuery)
-        implicit val posInfoCodec = jsonFormat6(PosInfo)
-        implicit val lposDocCodec = jsonFormat4(LPosDoc)
-        implicit val pHitsCodec = jsonFormat5(PHits)
+        implicit val posInfoCodec = jsonFormat4(PosInfo)
+        implicit val lposDocCodec = jsonFormat2(LPosDoc)
+        implicit val pHitsCodec = jsonFormat7(PHits)
         implicit val pMultiHitsCodec = jsonFormat1(PMultiHits)
       }
 
+      class MyCollector(reader: IndexReader, t: Term, score: Float) extends SimpleCollector {
+        // val fieldsToLoad = java.util.Collections.singleton(F_CONTENT)
+        private var pe: PostingsEnum = null
+        private val hitBuf = ListBuffer[LPosDoc]()
+        private val posInfos = ListBuffer[PosInfo]()
+        
+        override def needsScores = false
+        
+        override def collect(doc: Int): Unit = {
+          posInfos.clear
+          for { terms <- Option(reader.getTermVector(doc, F_CONTENT)) } {
+            val te = terms.iterator
+            if (te.seekExact(t.bytes)) {
+              // TODO: use DocValues instead
+              val d = ldoc(reader.document(doc))
+              for { (pos, pe) <- LuceneUtil.postIter(te.postings(pe, PostingsEnum.OFFSETS)) } {  // includes POSITIONS
+                posInfos += PosInfo(pos, pos + 1, pe.startOffset, pe.endOffset)
+              }
+              hitBuf += LPosDoc(d.idEmbIdx, posInfos.toList)
+            }
+          }
+        }
+        
+        def hits = hitBuf.toList
+      }
+      
       class MySpanCollector extends SpanCollector {
         private var minPos = Int.MaxValue
         private var maxPos = Int.MinValue
@@ -295,57 +330,72 @@ object DataFusionLucene {
           if (p.endOffset > maxOff) maxOff = p.endOffset
         }
         
-        def posInfo(score: Float, text: String) = PosInfo(score, minPos, maxPos, minOff, maxOff, text.substring(minOff, maxOff))
+        def posInfo = PosInfo(minPos, maxPos, minOff, maxOff)
       }
       
 //      val searchSpansScoreTimer = Timer()
 //      val searchSpansNonScoreTimer = Timer()
 //      var searchSpansCount = 0
       
-      /** 
-       * this is a phrase search
-       * a single term results in: java.lang.IllegalArgumentException: Less than 2 subSpans.size():1
-       */
-      def searchSpans(searcher: IndexSearcher, slop: Int, q: PosQuery) = {
-        val timer = Timer()
-        val reader = searcher.getIndexReader
+      def searchSpans(searcher: IndexSearcher, slop: Int, q: PosQuery): PHits = {
         val terms = tokenIter(analyzer, F_CONTENT, q.query).map(new Term(F_CONTENT, _)).toList
-        // 
-        
         // Here we score using only Lucene's version of IDF, no term freq or doc length norm etc.
         // This depends only on the query not the doc, so it could go in PHits once rather than
         // repeated in each PosInfo, but leave in case this changes.
         // https://lucene.apache.org/core/6_6_0/core/org/apache/lucene/search/similarities/TFIDFSimilarity.html
-//        searchSpansScoreTimer.start
+        val reader = searcher.getIndexReader
         val score = terms.foldLeft(0.0) { (score, t) => score + 1.0 + Math.log10( (reader.numDocs + 1.0) / (reader.docFreq(t) + 1.0)) }.toFloat
-//        searchSpansScoreTimer.stop
+        if (terms.size > 1) searchSpansPhrase(searcher, slop, q, terms, score)
+        else if (terms.size == 1) searchSpansTerm(searcher, q, terms.head, score)
+        else PHits(Stats(0, 0.0f), List.empty, None, q.query, q.clnt_intrnl_id, score, q.typ)
+      }
+      
+      /** 
+       * this is a phrase search
+       * a single term results in: java.lang.IllegalArgumentException: Less than 2 subSpans.size():1
+       */
+      def searchSpansPhrase(searcher: IndexSearcher, slop: Int, q: PosQuery, terms: List[Term], score: Float): PHits = {
+        val timer = Timer()
         
-//        searchSpansNonScoreTimer.start
-        val snq = new SpanNearQuery(terms.map(new SpanTermQuery(_)).toArray, slop, q.ordered)
+        val snq = new SpanNearQuery(terms.map(new SpanTermQuery(_)).toArray, slop, q.typ == T_ORGANIZATION)
         log.debug(s"PosDocSearch.searchSpans: snq = $snq")
         
-        val weight = snq.createWeight(searcher, false) // not needsScores
+        val weight = snq.createWeight(searcher, false, 1.0f) // not needsScores
         val collector = new MySpanCollector
         val hits = (for {
-          lrc <- reader.getContext.leaves.asScala
+          lrc <- searcher.getIndexReader.getContext.leaves.asScala
+          dv = lrc.reader.getBinaryDocValues(F_ID_EMB_IDX)
           spans <- Option(weight.getSpans(lrc, SpanWeight.Postings.OFFSETS)).toList
           docId <- Iterator.continually(spans.nextDoc).takeWhile(_ !=  DocIdSetIterator.NO_MORE_DOCS)
-          doc = ldoc(lrc.reader.document(docId)) // docId relative to lrc, not searcher.getIndexReader
+          idEmbIdx <- if (dv.advanceExact(docId)) List(dv.binaryValue.utf8ToString.parseJson.convertTo[IdEmbIdx]) else List.empty
+          // docId relative to lrc, not searcher.getIndexReader
           posns = Iterator.continually(spans.nextStartPosition).takeWhile(_ !=  Spans.NO_MORE_POSITIONS)
             .map { _ =>
               collector.reset
               spans.collect(collector)
-              collector.posInfo(score, doc.content)
+              collector.posInfo
             }.filter(p => p.posEnd - p.posStr == terms.size).toList
             // TODO: handle duplicate terms in query - same num terms in query and match
             // e.g. search for "Aaron H Aaron" cannot match "H Aaron"
             // is this good enough? what about "H H H"?
-        } yield LPosDoc(doc.docId, doc.embIdx, posns, doc.path)).filter(_.posInfos.nonEmpty).toList
+        } yield LPosDoc(idEmbIdx, posns)).filter(_.posInfos.nonEmpty).toList
 //        searchSpansNonScoreTimer.stop
 //        searchSpansCount += 1
 //        if (searchSpansCount % 1000 == 0) log.info(s"searchSpans: scoring took ${searchSpansScoreTimer.elapsedSecs} sec, searching took ${searchSpansNonScoreTimer.elapsedSecs} sec")
         // Scoring is fast enough: scoring took 0.462 sec, searching took 113.58 sec
-        PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.query, q.clnt_intrnl_id)
+        timer.stop
+        PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.query, q.clnt_intrnl_id, score, q.typ)
+      }
+      
+      def searchSpansTerm(searcher: IndexSearcher, q: PosQuery, term: Term, score: Float): PHits = {
+        val timer = Timer()
+        val tq = new TermQuery(term)
+        log.debug(s"searchSpansTerm: TermQuery = $tq")
+        val coll = new MyCollector(searcher.getIndexReader, term, score)
+        // TODO: this isn't working
+        searcher.search(tq, coll)
+        val hits = coll.hits
+        PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.query, q.clnt_intrnl_id, score, q.typ)
       }
             
     }
@@ -353,7 +403,7 @@ object DataFusionLucene {
     object MetaSearch {
       case class MHits(stats: Stats, hits: List[(Float, LMeta)], error: Option[String])
       
-      object JsonProtocol extends DefaultJsonProtocol {
+      object JsonProtocol {
         implicit val mHitsCodec = jsonFormat3(MHits)
       }
   
@@ -366,7 +416,7 @@ object DataFusionLucene {
     object NerSearch {
       case class NHits(stats: Stats, hits: List[(Float, LNer)], error: Option[String])
 
-      object JsonProtocol extends DefaultJsonProtocol {
+      object JsonProtocol {
         implicit val nHitsCodec = jsonFormat3(NHits)
       }
   

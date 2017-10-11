@@ -5,7 +5,7 @@ libraryDependencies ++= Seq(
   "lucene-analyzers-common",
   "lucene-queryparser",
   "lucene-highlighter"
-).map("org.apache.lucene" % _ % "6.6.0")
+).map("org.apache.lucene" % _ % "7.0.1")
 
 libraryDependencies ++= Seq(
   "com.google.guava" % "guava" % "18.0", // not "23.0", for compatability with search-service dependencies

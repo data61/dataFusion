@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.Logger
 
 import Main.defaultCliOption
 import Search.inCsv
-import DataFusionLucene.DFSearching.PosDocSearch.PosQuery
+import DataFusionLucene.DFSearching.PosDocSearch.{ PosQuery, T_ORGANIZATION, T_PERSON }
 
 class SearchTest extends FlatSpec with Matchers {
   val log = Logger(getClass)
@@ -19,7 +19,7 @@ class SearchTest extends FlatSpec with Matchers {
     )
     val qs = inCsv(defaultCliOption.copy(csvDelim = '|'), lines.iterator).toList
     log.debug(s"qs = $qs")
-    qs should be(List(PosQuery("BLOGGS FREDERICK A", false, 1), PosQuery("COSMIC HOLDINGS INCORPORATED", true, 2)))
+    qs should be(List(PosQuery("BLOGGS FREDERICK A", T_PERSON, 1), PosQuery("COSMIC HOLDINGS INCORPORATED", T_ORGANIZATION, 2)))
   }
   
 }

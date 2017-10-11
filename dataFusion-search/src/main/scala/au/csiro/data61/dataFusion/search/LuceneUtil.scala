@@ -79,7 +79,7 @@ object LuceneUtil {
         hits <- Try {
           topDocs.scoreDocs map { scoreDoc => toHit(scoreDoc, searcher.doc(scoreDoc.doc)) }
         }
-      } yield toResults(topDocs.totalHits, timer.elapsedSecs.toFloat, hits, None)
+      } yield toResults(topDocs.totalHits.toInt, timer.elapsedSecs.toFloat, hits, None)
       
       result.recover { case e => toResults(0, timer.elapsedSecs.toFloat, List(), Some(e.getMessage)) }.get
     }

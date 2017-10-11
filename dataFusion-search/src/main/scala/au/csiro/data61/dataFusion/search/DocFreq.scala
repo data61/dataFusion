@@ -10,7 +10,7 @@ import org.apache.lucene.index.{ DirectoryReader, MultiFields }
 import com.typesafe.scalalogging.Logger
 
 import DataFusionLucene.{ F_CONTENT, analyzer, docIndex }
-import DataFusionLucene.DFSearching.PosDocSearch, PosDocSearch.PosQuery, PosDocSearch.JsonProtocol._
+import DataFusionLucene.DFSearching.PosDocSearch, PosDocSearch.PosQuery, PosDocSearch.JsonProtocol._, PosDocSearch.T_ORGANIZATION
 import LuceneUtil.{ directory, termIter, tokenIter }
 import Main.CliOption
 import au.csiro.data61.dataFusion.common.Timer
@@ -91,7 +91,7 @@ object DocFreq {
       for (line <- Source.fromInputStream(System.in, "UTF-8").getLines) {
         val query = clean(line.parseJson.toString)
         if (query.length >= 6 && containsAllTokens(termFilter, query)) {
-          val q = PosQuery(query, true, -1L)
+          val q = PosQuery(query, T_ORGANIZATION, -1L)
           w.write(q.toJson.compactPrint)
           w.write('\n')
         } else log.debug(s"nerToQuery: shorter than 6 chars or not all tokens in index")

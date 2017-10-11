@@ -20,13 +20,13 @@ object Main {
       c.copy(output = v)
     } text (s"output JSON file, (default ${defaultCliOption.output.getPath})")
     opt[Unit]("index") action { (_, c) =>
-      c.copy(index = true)
+      c.copy(index = true, numWorkers = Math.min(12, c.numWorkers))      // slower with more than 12 workers, if you really want more put --index before --numWorkers
     } text (s"create Lucene indices from JSON input (default ${defaultCliOption.index})")
     opt[Unit]("searchJson") action { (_, c) =>
-      c.copy(searchJson = true)
+      c.copy(searchJson = true, numWorkers = Math.min(25, c.numWorkers)) // slower with more than 25 workers, if you really want more put --searchJson before --numWorkers
     } text (s"search with JSON queries on stdin (default ${defaultCliOption.searchJson})")
     opt[Unit]("searchCsv") action { (_, c) =>
-      c.copy(searchCsv = true)
+      c.copy(searchCsv = true, numWorkers = Math.min(25, c.numWorkers))  // slower with more than 25 workers, if you really want more put --searchCsv before --numWorkers
     } text (s"search with CSV queries on stdin (default ${defaultCliOption.searchCsv})")
     opt[String]("csvDelim") action { (v, c) =>
       c.copy(csvDelim = v.headOption.getOrElse(defaultCliOption.csvDelim))
@@ -75,6 +75,7 @@ object Main {
   def main(args: Array[String]): Unit = {
     try {
       parser.parse(args, defaultCliOption).foreach { c => 
+        log.info(s"main: cliOptions = $c")
         if (c.index) Indexer.run(c)
         else if (c.docFreq) DocFreq.writeDocFreqs(c)
         else if (c.filterQueryOnly) DocFreq.filterQuery(c)
