@@ -14,62 +14,75 @@ import resource.managed
 import spray.json.{ pimpAny, pimpString }
 import au.csiro.data61.dataFusion.common.Data._
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol._
+import java.io.BufferedWriter
+import java.io.InputStream
 
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(hits: Option[File])
+  case class CliOption(hits: Option[File], output: Option[File])
   
-  val defaultCliOption = CliOption(None)
+  val defaultCliOption = CliOption(None, None)
   
   val parser = new scopt.OptionParser[CliOption]("util") {
     head("util", "0.x")
     opt[File]("hits") action { (v, c) =>
-      c.copy(hits = Some(v))
-    } text (s"read tika/ner json on stdin and write to stdout augmented with hits (arg is input hits.json file)")
+      c.copy(hits = Some(v), output = c.output.orElse(Some(new File("gaz.json"))))
+    } text (s"read tika/ner json on stdin and write same augmented with NER data derived from hits (arg is input hits.json file)")
+    opt[File]("output") action { (v, c) =>
+      c.copy(output = Some(v))
+    } text (s"output JSON file")
     help("help") text ("prints this usage text")
   }
     
   def main(args: Array[String]): Unit = {
     try {
-      parser.parse(args, defaultCliOption).foreach { c => 
-        log.info(s"main: cliOptions = $c")
-        if (c.hits.isDefined) augmentWithHits(c.hits.get)
-        else log.info("Nothing to do. Try --help")
+      for {
+        c <- parser.parse(args, defaultCliOption)
+        hFile <- c.hits
+        hIn <- managed(new FileInputStream(hFile))
+        oFile <- c.output
+        w <- managed(bufWriter(oFile))
+        augment = augmentWithHits(hitsMap(hitIter(hIn))) _
+        d <- docIter(System.in)
+      } {
+        w.write(augment(d).toJson.compactPrint)
+        w.write('\n')
       }
     } catch {
       case NonFatal(e) => log.error("Main.main:", e)
     }
   }
   
-  // TODO: the getOrElse case should log an error
+  def hitIter(hIn: InputStream): Iterator[PHits] = Source.fromInputStream(hIn, "UTF-8").getLines.map(_.parseJson.convertTo[PHits])
+  def docIter(dIn: InputStream): Iterator[Doc] = Source.fromInputStream(dIn, "UTF-8").getLines.map(_.parseJson.convertTo[Doc])
+  
+  /** idEmbIdx -> extRefId, score, typ, lposdoc */
+  type HitsMap = Map[IdEmbIdx, Seq[(Long, Float, String, LPosDoc)]]
+  
+  def hitsMap(iter: Iterator[PHits]): HitsMap =
+    iter.flatMap { x =>
+      x.hits.map(lposdoc => (x.extRefId, x.score, x.typ, lposdoc))
+    }.toSeq.groupBy(_._4.idEmbIdx)    
+  
   def toNer(content: String, pi: PosInfo, extRefId: Long, score: Double, typ: String) = 
     Ner(pi.posStr, pi.posEnd, pi.offStr, pi.offEnd, score, content.substring(pi.offStr, pi.offEnd), typ, "D61GAZ", Some(extRefId))
       
-  def augmentWithHits(hits: File): Unit = {
-    // idEmbIdx -> extRefId, score, typ, lposdoc
-    val hs = Source.fromInputStream(new FileInputStream(hits), "UTF-8").getLines.flatMap { json => 
-      val x = json.parseJson.convertTo[PHits]
-      x.hits.map(lposdoc => (x.extRefId, x.score, x.typ, lposdoc))
-    }.toSeq.groupBy(_._4.idEmbIdx)
+  def augmentWithHits(hs: HitsMap)(d: Doc): Doc = {
     
-    def searchNers(d: Doc, idEmbIdx: IdEmbIdx) = for {
-      content <- d.content.toSeq
+    def searchNers(content: Option[String], idEmbIdx: IdEmbIdx): Seq[Ner] = for {
+      c <- content.toSeq
       hits <- hs.get(idEmbIdx).toSeq
       (extRefId, score, typ, lposdoc) <- hits
       pi <- lposdoc.posInfos
-    } yield toNer(content, pi, extRefId, score, typ)
+    } yield toNer(c, pi, extRefId, score, typ)
       
-    for (json <- Source.fromInputStream(System.in, "UTF-8").getLines) {
-      val d = json.parseJson.convertTo[Doc]
-      val ner = d.ner ++ searchNers(d, IdEmbIdx(d.id, EMB_IDX_MAIN))
-      val embedded = d.embedded.zipWithIndex.map { case (e, embIdx) =>
-        val ner = e.ner ++ searchNers(d, IdEmbIdx(d.id, embIdx))
-        e.copy(ner = ner)
-      }
-      // TODO: write with UTF-8 encoding
-      System.out.println(d.copy(ner = ner, embedded = embedded).toJson.compactPrint)
+    val ner = d.ner ++ searchNers(d.content, IdEmbIdx(d.id, EMB_IDX_MAIN))
+    val embedded = d.embedded.zipWithIndex.map { case (e, embIdx) =>
+      val ner = e.ner ++ searchNers(e.content, IdEmbIdx(d.id, embIdx))
+      e.copy(ner = ner)
     }
+    d.copy(ner = ner, embedded = embedded)
   }
   
 }
