@@ -69,8 +69,9 @@ Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licens
 Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.gagravarr # vorbis-java-core # 0.8 | <notextile></notextile>
 Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.gagravarr # vorbis-java-tika # 0.8 | <notextile></notextile>
 Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.quartz-scheduler # quartz # 2.2.0 | <notextile></notextile>
-Apache | [the Apache License, ASL Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) | org.scalactic # scalactic_2.12 # 3.0.0 | <notextile></notextile>
-Apache | [the Apache License, ASL Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) | org.scalatest # scalatest_2.12 # 3.0.0 | <notextile></notextile>
+Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.xerial # sqlite-jdbc # 3.19.3 | <notextile></notextile>
+Apache | [the Apache License, ASL Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) | org.scalactic # scalactic_2.12 # 3.0.4 | <notextile></notextile>
+Apache | [the Apache License, ASL Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) | org.scalatest # scalatest_2.12 # 3.0.4 | <notextile></notextile>
 BSD | [BSD](http://asm.objectweb.org/license.html) | org.ow2.asm # asm # 5.0.4 | <notextile></notextile>
 BSD | [BSD](http://www.linfo.org/bsdlicense.html) | org.tallison # jmatio # 1.2 | <notextile></notextile>
 BSD | [BSD 3-Clause](http://www.scala-lang.org/license.html) | org.scala-lang # scala-library # 2.12.2 | <notextile></notextile>
@@ -98,7 +99,7 @@ MIT | [(MIT-style) netCDF C library license](http://www.unidata.ucar.edu/softwar
 MIT | [(MIT-style) netCDF C library license](http://www.unidata.ucar.edu/software/netcdf/copyright.html) | edu.ucar # httpservices # 4.5.5 | <notextile></notextile>
 MIT | [(MIT-style) netCDF C library license](http://www.unidata.ucar.edu/software/netcdf/copyright.html) | edu.ucar # netcdf4 # 4.5.5 | <notextile></notextile>
 MIT | [(MIT-style) netCDF C library license](http://www.unidata.ucar.edu/software/netcdf/copyright.html) | edu.ucar # udunits # 4.5.5 | <notextile></notextile>
-MIT | [MIT License](http://www.opensource.org/licenses/mit-license.php) | com.github.scopt # scopt_2.12 # 3.5.0 | <notextile></notextile>
+MIT | [MIT License](http://www.opensource.org/licenses/mit-license.php) | com.github.scopt # scopt_2.12 # 3.7.0 | <notextile></notextile>
 MIT | [MIT License](http://www.slf4j.org/license.html) | org.slf4j # jcl-over-slf4j # 1.7.24 | <notextile></notextile>
 MIT | [MIT License](http://www.slf4j.org/license.html) | org.slf4j # jul-to-slf4j # 1.7.24 | <notextile></notextile>
 MIT | [MIT License](http://www.slf4j.org/license.html) | org.slf4j # slf4j-api # 1.7.25 | <notextile></notextile>

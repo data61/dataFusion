@@ -14,61 +14,15 @@ import com.typesafe.scalalogging.Logger
 import au.csiro.data61.dataFusion.common.Data.Doc
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol.docFormat
 import au.csiro.data61.dataFusion.common.Data.META_EN_SCORE
-import au.csiro.data61.dataFusion.common.Parallel.{ bufWriter, doParallel }
+import au.csiro.data61.dataFusion.common.Parallel.doParallel
+import au.csiro.data61.dataFusion.common.Util.bufWriter
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
 import org.apache.tika.parser.ocr.TesseractOCRParser
 
 object Main {
   private val log = Logger(getClass)
-  
-  /**
-   * reprocess json, resetting englishScore in metadata or id.
-   */
-  def resetEnglishScoreId(cliOption: CliOption) = {
-    for (w <- managed(bufWriter(cliOption.output))) {
-      var cntIn = 0
-      var id = cliOption.startId
-      
-      val in = Source.fromInputStream(System.in, "UTF-8").getLines.map { json =>
-        if (cntIn % 1000 == 0) log.info(s"resetEnglishScoreId in: read $cntIn")
-        cntIn += 1
-        val d = json.parseJson.convertTo[Doc]
-        if (cliOption.resetId) {
-          val d2 = d.copy(id = id)
-          id += 1
-          d2
-        } else {
-          d
-        }
-      }
-      
-      def englishScoreWork(d: Doc): Doc = {
-        val meta = d.content.map { c =>
-          d.meta + (META_EN_SCORE -> TikaUtil.englishScore(c).toString)
-        }.getOrElse(d.meta - META_EN_SCORE)
-        
-        val embedded = d.embedded.map { e =>
-          val meta = e.content.map { c =>
-            e.meta + (META_EN_SCORE -> TikaUtil.englishScore(c).toString)
-          }.getOrElse(e.meta - META_EN_SCORE)
-          e.copy(meta = meta)
-        }
-        d.copy(meta = meta, embedded = embedded)
-      }
-      
-      def out(d: Doc): Unit = {
-        w.write(d.toJson.compactPrint)
-        w.write('\n')
-      }
-      
-      val work: Doc => Doc = if (cliOption.resetEnglishScore) englishScoreWork else identity
-      val done = Doc(0, None, Map.empty, "done", List.empty, List.empty)
-      doParallel(in, work, out, done, done, cliOption.numWorkers)
-      log.info("work complete")
-    }
-  }
-  
+    
   /**
    * if path starts with "http:" use HTTP GET else read local file.
    */
@@ -140,8 +94,8 @@ object Main {
     // logThread.join // not necessary with daemon thread, can take up to 1 min to wake up
   }
   
-  case class CliOption(output: File, startId: Long, numWorkers: Int, pdfOcrStrategy: String, pdfExtractInlineImages: Boolean, ocrImagePreprocess: Boolean, ocrImPreMaxTifSize: Long, ocrImageDeskew: Boolean, ocrTimeout: Int, ocrResize: Int, ocrPreserveInterwordSpacing: Boolean, resetEnglishScore: Boolean, resetId: Boolean)
-  val defaultCliOption = CliOption(new File("tika.json"), 0L, Runtime.getRuntime.availableProcessors, "no_ocr", true, true, 10L, false, 300, 200, true, false, false)
+  case class CliOption(output: File, startId: Long, numWorkers: Int, pdfOcrStrategy: String, pdfExtractInlineImages: Boolean, ocrImagePreprocess: Boolean, ocrImPreMaxTifSize: Long, ocrImageDeskew: Boolean, ocrTimeout: Int, ocrResize: Int, ocrPreserveInterwordSpacing: Boolean)
+  val defaultCliOption = CliOption(new File("tika.json"), 0L, Runtime.getRuntime.availableProcessors, "no_ocr", true, true, 10L, false, 300, 200, true)
 
   def initSystemProperties: Unit = {
     // https://pdfbox.apache.org/2.0/migration.html#pdf-rendering
@@ -192,17 +146,11 @@ object Main {
       opt[Boolean]("ocrPreserveInterwordSpacing") action { (v, c) =>
         c.copy(ocrPreserveInterwordSpacing = v)
       } text (s"whether OCR should preserve interword spacing (default ${defaultCliOption.ocrPreserveInterwordSpacing})")
-      opt[Unit]("resetEnglishScore") action { (_, c) =>
-        c.copy(resetEnglishScore = true)
-      } text (s"reset englishScore in metdata (to reprocess after a change to the scoring, default ${defaultCliOption.resetEnglishScore})")
-      opt[Unit]("resetId") action { (_, c) =>
-        c.copy(resetId = true)
-      } text (s"reset id (to reprocess after an incorrect startId, default ${defaultCliOption.resetId})")
       help("help") text ("prints this usage text")
     }
     
     for (c <- parser.parse(args, defaultCliOption)) {
-      if (c.resetEnglishScore || c.resetId) resetEnglishScoreId(c) else cliTika(c)
+      cliTika(c)
     }
   }
   

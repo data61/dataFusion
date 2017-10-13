@@ -1,6 +1,6 @@
 package au.csiro.data61.dataFusion.ner
 
-import java.io.OutputStreamWriter
+import java.io.File
 
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.{ Await, ExecutionContext, Future }
@@ -14,13 +14,11 @@ import com.typesafe.scalalogging.Logger
 import au.csiro.data61.dataFusion.common.Data.{ Doc, Embedded }
 import au.csiro.data61.dataFusion.common.Data.{ META_LANG_CODE, Ner }
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol.docFormat
-import au.csiro.data61.dataFusion.common.Parallel.{ bufWriter, doParallel }
-import au.csiro.data61.dataFusion.common.Timer
+import au.csiro.data61.dataFusion.common.Parallel.doParallel
+import au.csiro.data61.dataFusion.common.Util.bufWriter
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
 import spray.json.DefaultJsonProtocol._
-import scala.util.Try
-import java.io.File
 
 object Main {
   val log = Logger(getClass)

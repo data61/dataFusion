@@ -14,15 +14,16 @@ import com.google.common.hash.BloomFilter
 import com.typesafe.scalalogging.Logger
 
 import DataFusionLucene.{ F_CONTENT, F_JSON, F_TEXT, F_VAL, analyzer, docIndex, metaIndex, nerIndex }
-import DataFusionLucene.DFSearching.{ DocSearch, MetaSearch, NerSearch, PosDocSearch, Query }
+import DataFusionLucene.DFSearching.{ Query, PosDocSearch, DocSearch, MetaSearch, NerSearch }
 import PosDocSearch.{ PosQuery, T_ORGANIZATION, T_PERSON }
 import PosDocSearch.JsonProtocol.posQueryCodec
 import LuceneUtil.{ Searcher, directory }
 import Main.CliOption
-import au.csiro.data61.dataFusion.common.Timer
 import au.csiro.data61.dataFusion.common.Data.{ PHits, Stats }
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol.pHitsCodec
-import au.csiro.data61.dataFusion.common.Parallel.{ bufWriter, doParallel }
+import au.csiro.data61.dataFusion.common.Parallel.doParallel
+import au.csiro.data61.dataFusion.common.Timer
+import au.csiro.data61.dataFusion.common.Util.bufWriter
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
 

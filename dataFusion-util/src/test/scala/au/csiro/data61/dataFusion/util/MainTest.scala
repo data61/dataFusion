@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.Logger
 import Main.{ augmentWithHits, hitsMap }
 import au.csiro.data61.dataFusion.common.Data.{ Doc, EMB_IDX_MAIN, Embedded, IdEmbIdx, LPosDoc, Ner, PHits, PosInfo, Stats }
 
-class UtilTest extends FlatSpec with Matchers {
+class MainTest extends FlatSpec with Matchers {
   val log = Logger(getClass)
   
   val id = 31L
@@ -42,7 +42,7 @@ class UtilTest extends FlatSpec with Matchers {
     doc2.embedded(0).ner.size should be(0)
   }
   
-  "augment" should "add hit to doc.enbedded.ner" in {
+  it should "add hit to doc.enbedded.ner" in {
 //    case class LPosDoc(idEmbIdx: IdEmbIdx, posInfos: List[PosInfo])
     val lPosDoc = LPosDoc(IdEmbIdx(id, 0), List(pi))
     val hits = Seq(PHits(Stats(0, 0), List(lPosDoc), None, "query", 123L, 9.876f, "PERSON"))
@@ -55,4 +55,5 @@ class UtilTest extends FlatSpec with Matchers {
     doc2.embedded(0).ner.size should be(1)
     doc2.embedded(0).ner(0) should be(expected)
   }
+  
 }

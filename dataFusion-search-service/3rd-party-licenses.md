@@ -9,6 +9,7 @@ Apache | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.
 Apache | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) | com.typesafe # ssl-config-core_2.12 # 0.2.1 | <notextile></notextile>
 Apache | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) | com.typesafe.akka # akka-actor_2.12 # 2.4.18 | <notextile></notextile>
 Apache | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) | com.typesafe.akka # akka-stream_2.12 # 2.4.18 | <notextile></notextile>
+Apache | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | commons-io # commons-io # 2.5 | <notextile></notextile>
 Apache | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.yaml # snakeyaml # 1.17 | <notextile></notextile>
 Apache | [Apache-2.0](https://opensource.org/licenses/Apache-2.0) | com.typesafe.akka # akka-http-core_2.12 # 10.0.7 | <notextile></notextile>
 Apache | [Apache-2.0](https://opensource.org/licenses/Apache-2.0) | com.typesafe.akka # akka-http-spray-json_2.12 # 10.0.7 | <notextile></notextile>
@@ -29,14 +30,14 @@ Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licens
 Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | io.swagger # swagger-scala-module_2.12 # 1.0.3 | <notextile></notextile>
 Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | javax.validation # validation-api # 1.1.0.Final | <notextile></notextile>
 Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.commons # commons-lang3 # 3.2.1 | <notextile></notextile>
-Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-analyzers-common # 6.5.0 | <notextile></notextile>
-Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-core # 6.5.0 | <notextile></notextile>
-Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-highlighter # 6.5.0 | <notextile></notextile>
-Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-join # 6.5.0 | <notextile></notextile>
-Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-memory # 6.5.0 | <notextile></notextile>
-Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-queries # 6.5.0 | <notextile></notextile>
-Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-queryparser # 6.5.0 | <notextile></notextile>
-Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-sandbox # 6.5.0 | <notextile></notextile>
+Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-analyzers-common # 7.0.1 | <notextile></notextile>
+Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-core # 7.0.1 | <notextile></notextile>
+Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-highlighter # 7.0.1 | <notextile></notextile>
+Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-join # 7.0.1 | <notextile></notextile>
+Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-memory # 7.0.1 | <notextile></notextile>
+Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-queries # 7.0.1 | <notextile></notextile>
+Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-queryparser # 7.0.1 | <notextile></notextile>
+Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.apache.lucene # lucene-sandbox # 7.0.1 | <notextile></notextile>
 Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | org.javassist # javassist # 3.18.2-GA | <notextile></notextile>
 Apache | [the Apache License, ASL Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) | org.scalactic # scalactic_2.12 # 3.0.0 | <notextile></notextile>
 Apache | [the Apache License, ASL Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) | org.scalatest # scalatest_2.12 # 3.0.0 | <notextile></notextile>

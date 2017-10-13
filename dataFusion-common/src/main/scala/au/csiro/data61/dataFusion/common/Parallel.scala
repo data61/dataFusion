@@ -1,6 +1,5 @@
 package au.csiro.data61.dataFusion.common
 
-import java.io.{ BufferedWriter, File, FileOutputStream, OutputStreamWriter }
 import java.util.concurrent.ArrayBlockingQueue
 
 import scala.util.{ Failure, Success, Try }
@@ -10,8 +9,6 @@ import com.typesafe.scalalogging.Logger
 object Parallel {
   private val log = Logger(getClass)
 
-  def bufWriter(f: File) = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(f), "UTF-8"))
-  
   /**
    * One thread does `in`,
    * One thread does `out`,
