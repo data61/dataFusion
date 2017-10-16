@@ -82,14 +82,14 @@ object Main {
   def hitIter(hIn: InputStream): Iterator[PHits] = Source.fromInputStream(hIn, "UTF-8").getLines.map(_.parseJson.convertTo[PHits])
   
   /** idEmbIdx -> extRefId, score, typ, lposdoc */
-  type HitsMap = Map[IdEmbIdx, Seq[(Long, Float, String, LPosDoc)]]
+  type HitsMap = Map[IdEmbIdx, Seq[(List[Long], Float, String, LPosDoc)]]
   
   def hitsMap(iter: Iterator[PHits]): HitsMap =
     iter.flatMap { x =>
       x.hits.map(lposdoc => (x.extRefId, x.score, x.typ, lposdoc))
     }.toSeq.groupBy(_._4.idEmbIdx)    
   
-  def toNer(content: String, pi: PosInfo, extRefId: Long, score: Double, typ: String) = 
+  def toNer(content: String, pi: PosInfo, extRefId: List[Long], score: Double, typ: String) = 
     Ner(pi.posStr, pi.posEnd, pi.offStr, pi.offEnd, score, content.substring(pi.offStr, pi.offEnd), typ, "D61GAZ", Some(extRefId))
       
   def augmentWithHits(hs: HitsMap)(d: Doc): Doc = {

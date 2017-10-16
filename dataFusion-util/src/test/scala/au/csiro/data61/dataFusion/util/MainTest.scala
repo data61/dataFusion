@@ -11,7 +11,7 @@ class MainTest extends FlatSpec with Matchers {
   val log = Logger(getClass)
   
   val id = 31L
-  val extRefId = 123L
+  val extRefId = List(123L)
   val score = 9.876f
   val typ = "PERSON"
   val path = "path"
@@ -45,7 +45,7 @@ class MainTest extends FlatSpec with Matchers {
   it should "add hit to doc.enbedded.ner" in {
 //    case class LPosDoc(idEmbIdx: IdEmbIdx, posInfos: List[PosInfo])
     val lPosDoc = LPosDoc(IdEmbIdx(id, 0), List(pi))
-    val hits = Seq(PHits(Stats(0, 0), List(lPosDoc), None, "query", 123L, 9.876f, "PERSON"))
+    val hits = Seq(PHits(Stats(0, 0), List(lPosDoc), None, "query", extRefId, 9.876f, "PERSON"))
     
     val augment: Doc => Doc = augmentWithHits(hitsMap(hits.iterator))
     val doc2 = augment(doc)

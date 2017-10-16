@@ -70,9 +70,9 @@ object Main {
       val embedded = d.embedded.map { e =>
         val lang = getLang(e.meta)
         val ners = e.content.map(c => ner(lang, c)).getOrElse(List.empty)
-        Embedded(e.content, e.meta, ners)
+        e.copy(ner = ners ++ e.ner)
       }
-      Doc(d.id, d.content, d.meta, d.path, ners, embedded)
+      d.copy(ner = ners ++ d.ner, embedded = embedded)
     }
   }
   

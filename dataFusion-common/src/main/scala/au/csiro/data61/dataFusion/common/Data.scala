@@ -7,7 +7,7 @@ object Data {
    *  off{Str,End} are character offsets
    *  {pos,off}Str is included, {pos,off}End is excluded (first token/char not included)
    */
-  case class Ner(posStr: Int, posEnd: Int, offStr: Int, offEnd: Int, score: Double, text: String, typ: String, impl: String, extRefId: Option[Long])
+  case class Ner(posStr: Int, posEnd: Int, offStr: Int, offEnd: Int, score: Double, text: String, typ: String, impl: String, extRefId: Option[List[Long]])
 
   /** metadata key for language code e.g. "en" or "es" */
   val META_LANG_CODE = "language-code"
@@ -25,7 +25,7 @@ object Data {
   case class Stats(totalHits: Int, elapsedSecs: Float)
   case class PosInfo(posStr: Int, posEnd: Int, offStr: Int, offEnd: Int)
   case class LPosDoc(idEmbIdx: IdEmbIdx, posInfos: List[PosInfo])
-  case class PHits(stats: Stats, hits: List[LPosDoc], error: Option[String], query: String, extRefId: Long, score: Float, typ: String)
+  case class PHits(stats: Stats, hits: List[LPosDoc], error: Option[String], query: String, extRefId: List[Long], score: Float, typ: String)
   
   object JsonProtocol {
     implicit val nerFormat = jsonFormat9(Ner)

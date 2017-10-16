@@ -39,7 +39,7 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
     log.debug(s"numDocs = ${searcher.getIndexReader.numDocs}")
     
     {
-      val q = PosQuery("AA AA Proprietary Ltd.", T_ORGANIZATION, 1L)
+      val q = PosQuery("AA AA Proprietary Ltd.", T_ORGANIZATION, List(1L))
       val x = searchSpans(searcher, 0, q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(1)
@@ -50,7 +50,7 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
     }
     
     {
-      val q = PosQuery("Jones Sarah", T_PERSON, 2L)
+      val q = PosQuery("Jones Sarah", T_PERSON, List(2L))
       val x = searchSpans(searcher, 0, q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(1)
@@ -63,7 +63,7 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
     }
     
     {
-      val q = PosQuery("AA AA", T_PERSON, 1L)
+      val q = PosQuery("AA AA", T_PERSON, List(1L))
       val x = searchSpans(searcher, 0, q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(1)
@@ -74,7 +74,7 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
     }
     
     {
-      val q = PosQuery("AA AA BB", T_PERSON, 1L)
+      val q = PosQuery("AA AA BB", T_PERSON, List(1L))
       val x = searchSpans(searcher, 0, q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(1)
@@ -86,7 +86,7 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
 
     
     {
-      val q = PosQuery("AA AA CC", T_PERSON, 1L)
+      val q = PosQuery("AA AA CC", T_PERSON, List(1L))
       val x = searchSpans(searcher, 0, q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(0)
@@ -94,7 +94,7 @@ class DataFusionLuceneTest extends FlatSpec with Matchers {
     
     {
       // TODO: this is known to fail, single term search is not working
-      val q = PosQuery("John", T_PERSON, 1L)
+      val q = PosQuery("John", T_PERSON, List(1L))
       val x = searchSpans(searcher, 0, q)
       log.debug(s"SpanQuery: x = $x")
       x.stats.totalHits should be(1)

@@ -262,7 +262,7 @@ object DataFusionLucene {
       val T_PERSON = "PERSON"
       val T_ORGANIZATION = "ORGANIZATION" // Z is consistent with NER implementations
       
-      case class PosQuery(query: String, typ: String, extRefId: Long)
+      case class PosQuery(query: String, typ: String, extRefId: List[Long])
       case class PosMultiQuery(queries: List[PosQuery])
       case class PMultiHits(pHits: List[PHits])
       

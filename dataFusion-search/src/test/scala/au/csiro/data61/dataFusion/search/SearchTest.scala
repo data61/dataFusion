@@ -19,7 +19,7 @@ class SearchTest extends FlatSpec with Matchers {
     )
     val qs = inCsv(defaultCliOption.copy(csvDelim = '|'), lines.iterator).toList
     log.debug(s"qs = $qs")
-    qs should be(List(PosQuery("BLOGGS FREDERICK A", T_PERSON, 1), PosQuery("COSMIC HOLDINGS INCORPORATED", T_ORGANIZATION, 2)))
+    qs should be(List(PosQuery("BLOGGS FREDERICK A", T_PERSON, List(1L)), PosQuery("COSMIC HOLDINGS INCORPORATED", T_ORGANIZATION, List(2L))))
   }
   
 }
