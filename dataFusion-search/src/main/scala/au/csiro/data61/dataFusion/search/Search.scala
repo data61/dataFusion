@@ -15,11 +15,11 @@ import com.typesafe.scalalogging.Logger
 
 import DataFusionLucene.{ F_CONTENT, F_JSON, F_TEXT, F_VAL, analyzer, docIndex, metaIndex, nerIndex }
 import DataFusionLucene.DFSearching.{ Query, PosDocSearch, DocSearch, MetaSearch, NerSearch }
-import PosDocSearch.{ PosQuery, T_ORGANIZATION, T_PERSON }
+import PosDocSearch.PosQuery
 import PosDocSearch.JsonProtocol.posQueryCodec
 import LuceneUtil.{ Searcher, directory }
 import Main.CliOption
-import au.csiro.data61.dataFusion.common.Data.{ PHits, Stats }
+import au.csiro.data61.dataFusion.common.Data.{ PHits, Stats, T_ORGANIZATION, T_PERSON, T_PERSON2 }
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol.pHitsCodec
 import au.csiro.data61.dataFusion.common.Parallel.doParallel
 import au.csiro.data61.dataFusion.common.Timer
@@ -159,7 +159,7 @@ object Search {
         else if (fam.nonEmpty || gvn.nonEmpty || oth.nonEmpty) warnBuf += s"Rejected person for 3 name query: ${c.csvId} = $idStr, family = '$fam', given = '$gvn', other = '$oth'"
 
         if (c.csvPersonWith2Names) {
-          if (nameOK(fam) && nameOK(gvn)) add(PosQuery(s"$gvn $fam", T_PERSON, id))
+          if (nameOK(fam) && nameOK(gvn)) add(PosQuery(s"$gvn $fam", T_PERSON2, id))
           else if (fam.nonEmpty || gvn.nonEmpty) warnBuf += s"Rejected person for 2 name query: ${c.csvId} = $idStr, family = '$fam', given = '$gvn', other = '$oth'"
         }
         

@@ -4,10 +4,10 @@ import org.scalatest.{ FlatSpec, Matchers }
 
 import com.typesafe.scalalogging.Logger
 
-import Main.{ augmentWithHits, hitsMap }
+import Hits.{ augmentWithHits, hitsMap }
 import au.csiro.data61.dataFusion.common.Data.{ Doc, EMB_IDX_MAIN, Embedded, IdEmbIdx, LPosDoc, Ner, PHits, PosInfo, Stats }
 
-class MainTest extends FlatSpec with Matchers {
+class HitsTest extends FlatSpec with Matchers {
   val log = Logger(getClass)
   
   val id = 31L

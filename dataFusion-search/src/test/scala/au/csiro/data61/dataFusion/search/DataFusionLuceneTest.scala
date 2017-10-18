@@ -9,9 +9,9 @@ import com.typesafe.scalalogging.Logger
 
 import DataFusionLucene.{ F_CONTENT, LDoc, synonymAnalyzer }
 import DataFusionLucene.DFIndexing.{ ldoc2doc, mkIndexer }
-import DataFusionLucene.DFSearching.PosDocSearch.{ PosQuery, T_ORGANIZATION, T_PERSON, searchSpans }
+import DataFusionLucene.DFSearching.PosDocSearch.{ PosQuery, searchSpans }
 import LuceneUtil.tokenIter
-import au.csiro.data61.dataFusion.common.Data.IdEmbIdx
+import au.csiro.data61.dataFusion.common.Data.{ IdEmbIdx, T_ORGANIZATION, T_PERSON }
 
 class DataFusionLuceneTest extends FlatSpec with Matchers {
   val log = Logger(getClass)

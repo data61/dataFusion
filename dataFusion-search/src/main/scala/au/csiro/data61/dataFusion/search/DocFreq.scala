@@ -10,13 +10,13 @@ import org.apache.lucene.index.{ DirectoryReader, MultiFields }
 import com.typesafe.scalalogging.Logger
 
 import DataFusionLucene.{ F_CONTENT, analyzer, docIndex }
-import DataFusionLucene.DFSearching.PosDocSearch, PosDocSearch.PosQuery, PosDocSearch.JsonProtocol._, PosDocSearch.T_ORGANIZATION
+import DataFusionLucene.DFSearching.PosDocSearch, PosDocSearch.PosQuery, PosDocSearch.JsonProtocol._
 import LuceneUtil.{ directory, termIter, tokenIter }
 import Main.CliOption
 import au.csiro.data61.dataFusion.common.Timer
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
-import au.csiro.data61.dataFusion.common.Data.Doc
+import au.csiro.data61.dataFusion.common.Data.{ Doc, T_ORGANIZATION }
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol._
 import com.google.common.hash.BloomFilter
 import com.google.common.hash.Funnels

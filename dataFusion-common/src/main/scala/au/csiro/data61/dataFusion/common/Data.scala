@@ -3,6 +3,10 @@ package au.csiro.data61.dataFusion.common
 import spray.json.DefaultJsonProtocol._
 
 object Data {
+  val T_PERSON = "PERSON"
+  val T_PERSON2 = "PERSON2"
+  val T_ORGANIZATION = "ORGANIZATION" // Z is consistent with NER implementations
+      
   /** pos{Str,End} are token indices
    *  off{Str,End} are character offsets
    *  {pos,off}Str is included, {pos,off}End is excluded (first token/char not included)
@@ -17,6 +21,8 @@ object Data {
   case class Embedded(content: Option[String], meta: Map[String, String], ner: List[Ner])
   case class Doc(id: Long, content: Option[String], meta: Map[String, String], path: String, ner: List[Ner], embedded: List[Embedded])
 
+  case class Node(nodeId: Long, extRefId: List[Long], typ: String)
+  case class Edge(source: Long, target: Long, distance: Float, typ: String)  
   case class ClientEdgeCount(clntIntrnlId: Long, numEdges: Int)
 
   val EMB_IDX_MAIN = -1 // a searchable value for embIdx to represent main content - not embedded
@@ -31,6 +37,8 @@ object Data {
     implicit val nerFormat = jsonFormat9(Ner)
     implicit val embeddedFormat = jsonFormat3(Embedded)
     implicit val docFormat = jsonFormat6(Doc)
+    implicit val nodeFormat = jsonFormat3(Node)
+    implicit val edgeFormat = jsonFormat4(Edge)
     implicit val clientEdgeCountFormat = jsonFormat2(ClientEdgeCount)
     implicit val statsCodec = jsonFormat2(Stats)
     implicit val idEmbIdxCodec = jsonFormat2(IdEmbIdx)

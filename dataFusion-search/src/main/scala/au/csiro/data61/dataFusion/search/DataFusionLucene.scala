@@ -25,7 +25,7 @@ import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
 import LuceneUtil.tokenIter
-import au.csiro.data61.dataFusion.common.Data.{ IdEmbIdx, LPosDoc, PHits, PosInfo, Stats }
+import au.csiro.data61.dataFusion.common.Data.{ IdEmbIdx, LPosDoc, PHits, PosInfo, Stats, T_ORGANIZATION }
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol.{ idEmbIdxCodec, pHitsCodec, statsCodec }
 import au.csiro.data61.dataFusion.common.Timer
 import spray.json.{ pimpAny, pimpString }
@@ -259,9 +259,6 @@ object DataFusionLucene {
     }
     
     object PosDocSearch {
-      val T_PERSON = "PERSON"
-      val T_ORGANIZATION = "ORGANIZATION" // Z is consistent with NER implementations
-      
       case class PosQuery(query: String, typ: String, extRefId: List[Long])
       case class PosMultiQuery(queries: List[PosQuery])
       case class PMultiHits(pHits: List[PHits])

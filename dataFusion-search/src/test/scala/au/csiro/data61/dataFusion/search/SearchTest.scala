@@ -6,7 +6,8 @@ import com.typesafe.scalalogging.Logger
 
 import Main.defaultCliOption
 import Search.inCsv
-import DataFusionLucene.DFSearching.PosDocSearch.{ PosQuery, T_ORGANIZATION, T_PERSON }
+import DataFusionLucene.DFSearching.PosDocSearch.PosQuery
+import au.csiro.data61.dataFusion.common.Data.{ T_ORGANIZATION, T_PERSON }
 
 class SearchTest extends FlatSpec with Matchers {
   val log = Logger(getClass)

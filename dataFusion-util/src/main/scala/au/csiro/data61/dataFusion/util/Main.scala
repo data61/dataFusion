@@ -1,15 +1,15 @@
 package au.csiro.data61.dataFusion.util
 
-import java.io.{ File, FileInputStream, InputStream }
+import java.io.File
 
 import scala.io.Source
 import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.Logger
 
-import au.csiro.data61.dataFusion.common.Data.{ Doc, EMB_IDX_MAIN, IdEmbIdx }
-import au.csiro.data61.dataFusion.common.Data.{ LPosDoc, META_EN_SCORE, Ner, PHits, PosInfo }
-import au.csiro.data61.dataFusion.common.Data.JsonProtocol.{ docFormat, pHitsCodec }
+import au.csiro.data61.dataFusion.common.Data.Doc
+import au.csiro.data61.dataFusion.common.Data.JsonProtocol.docFormat
+import au.csiro.data61.dataFusion.common.Data.META_EN_SCORE
 import au.csiro.data61.dataFusion.common.Parallel.doParallel
 import au.csiro.data61.dataFusion.common.Util.{ bufWriter, englishScore }
 import resource.managed
@@ -18,11 +18,19 @@ import spray.json.{ pimpAny, pimpString }
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(hits: Option[File], output: Option[File], startId: Long, resetEnglishScore: Boolean, resetId: Boolean, numWorkers: Int)
+  case class CliOption(hits: Option[File], output: Option[File], startId: Long, proximity: Boolean, resetEnglishScore: Boolean, resetId: Boolean, numWorkers: Int)
   
-  val defaultCliOption = CliOption(None, None, 0L, false, false, Runtime.getRuntime.availableProcessors)
-  val defGazOut = "gaz.json"
+  val defaultCliOption = CliOption(None, None, 0L, false, false, false, Runtime.getRuntime.availableProcessors)
+  
+  val defGazOut = "gaz.json" // gaz for gazetteer
+  val node = "node.json"
+  val edge = "edge.json"
+  val defProximity = "proximity-" // prefix for node.json & edge.json
   val defResetOut = "reset.json"
+  
+  val GAZ = "D61GAZ"
+  val GAZ2 = "D61GAZ2"
+  
   val parser = new scopt.OptionParser[CliOption]("util") {
     head("util", "0.x")
     opt[File]("hits") action { (v, c) =>
@@ -34,12 +42,18 @@ object Main {
     opt[Long]("startId") action { (v, c) =>
       c.copy(startId = v)
     } text (s"id's for resetId option are reallocated incrementally starting with this value (default ${defaultCliOption.startId})")
+    opt[Unit]("proximity") action { (_, c) =>
+      c.copy(proximity = true, output = c.output.orElse(Some(new File(defProximity))))
+    } text (s"create proximity network, output defaults to ${defProximity + node} and ${defProximity + edge}, --output sets the prefix")
     opt[Unit]("resetEnglishScore") action { (_, c) =>
       c.copy(resetEnglishScore = true, output = c.output.orElse(Some(new File(defResetOut))))
     } text (s"reset englishScore in metdata (to reprocess after a change to the scoring), output defaults to $defResetOut")
     opt[Unit]("resetId") action { (_, c) =>
       c.copy(resetId = true, output = c.output.orElse(Some(new File(defResetOut))))
     } text (s"reset id (to reprocess after an incorrect startId), output defaults to $defResetOut")
+    opt[Int]("numWorkers") action { (v, c) =>
+      c.copy(numWorkers = v)
+    } text (s"numWorkers for CLI queries, (default ${defaultCliOption.numWorkers} the number of CPUs)")
     help("help") text ("prints this usage text")
   }
     
@@ -48,7 +62,8 @@ object Main {
       log.info("start")
       parser.parse(args, defaultCliOption).foreach { c => 
         log.info(s"main: cliOptions = $c")
-        if (c.hits.isDefined) doHits(c)
+        if (c.hits.isDefined) Hits.doHits(c)
+        else if (c.proximity) Proximity.doProximity(c)
         else if (c.resetEnglishScore || c.resetId) resetEnglishScoreId(c)
         else log.info("Nothing to do. Try --help")
         log.info("complete")
@@ -58,57 +73,6 @@ object Main {
     }
   }
   
-  def doHits(c: CliOption) = {
-    for {
-      hFile <- c.hits
-      hIn <- managed(new FileInputStream(hFile))
-      oFile <- c.output
-      w <- managed(bufWriter(oFile))
-    } {
-      val hMap = hitsMap(hitIter(hIn))
-      log.info(s"doHits: loaded hits for ${hMap.size} docs/embedded docs")
-      val augment: Doc => Doc = augmentWithHits(hMap)
-
-      val in = Source.fromInputStream(System.in, "UTF-8").getLines
-      val work: String => String = s => augment(s.parseJson.convertTo[Doc]).toJson.compactPrint
-      val out: String => Unit = json => {
-        w.write(json)
-        w.write('\n')
-      }
-      doParallel(in, work, out, "done", "done", c.numWorkers)
-    }
-  }
-  
-  def hitIter(hIn: InputStream): Iterator[PHits] = Source.fromInputStream(hIn, "UTF-8").getLines.map(_.parseJson.convertTo[PHits])
-  
-  /** idEmbIdx -> extRefId, score, typ, lposdoc */
-  type HitsMap = Map[IdEmbIdx, Seq[(List[Long], Float, String, LPosDoc)]]
-  
-  def hitsMap(iter: Iterator[PHits]): HitsMap =
-    iter.flatMap { x =>
-      x.hits.map(lposdoc => (x.extRefId, x.score, x.typ, lposdoc))
-    }.toSeq.groupBy(_._4.idEmbIdx)    
-  
-  def toNer(content: String, pi: PosInfo, extRefId: List[Long], score: Double, typ: String) = 
-    Ner(pi.posStr, pi.posEnd, pi.offStr, pi.offEnd, score, content.substring(pi.offStr, pi.offEnd), typ, "D61GAZ", Some(extRefId))
-      
-  def augmentWithHits(hs: HitsMap)(d: Doc): Doc = {
-    
-    def searchNers(content: Option[String], idEmbIdx: IdEmbIdx): Seq[Ner] = for {
-      c <- content.toSeq
-      hits <- hs.get(idEmbIdx).toSeq
-      (extRefId, score, typ, lposdoc) <- hits
-      pi <- lposdoc.posInfos
-    } yield toNer(c, pi, extRefId, score, typ)
-      
-    val ner = d.ner ++ searchNers(d.content, IdEmbIdx(d.id, EMB_IDX_MAIN))
-    val embedded = d.embedded.zipWithIndex.map { case (e, embIdx) =>
-      val ner = e.ner ++ searchNers(e.content, IdEmbIdx(d.id, embIdx))
-      e.copy(ner = ner)
-    }
-    d.copy(ner = ner, embedded = embedded)
-  }
-
   /**
    * reprocess json, resetting englishScore in metadata or id.
    */
@@ -158,5 +122,5 @@ object Main {
       log.info("work complete")
     }
   }
-
+  
 }
