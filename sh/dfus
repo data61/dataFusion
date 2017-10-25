@@ -29,8 +29,8 @@ eval cmd=\$$OPTIND
 shift $OPTIND
 # echo $cmd "$@"
 
-# default for util is 2M stack
-[[ -z "$STACK" ]] && [[ "$cmd" == "util" ]] && STACK="-Xss2M"
+# default for util --email is 2M stack, else JVM default is 1M
+[[ -z "$STACK" ]] && [[ "$cmd" == "util" ]] && [[ "$*" == *--email* ]] && STACK="-Xss2M"
 
 getJar() {
   echo ${DFUS_DIR}/dataFusion-${1}/target/scala-${SCALA_VER}/datafusion-${1}_${SCALA_VER}-${DFUS_VER}-one-jar.jar
