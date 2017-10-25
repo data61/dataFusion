@@ -46,7 +46,13 @@ Notes:
 
 The Scala programs are packaged by the build as a [onejar](https://github.com/sbt/sbt-onejar). This is a jar file containing all dependencies and run simply with: `java -jar {filename.jar}` (however dataFusion-ner and dataFusion-ner-service have additional dependencies as as noted in [dataFusion-ner](dataFusion-ner)). The `--help` command line option describes the available options.
 
-A convenience script `sh/dfus` provides shorter command lines. It depends on the environment set by `sh/setenv`. See Recommendations below for usage.
+Examples:
+
+     source sh/setenv                       # set the environment for following commands
+
+     # get help for the search CLI, running the one-jar from where the build creates it 
+     java -jar dataFusion-search/target/scala-2.12/datafusion-search_2.12-0.2-SNAPSHOT-one-jar.jar --help
+
 
 ### Configuration
 These projects have configuration in `src/main/resources/application.conf`, which uses `${?ENV_VAR}` syntax to define environment variables that may be set to override default values set in the file. For example dataFusion-ner's [application.conf](dataFusion-ner/src/main/resources/application.conf) sets the default location for MITIE's English NER model to `MITIE-models/english/ner_model.dat` (relative to whatever directory the program is run from) and allows this to be overridden by setting an environment variable `NER_MITIE_ENGLISH_MODEL`.
@@ -54,34 +60,42 @@ These projects have configuration in `src/main/resources/application.conf`, whic
 ### Recommendations
 
 - override all relative paths with environment variables specifying absolute paths; and
-- set configuration environment variables for all dataFusion programs in `sh/setenv` and source this file prior to running any of the programs.
+- set configuration environment variables for all dataFusion programs in `sh/setenv` and source this file prior to running any of the programs
+- use the convenience script `sh/dfus` for shorter command lines as shown below.
 
 Examples:
 
-     source sh/setenv                       # set the environment for the following commands
-
-     # get help for the search CLI
-     java -jar dataFusion-search/target/scala-2.12/datafusion-search_2.12-0.2-SNAPSHOT-one-jar.jar --help
+     source sh/setenv                       # set the environment for following commands
 
      dfus -h                                # get help for the sh/dfus script
-     dfus tika --help
-     dfus ner --help
-     dfus search --help                     # same as java command above
+     dfus tika --help                       # get help for the tika CLI
+     dfus ner --help                        # get help for the ner CLI
+     dfus search --help                     # get help for search CLI (same as Run example above)
      
-     # run tika on all files under /collections; -m 7 to set 7GB Java heap
-     find /collections -type f | dfus -m 7 tika --output tika-all.json
+     # run tika on all files under /collections; -m 7 to set 7GB Java heap; default output to tika.json
+     find /collections -type f | dfus -m 7 tika
      
      # run tika only on the files listed in demoFiles.txt
      dfus -m 7 tika --output tika-demo.json < demoFiles.txt
      
-     # run NER
-     dfus -m 7 ner --output ner-demo.json < tika-demo.json
+     # run NER; default output to ner.json
+     dfus -m 7 ner < tika.json
      
-     # create bulk search index (location set in sh/setenv or you can manually set env vars to override)
-     dfus search --index < ner-demo.json
+     # create bulk search index (location set in sh/setenv)
+     dfus search --index < ner.json
      
-     # bulk search for entities in entities.csv
-     dfus search --searchCsv --output hits-demo.json < entities.csv
+     # bulk search for entities in entities.csv; default output to hits.json
+     dfus search --searchCsv < entities.csv
+     
+     # merge search results (hits.json) into ner results (ner.json)
+     # also create Ner entries from names in email headers; default output to gaz.json
+     dfus util --hits hits.json --email < ner.json
+     
+     # proximity network building; default output to proximity-node.json and proximity-edge.json
+     dfus util --proximity < gaz.json
+     
+     # start graph-service using data from proximity-node.json and proximity-edge.json; default port 8089
+     dfus graph-service &
      
 ## Swagger Support
 
