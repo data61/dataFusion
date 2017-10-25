@@ -7,10 +7,9 @@ import scala.io.Source
 
 import com.typesafe.scalalogging.Logger
 
-import Main.{ CliOption, GAZ }
-import au.csiro.data61.dataFusion.common.Data.{ Doc, Edge }
-import au.csiro.data61.dataFusion.common.Data.JsonProtocol.{ docFormat, edgeFormat, nodeFormat }
-import au.csiro.data61.dataFusion.common.Data.Node
+import Main.CliOption
+import au.csiro.data61.dataFusion.common.Data._
+import au.csiro.data61.dataFusion.common.Data.JsonProtocol._
 import au.csiro.data61.dataFusion.common.Parallel.doParallel
 import au.csiro.data61.dataFusion.common.Util.bufWriter
 import resource.managed
@@ -22,7 +21,7 @@ object Proximity {
   def fileWithSuffix(f: File, suffix: String) = new File(f.getPath + suffix)
 
   def doProximity(cliOption: CliOption) = {
-    val prox = new Proximity
+    val prox = new Proximity(cliOption.decay)
     
     val in = Source.fromInputStream(System.in, "UTF-8").getLines
     def work(json: String) = {
@@ -63,43 +62,54 @@ object Proximity {
     def work2(job: JOB) = job()
     doParallel(in2, work2, out, () => "done", "done", Math.min(2, cliOption.numWorkers))
   }
+  
+  case class NodeKey(name: String, typ: String)
 }
 
 /** thread-safe for concurrent accDoc's */
-class Proximity {
-  // nodeId -> Node
-  val nodeMap = mutable.HashMap[Long, Node]()
+class Proximity(decay: Double) {
+  import Proximity.NodeKey
 
-  def accNode(nodeId: Long, node: => Node): Unit = nodeMap.synchronized {
-    if (!nodeMap.contains(nodeId)) nodeMap += nodeId -> node
+  var nextId = 0
+  val nodeMap = mutable.HashMap[NodeKey, Node]()
+
+  def accNode(k: NodeKey, extRef: ExtRef): Int = nodeMap.synchronized {
+    nodeMap.get(k).map(_.nodeId).getOrElse {
+      val id = nextId
+      nextId += 1
+      val n = Node(id, extRef, k.typ)
+      nodeMap += k -> n
+      id
+    }
   }
   
   // sourceNodeId, targetNodeId -> weight
-  val edgeMap = mutable.HashMap[(Long, Long), Double]() withDefaultValue 0.0
+  val edgeMap = mutable.HashMap[(Int, Int), Double]() withDefaultValue 0.0
   
-  def accEdge(source: Long, target: Long, weight: Double): Unit = {
-    val key = if (source < target) (source, target) else (target, source)
-    edgeMap.synchronized { edgeMap += key -> (edgeMap(key) + weight) }
+  def accEdge(source: Int, target: Int, weight: Double): Unit = {
+    val k = if (source < target) (source, target) else (target, source)
+    edgeMap.synchronized { edgeMap += k -> (edgeMap(k) + weight) }
   }
   
+  // used multi-threaded usage so must be thread-safe
   def accDoc(d: Doc): Unit = {
+    def pred(n: Ner) = n.impl == GAZ && (n.typ == T_PERSON || n.typ == T_PERSON2 || n.typ == T_ORGANIZATION)
+    val cutoff = (decay * 5).toInt
     for {
-      ners <- Iterator.single(d.ner.view.filter(_.impl == GAZ)) ++ d.embedded.view.map(_.ner.view.filter(_.impl == GAZ))
+      ners <- Iterator.single(d.ner.view.filter(pred)) ++ d.embedded.view.map(_.ner.view.filter(pred))
       v = ners.toIndexedSeq.sortBy(_.posStr)
       // _ = log.info(s"v.size = ${v.size}")
       i <- 0 until v.size - 1 // exclude last
       ni = v(i)
-      extRefIdi <- ni.extRefId
-      nodeIdi <- extRefIdi.headOption // use head extRefId as the nodeId
-      (j, dist) <- (i + 1 until v.size).view.map { j => (j, v(j).posStr - ni.posStr) }.takeWhile(_._2 < 100)
+      extRefi <- ni.extRef
+      (j, dist) <- (i + 1 until v.size).view.map { j => (j, v(j).posStr - ni.posStr) }.takeWhile(_._2 < cutoff)
       nj = v(j)
-      extRefIdj <- nj.extRefId
-      nodeIdj <- extRefIdj.headOption
+      extRefj <- nj.extRef
     } {
       // log.info(s"$i, $j -> $dist")
-      accNode(nodeIdi, Node(nodeIdi, extRefIdi, ni.typ))
-      accNode(nodeIdj, Node(nodeIdj, extRefIdj, nj.typ))
-      accEdge(nodeIdi, nodeIdj, Math.exp(-dist/20.0)) // additive weight, Edge.distance will be 1/sum(weights)
+      val idi = accNode(NodeKey(extRefi.name, ni.typ), extRefi)
+      val idj = accNode(NodeKey(extRefj.name, nj.typ), extRefj)
+      accEdge(idi, idj, Math.exp(-dist/decay)) // additive weight, Edge.distance will be 1/sum(weights)
     }
   }
   

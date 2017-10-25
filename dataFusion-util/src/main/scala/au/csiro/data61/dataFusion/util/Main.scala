@@ -1,6 +1,6 @@
 package au.csiro.data61.dataFusion.util
 
-import java.io.File
+import java.io.{ File, FileInputStream }
 
 import scala.io.Source
 import scala.util.control.NonFatal
@@ -18,9 +18,9 @@ import spray.json.{ pimpAny, pimpString }
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(hits: Option[File], output: Option[File], startId: Long, proximity: Boolean, resetEnglishScore: Boolean, resetId: Boolean, numWorkers: Int)
+  case class CliOption(hits: Option[File], email: Boolean, output: Option[File], startId: Long, proximity: Boolean, decay: Double, resetEnglishScore: Boolean, resetId: Boolean, numWorkers: Int)
   
-  val defaultCliOption = CliOption(None, None, 0L, false, false, false, Runtime.getRuntime.availableProcessors)
+  val defaultCliOption = CliOption(None, false, None, 0L, false, 20.0f, false, false, Runtime.getRuntime.availableProcessors)
   
   val defGazOut = "gaz.json" // gaz for gazetteer
   val node = "node.json"
@@ -28,14 +28,14 @@ object Main {
   val defProximity = "proximity-" // prefix for node.json & edge.json
   val defResetOut = "reset.json"
   
-  val GAZ = "D61GAZ"
-  val GAZ2 = "D61GAZ2"
-  
   val parser = new scopt.OptionParser[CliOption]("util") {
     head("util", "0.x")
     opt[File]("hits") action { (v, c) =>
       c.copy(hits = Some(v), output = c.output.orElse(Some(new File(defGazOut))))
-    } text (s"read hits from specified file, read tika/ner json from stdin and write it augmented with NER data derived from hits, output defaults to $defGazOut")
+    } text (s"Read hits from specified file. Read tika/ner json from stdin and write it augmented with NER data derived from hits. Output defaults to $defGazOut.")
+    opt[Unit]("email") action { (_, c) =>
+      c.copy(email = true, output = c.output.orElse(Some(new File(defProximity))))
+    } text (s"Parse content for people in email headers. Read tika/ner json from stdin and write it augmented with NER data derived from email headers. Output defaults to $defGazOut. Can be combined with --hits.")
     opt[File]("output") action { (v, c) =>
       c.copy(output = Some(v))
     } text (s"output JSON file")
@@ -45,6 +45,9 @@ object Main {
     opt[Unit]("proximity") action { (_, c) =>
       c.copy(proximity = true, output = c.output.orElse(Some(new File(defProximity))))
     } text (s"create proximity network, output defaults to ${defProximity + node} and ${defProximity + edge}, --output sets the prefix")
+    opt[Double]("decay") action { (v, c) =>
+      c.copy(decay = v)
+    } text (s"proximity score is exp(- num words separating start of names / decay), defaults to ${defaultCliOption.decay}")
     opt[Unit]("resetEnglishScore") action { (_, c) =>
       c.copy(resetEnglishScore = true, output = c.output.orElse(Some(new File(defResetOut))))
     } text (s"reset englishScore in metdata (to reprocess after a change to the scoring), output defaults to $defResetOut")
@@ -62,7 +65,7 @@ object Main {
       log.info("start")
       parser.parse(args, defaultCliOption).foreach { c => 
         log.info(s"main: cliOptions = $c")
-        if (c.hits.isDefined) Hits.doHits(c)
+        if (c.hits.isDefined || c.email) doHitsEmail(c)
         else if (c.proximity) Proximity.doProximity(c)
         else if (c.resetEnglishScore || c.resetId) resetEnglishScoreId(c)
         else log.info("Nothing to do. Try --help")
@@ -70,6 +73,34 @@ object Main {
       }
     } catch {
       case NonFatal(e) => log.error("Main.main:", e)
+    }
+  }
+  
+  def hitsMap(h: File) = managed(new FileInputStream(h)).acquireAndGet { in =>
+    val hm = Hits.hitsMap(Hits.hitIter(in))
+    log.info(s"hitsMap: loaded hits for ${hm.size} docs/embedded docs")
+    hm
+  }
+  
+  def doHitsEmail(c: CliOption) = {
+    val augment: Doc => Doc = (c.hits, c.email) match {
+      case (Some(h), true) => Email.augment  compose Hits.augment(hitsMap(h)) // Hits before Email (because Email can use Hits info)
+      case (Some(h), false) => Hits.augment(hitsMap(h))
+      case (None, true) => Email.augment
+      case (None, false) => identity
+    }
+
+    for {
+      oFile <- c.output
+      w <- managed(bufWriter(oFile))
+    } {
+      val in = Source.fromInputStream(System.in, "UTF-8").getLines
+      val work: String => String = s => augment(s.parseJson.convertTo[Doc]).toJson.compactPrint
+      val out: String => Unit = json => {
+        w.write(json)
+        w.write('\n')
+      }
+      doParallel(in, work, out, "done", "done", c.numWorkers)
     }
   }
   

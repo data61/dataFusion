@@ -1,4 +1,4 @@
-{"id":1,"label":"John Smith","type":1}
-{"id":2,"label":"Mary Smith","type":1}
-{"id":3,"label":"Adam Smith","type":1}
-{"id":4,"label":"John Jones","type":1}
+{"nodeId":1,"extRefId":[1,11],"typ":"PERSON"}
+{"nodeId":2,"extRefId":[2,12],"typ":"ORGANIZATION"}
+{"nodeId":3,"extRefId":[3,13],"typ":"PERSON"}
+{"nodeId":4,"extRefId":[4,14],"typ":"PERSON"}

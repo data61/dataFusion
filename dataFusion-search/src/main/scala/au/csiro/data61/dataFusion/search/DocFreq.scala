@@ -16,7 +16,7 @@ import Main.CliOption
 import au.csiro.data61.dataFusion.common.Timer
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
-import au.csiro.data61.dataFusion.common.Data.{ Doc, T_ORGANIZATION }
+import au.csiro.data61.dataFusion.common.Data.{ ExtRef, Doc, T_ORGANIZATION }
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol._
 import com.google.common.hash.BloomFilter
 import com.google.common.hash.Funnels
@@ -67,7 +67,7 @@ object DocFreq {
     for (w <- managed(new OutputStreamWriter(System.out, "UTF-8"))) {
       for (line <- Source.fromInputStream(System.in, "UTF-8").getLines) {
         val q = line.parseJson.convertTo[PosQuery]
-        if (containsAllTokens(termFilter, q.query)) {
+        if (containsAllTokens(termFilter, q.extRef.name)) {
           w.write(line)
           w.write('\n')
         } else log.debug(s"filterQuery: not all tokens in index")
@@ -91,7 +91,7 @@ object DocFreq {
       for (line <- Source.fromInputStream(System.in, "UTF-8").getLines) {
         val query = clean(line.parseJson.toString)
         if (query.length >= 6 && containsAllTokens(termFilter, query)) {
-          val q = PosQuery(query, T_ORGANIZATION, List.empty)
+          val q = PosQuery(ExtRef(query, List.empty), T_ORGANIZATION)
           w.write(q.toJson.compactPrint)
           w.write('\n')
         } else log.debug(s"nerToQuery: shorter than 6 chars or not all tokens in index")

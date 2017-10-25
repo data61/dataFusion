@@ -1,13 +1,16 @@
 #! /bin/bash
 
-while getopts ":hm:" opt; do
+while getopts ":hm:s:" opt; do
   case $opt in
   m)
     HEAP=-Xmx${OPTARG}G
     ;;
+  s)
+    STACK=-Xss${OPTARG}M
+    ;;
   h)
     cat <<EoF
-Usage: ${0##*/} [-m max_heap_GB] {tika|ner|search} [option]...
+Usage: ${0##*/} [-m max_heap_GB] [-s stack_MB] {tika|ner|search|util} [option]...
 EoF
     exit 0
     ;;
@@ -26,8 +29,11 @@ eval cmd=\$$OPTIND
 shift $OPTIND
 # echo $cmd "$@"
 
+# default for util is 2M stack
+[[ -z "$STACK" ]] && [[ "$cmd" == "util" ]] && STACK="-Xss2M"
+
 getJar() {
   echo ${DFUS_DIR}/dataFusion-${1}/target/scala-${SCALA_VER}/datafusion-${1}_${SCALA_VER}-${DFUS_VER}-one-jar.jar
 }
 
-java $HEAP -jar `getJar $cmd` "$@"
+java $HEAP $STACK -jar `getJar $cmd` "$@"

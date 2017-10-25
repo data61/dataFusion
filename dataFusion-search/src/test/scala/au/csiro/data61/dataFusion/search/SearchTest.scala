@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.Logger
 import Main.defaultCliOption
 import Search.inCsv
 import DataFusionLucene.DFSearching.PosDocSearch.PosQuery
-import au.csiro.data61.dataFusion.common.Data.{ T_ORGANIZATION, T_PERSON }
+import au.csiro.data61.dataFusion.common.Data.{ ExtRef, T_ORGANIZATION, T_PERSON, T_PERSON2 }
 
 class SearchTest extends FlatSpec with Matchers {
   val log = Logger(getClass)
@@ -20,7 +20,10 @@ class SearchTest extends FlatSpec with Matchers {
     )
     val qs = inCsv(defaultCliOption.copy(csvDelim = '|'), lines.iterator).toList
     log.debug(s"qs = $qs")
-    qs should be(List(PosQuery("BLOGGS FREDERICK A", T_PERSON, List(1L)), PosQuery("COSMIC HOLDINGS INCORPORATED", T_ORGANIZATION, List(2L))))
+    val x1 = PosQuery(ExtRef("FREDERICK A BLOGGS", List(1L)), T_PERSON)
+    val x2 = PosQuery(ExtRef("FREDERICK BLOGGS", List(1L)), T_PERSON2)
+    val x3 = PosQuery(ExtRef("COSMIC HOLDINGS INCORPORATED", List(2L)), T_ORGANIZATION)
+    qs.toSet should be(Set(x1, x2, x3)) // inCsv is parallelized so results not ordered
   }
   
 }

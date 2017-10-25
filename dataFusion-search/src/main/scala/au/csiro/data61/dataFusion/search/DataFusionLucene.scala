@@ -25,8 +25,8 @@ import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
 import LuceneUtil.tokenIter
-import au.csiro.data61.dataFusion.common.Data.{ IdEmbIdx, LPosDoc, PHits, PosInfo, Stats, T_ORGANIZATION }
-import au.csiro.data61.dataFusion.common.Data.JsonProtocol.{ idEmbIdxCodec, pHitsCodec, statsCodec }
+import au.csiro.data61.dataFusion.common.Data.{ ExtRef, IdEmbIdx, LPosDoc, PHits, PosInfo, Stats, T_ORGANIZATION }
+import au.csiro.data61.dataFusion.common.Data.JsonProtocol.{ idEmbIdxCodec, pHitsCodec, statsCodec, extRefFormat }
 import au.csiro.data61.dataFusion.common.Timer
 import spray.json.{ pimpAny, pimpString }
 import spray.json.DefaultJsonProtocol._
@@ -259,12 +259,12 @@ object DataFusionLucene {
     }
     
     object PosDocSearch {
-      case class PosQuery(query: String, typ: String, extRefId: List[Long])
+      case class PosQuery(extRef: ExtRef, typ: String)
       case class PosMultiQuery(queries: List[PosQuery])
       case class PMultiHits(pHits: List[PHits])
       
       object JsonProtocol {
-        implicit val posQueryCodec = jsonFormat3(PosQuery)
+        implicit val posQueryCodec = jsonFormat2(PosQuery)
         implicit val posMultiQueryCodec = jsonFormat1(PosMultiQuery)
         implicit val pMultiHitsCodec = jsonFormat1(PMultiHits)
       }
@@ -325,7 +325,7 @@ object DataFusionLucene {
 //      var searchSpansCount = 0
       
       def searchSpans(searcher: IndexSearcher, slop: Int, q: PosQuery): PHits = {
-        val terms = tokenIter(analyzer, F_CONTENT, q.query).map(new Term(F_CONTENT, _)).toList
+        val terms = tokenIter(analyzer, F_CONTENT, q.extRef.name).map(new Term(F_CONTENT, _)).toList
         // Here we score using only Lucene's version of IDF, no term freq or doc length norm etc.
         // This depends only on the query not the doc, so it could go in PHits once rather than
         // repeated in each PosInfo, but leave in case this changes.
@@ -334,7 +334,7 @@ object DataFusionLucene {
         val score = terms.foldLeft(0.0) { (score, t) => score + 1.0 + Math.log10( (reader.numDocs + 1.0) / (reader.docFreq(t) + 1.0)) }.toFloat
         if (terms.size > 1) searchSpansPhrase(searcher, slop, q, terms, score)
         else if (terms.size == 1) searchSpansTerm(searcher, q, terms.head, score)
-        else PHits(Stats(0, 0.0f), List.empty, None, q.query, q.extRefId, score, q.typ)
+        else PHits(Stats(0, 0.0f), List.empty, None, q.extRef, score, q.typ)
       }
       
       /** 
@@ -371,7 +371,7 @@ object DataFusionLucene {
 //        if (searchSpansCount % 1000 == 0) log.info(s"searchSpans: scoring took ${searchSpansScoreTimer.elapsedSecs} sec, searching took ${searchSpansNonScoreTimer.elapsedSecs} sec")
         // Scoring is fast enough: scoring took 0.462 sec, searching took 113.58 sec
         timer.stop
-        PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.query, q.extRefId, score, q.typ)
+        PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.extRef, score, q.typ)
       }
       
       def searchSpansTerm(searcher: IndexSearcher, q: PosQuery, term: Term, score: Float): PHits = {
@@ -382,7 +382,7 @@ object DataFusionLucene {
         // TODO: this isn't working
         searcher.search(tq, coll)
         val hits = coll.hits
-        PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.query, q.extRefId, score, q.typ)
+        PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.extRef, score, q.typ)
       }
             
     }

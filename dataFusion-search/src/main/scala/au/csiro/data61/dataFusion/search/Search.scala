@@ -19,7 +19,7 @@ import PosDocSearch.PosQuery
 import PosDocSearch.JsonProtocol.posQueryCodec
 import LuceneUtil.{ Searcher, directory }
 import Main.CliOption
-import au.csiro.data61.dataFusion.common.Data.{ PHits, Stats, T_ORGANIZATION, T_PERSON, T_PERSON2 }
+import au.csiro.data61.dataFusion.common.Data.{ PHits, Stats, ExtRef, T_ORGANIZATION, T_PERSON, T_PERSON2 }
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol.pHitsCodec
 import au.csiro.data61.dataFusion.common.Parallel.doParallel
 import au.csiro.data61.dataFusion.common.Timer
@@ -70,7 +70,7 @@ object Search {
         // TODO: probably wrong to eat exception here, do in Parallel.work instead?
         case NonFatal(e) => {
           log.error("PosDocSearcher error", e)
-          PHits(Stats(0, 0.0f), List.empty, toMsg(e), q.query, q.extRefId, 0.0f, q.typ)
+          PHits(Stats(0, 0.0f), List.empty, toMsg(e), q.extRef, 0.0f, q.typ)
         }
       }
       
@@ -152,14 +152,14 @@ object Search {
         val warnBuf = new ListBuffer[String]
         
         // TODO: are any one word org names valid? If so we have to do a non-phrase search for them
-        if (alpha.findFirstMatchIn(org).isDefined && space.findFirstMatchIn(org).isDefined) add(PosQuery(org, T_ORGANIZATION, id))
+        if (alpha.findFirstMatchIn(org).isDefined && space.findFirstMatchIn(org).isDefined) add(PosQuery(ExtRef(org, id), T_ORGANIZATION))
         else if (org.nonEmpty) warnBuf += s"Rejected organisation: ${c.csvId} = $idStr, $org"
         
-        if (nameOK(fam) && nameOK(gvn) && nameOK(oth)) add(PosQuery(s"$gvn $oth $fam", T_PERSON, id))
+        if (nameOK(fam) && nameOK(gvn) && nameOK(oth)) add(PosQuery(ExtRef(s"$gvn $oth $fam", id), T_PERSON))
         else if (fam.nonEmpty || gvn.nonEmpty || oth.nonEmpty) warnBuf += s"Rejected person for 3 name query: ${c.csvId} = $idStr, family = '$fam', given = '$gvn', other = '$oth'"
 
         if (c.csvPersonWith2Names) {
-          if (nameOK(fam) && nameOK(gvn)) add(PosQuery(s"$gvn $fam", T_PERSON2, id))
+          if (nameOK(fam) && nameOK(gvn)) add(PosQuery(ExtRef(s"$gvn $fam", id), T_PERSON2))
           else if (fam.nonEmpty || gvn.nonEmpty) warnBuf += s"Rejected person for 2 name query: ${c.csvId} = $idStr, family = '$fam', given = '$gvn', other = '$oth'"
         }
         
@@ -171,13 +171,13 @@ object Search {
       doParallel(iter, work, out, "done", List("done"), Math.min(4, c.numWorkers)) // 1 worker -> 12.5 min, 2 -> 7.5 min, 4 -> 6.5 min, slower with more
       log.info(s"inCsv: load completed")
       
-      val endMarker = PosQuery("done", "done", List.empty)
+      val endMarker = PosQuery(ExtRef("done", List.empty), "done")
       buf += endMarker
       val sorted = buf.toArray
       buf.clear
       val cmp = new java.util.Comparator[PosQuery] {
         override def compare(a: PosQuery, b: PosQuery): Int = {
-          val i = a.query.compareTo(b.query)
+          val i = a.extRef.name.compareTo(b.extRef.name)
           if (i != 0) i else a.typ.compareTo(b.typ)
         }
       }
@@ -188,11 +188,11 @@ object Search {
       val extRefId = new ListBuffer[Long]
       sorted.iterator.sliding(2).flatMap {
         case Seq(a, b) => {
-          extRefId ++= a.extRefId
-          if (a.query == b.query && a.typ == b.typ) {
+          extRefId ++= a.extRef.ids
+          if (a.extRef.name == b.extRef.name && a.typ == b.typ) {
             Iterator.empty
           } else {
-            val p = a.copy(extRefId = extRefId.toList)
+            val p = a.copy(extRef = a.extRef.copy(ids = extRefId.toList))
             extRefId.clear
             Iterator.single(p)
           }
@@ -229,11 +229,11 @@ object Search {
       }
       
       def workFilter(termFilter: BloomFilter[CharSequence])(q: PosQuery) = {
-        if (DocFreq.containsAllTokens(termFilter, q.query)) {
+        if (DocFreq.containsAllTokens(termFilter, q.extRef.name)) {
           workNoFilter(q)
         } else {
           filterCount.incrementAndGet
-          PHits(Stats(0, 0), List.empty, None, q.query, q.extRefId, 0.0f, q.typ)
+          PHits(Stats(0, 0), List.empty, None, q.extRef, 0.0f, q.typ)
         }
       }
     
@@ -251,7 +251,10 @@ object Search {
         }
       }
       
-      doParallel[PosQuery, PHits](in, work, out, PosQuery("done", T_ORGANIZATION, List.empty), PHits(Stats(0, 0), List.empty, None, "done", List.empty, 0.0f, ""), c.numWorkers)
+      val queryEndMarker = PosQuery(ExtRef("done", List.empty), T_ORGANIZATION)
+      val hitsEndMarker = PHits(Stats(0, 0), List.empty, None, ExtRef("done", List.empty), 0.0f, "")
+      doParallel(in, work, out, queryEndMarker, hitsEndMarker, c.numWorkers)
+      
       log.info(s"cliPosDocSearch: Output thread busy for ${outTimer.elapsedSecs} secs")
       // With nuWorkers 25, runtime 1m42s, inTimer 12.5s, outTimer 22.5s,
       // so no need to move CSV/reject processing from input thread to workers

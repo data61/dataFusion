@@ -1,7 +1,5 @@
 package au.csiro.data61.dataFusion.graph.service
 
-
-
 import scala.annotation.tailrec
 import scala.io.Source
 import scala.language.postfixOps
@@ -23,6 +21,9 @@ import io.swagger.annotations.{ Api, ApiOperation }
 import javax.ws.rs.{ Consumes, Path, QueryParam }, javax.ws.rs.core.MediaType
 import spray.json.DefaultJsonProtocol._
 import spray.json.pimpString
+import java.io.File
+import au.csiro.data61.dataFusion.common.Data._
+import au.csiro.data61.dataFusion.common.Data.JsonProtocol._
 
 // keeps getting deleted by Eclipse > Source > Organize Imports
 
@@ -30,21 +31,61 @@ import spray.json.pimpString
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(blazeTimeout: Int)
-  case class Node(id: Long, label: String, `type`: Int)
+  case class CliOption(nodePath: File, edgePath: File, host: String, port: Int)
+
+  def main(args: Array[String]): Unit = {
+    val conf = ConfigFactory.load
+    val defaultCliOption = CliOption(new File(conf.getString("graph.nodePath")), new File(conf.getString("graph.edgePath")), conf.getString("http.host"), conf.getInt("http.port"))
+    val parser = new scopt.OptionParser[CliOption]("graph") {
+      head("graph", "0.x")
+      note("Run Graph web service.")
+      opt[File]("nodePath") action { (v, c) =>
+        c.copy(nodePath = v)
+      } text (s"path of JSON file containing nodes, default ${defaultCliOption.nodePath}")
+      opt[File]("edgePath") action { (v, c) =>
+        c.copy(edgePath = v)
+      } text (s"path of JSON file containing edges, default ${defaultCliOption.edgePath}")
+      opt[String]("host") action { (v, c) =>
+        c.copy(host = v)
+      } text (s"host interface for web service, default ${defaultCliOption.host}")
+      opt[Int]("port") action { (v, c) =>
+        c.copy(port = v)
+      } text (s"port for web service, default ${defaultCliOption.port}")
+      help("help") text ("prints this usage text")
+    }
+    for (c <- parser.parse(args, defaultCliOption)) {
+      log.info(s"CliOption: $c}")
+      start(c)
+    }      
+  }
+  
+  def start(c: CliOption) = {
+    implicit val system = ActorSystem("graphActorSystem")
+    implicit val exec = system.dispatcher
+    implicit val materializer = ActorMaterializer()
+    
+    val graphService = new GraphService(Source.fromFile(c.nodePath), Source.fromFile(c.edgePath))
+    val routes = cors() {
+      graphService.routes ~ 
+      swaggerService(c.host, c.port).routes
+    }
+    Http().bindAndHandle(routes, c.host, c.port)
+    log.info(s"""starting server at: http://${c.host}:${c.port}
+Test with:
+  curl --header 'Content-Type: application/json' http://${c.host}:${c.port}/api-docs/swagger.json
+""")
+  }
+
   case class Nodes(nodes: List[Node])
-  case class Edge(source: Long, target: Long, distance: Float, `type`: Int)
-  case class NodeQuery(text: String, `type`: Int)
-  case class TopClientsQuery(ids: List[Long], n: Int)
-  case class GraphQuery(id: Long, maxHops: Int, maxEdges: Int)
+//  case class NodeQuery(text: String, typ: String)
+  case class TopClientsQuery(ids: List[Int], n: Int)
+  case class GraphQuery(id: Int, maxHops: Int, maxEdges: Int)
   case class Graph(nodes: List[Node], edges: List[Edge])
   case class ClientEdgeCounts(counts: List[ClientEdgeCount])
   
   object JsonProtocol {
-    implicit val nodeCodec = jsonFormat3(Node)
     implicit val nodesCodec = jsonFormat1(Nodes)
-    implicit val edgeCodec = jsonFormat4(Edge)
-    implicit val nodeQueryCodec = jsonFormat2(NodeQuery)
+//    implicit val nodeQueryCodec = jsonFormat2(NodeQuery)
     implicit val topClientsQueryCodec = jsonFormat2(TopClientsQuery)
     implicit val graphQueryCodec = jsonFormat3(GraphQuery)
     implicit val graphCodec = jsonFormat2(Graph)
@@ -55,7 +96,7 @@ object Main {
   def load(nodeSource: Source, edgeSource: Source) = {
     val nodes = nodeSource.getLines.map { json =>
       val n = json.parseJson.convertTo[Node]
-      n.id -> n
+      n.nodeId -> n
     }.toMap
     val edges = edgeSource.getLines.map(_.parseJson.convertTo[Edge]).toList
     (nodes, edges.groupBy(_.source).withDefaultValue(List.empty), edges.groupBy(_.target).withDefaultValue(List.empty))
@@ -66,28 +107,25 @@ object Main {
   class GraphService(nodeSource: Source, edgeSource: Source) {
     val (nodes, edgesBySource, edgesByTarget) = load(nodeSource, edgeSource)
     
-    val personType = 1
-    val orgType = 2
-    
     // ----------------------------------------------------------
   
-    @Path("nodes")
-    @ApiOperation(httpMethod = "POST", response = classOf[Nodes], value = "nodes matching the query")
-    @Consumes(Array(MediaType.APPLICATION_JSON))
-    def findNodes(q: NodeQuery) = {
-      val pred: Node => Boolean =
-        if (Seq(personType, orgType).contains(q.`type`))
-          n => n.`type` == q.`type` && n.label.contains(q.text)
-        else
-          n => n.label.contains(q.text)
-        
-      Nodes(nodes.values.filter(pred).toList)
-    }
-        
-    def findNodesRoute =
-      post { path("nodes") { entity(as[NodeQuery]) { q => complete {
-        findNodes(q)
-      }}}}
+//    @Path("nodes")
+//    @ApiOperation(httpMethod = "POST", response = classOf[Nodes], value = "nodes matching the query")
+//    @Consumes(Array(MediaType.APPLICATION_JSON))
+//    def findNodes(q: NodeQuery) = {
+//      val pred: Node => Boolean =
+//        if (Seq(T_PERSON, T_ORGANIZATION).contains(q.typ))
+//          n => n.`type` == q.`type` && n.label.contains(q.text)
+//        else
+//          n => n.label.contains(q.text)
+//        
+//      Nodes(nodes.values.filter(pred).toList)
+//    }
+//        
+//    def findNodesRoute =
+//      post { path("nodes") { entity(as[NodeQuery]) { q => complete {
+//        findNodes(q)
+//      }}}}
   
     // ----------------------------------------------------------
   
@@ -133,7 +171,7 @@ object Main {
     
     def distance(a: Float, b: Float) = Math.sqrt(a * a + b * b).toFloat
     
-    @tailrec final def expand(n: Int, newIds: Set[Long], nodeDist: Map[Long, Float], edges: Set[Edge]= Set.empty): (Int, Set[Long], Map[Long, Float], Set[Edge]) = {
+    @tailrec final def expand(n: Int, newIds: Set[Int], nodeDist: Map[Int, Float], edges: Set[Edge]= Set.empty): (Int, Set[Int], Map[Int, Float], Set[Edge]) = {
       if (n < 1) (n, newIds, nodeDist, edges) else {
         val l = newIds.toList
         val knownSource = l.flatMap(id => edgesBySource(id)) // edges with known node as source
@@ -174,7 +212,7 @@ object Main {
         graph(q)
       }}}}
   
-    val routes = findNodesRoute ~ topConnectedClientsRoute ~ topConnectedGraphRoute ~ graphRoute
+    val routes = topConnectedClientsRoute ~ topConnectedGraphRoute ~ graphRoute
   }
   
   def swaggerService(hst: String, prt: Int)(implicit s: ActorSystem, m: ActorMaterializer) = new SwaggerHttpService with HasActorSystem {
@@ -186,42 +224,6 @@ object Main {
     override val basePath = "/"          // the basePath for the API you are exposing
     override val info = new io.swagger.models.Info()                    // provides license and other description details
     override val apiDocsPath = "api-docs"   // http://host:port/api-docs/swagger.json
-  }
-  
-  def start(c: CliOption) = {
-    val conf = ConfigFactory.load
-    val host = conf.getString("http.host")
-    val port = conf.getInt("http.port")
-    
-    implicit val system = ActorSystem("graphActorSystem")
-    implicit val exec = system.dispatcher
-    implicit val materializer = ActorMaterializer()
-    
-    val graphService = new GraphService(Source.fromFile(conf.getString("graph.nodePath")), Source.fromFile(conf.getString("graph.edgePath")))
-    val routes = cors() {
-      graphService.routes ~ 
-      swaggerService(host, port).routes
-    }
-    Http().bindAndHandle(routes, host, port)
-    log.info(s"""starting server at: http://${host}:${port}
-Test with:
-  curl --header 'Content-Type: application/json' http://${host}:${port}/api-docs/swagger.json
-""")
-  }
-
-  def main(args: Array[String]): Unit = {
-    val defaultCliOption = CliOption(600) // timeout in secs
-    val parser = new scopt.OptionParser[CliOption]("graph") {
-      head("graph", "0.x")
-      note("Run Graph web service.")
-      opt[Int]('b', "blaze-timeout") action { (x, c) =>
-        c.copy(blazeTimeout = x)
-      } text (s"Timout in seconds for Blaze HTTP server (default ${defaultCliOption.blazeTimeout})")
-      help("help") text ("prints this usage text")
-    }
-    for (c <- parser.parse(args, defaultCliOption)) {
-      start(c)
-    }      
   }
   
 }
