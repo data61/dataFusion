@@ -9,8 +9,6 @@ This project provides a library and multi-threaded CLI (command line interface) 
 - augmentation of the metadata with the language of the text (`language-code` and `language-prob`)
 - representation of results in dataFusion data structures
 
-TODO: Bring across tika info from scripts/README.md before deleting it there
-
 ## Build, Configuration and Running
 
 See the top level README.

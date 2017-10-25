@@ -1,19 +1,14 @@
-# dataFusion-search
+# dataFusion-util
 
 ## Introduction
 
-This project provides:
+This project provides command line utilities for:
+- converting bulk entity search results into the NER data format and merging into the NER results (--hits option)
+- finding mentions of people in email headers and merging into the NER results (--email option)
+- network building from the NER results (including bulk search and email headers, --proximity option)
 
-- a search library
-- an indexer
-- a multi-threaded CLI (command line interface) for high performance bulk searching for known entities
-- other specialised command line tools (see --help)
-
-This is different from the Solr index in that:
-- results are at the level of embedded document (e.g. a main document with embIdx = -1 or a specific embedded document with embIdx >= 0) c.f. the Solr index which is at the level of whole document (main content with all embedded content)
-- it very efficiently returns the word and character offsets to the location of each match
+Additionally the --resetId option is provided to reallocate the id's in a NER format JSON file. This can be useful in the case of merging multiple partial tika runs where the ids would otherwise not be unique. 
 
 ## Build, Configuration and Running
 
 See the top level README.
-
