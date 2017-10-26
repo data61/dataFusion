@@ -4,7 +4,7 @@ name := "dataFusion-ner"
 resolvers += Resolver.mavenLocal
 
 libraryDependencies ++= Seq(
-  "edu.stanford.nlp" % "stanford-corenlp" % "3.8.1-20170922", //  withSources(),
+  "edu.stanford.nlp" % "stanford-corenlp" % "3.8.1-20170922" exclude("com.apple", "AppleJavaExtensions"),
   "edu.stanford.nlp" % "stanford-corenlp" % "3.8.1-20170922" classifier "models", //  classifier "models-spanish",
   
   "org.apache.opennlp" % "opennlp-tools" % "1.8.1",

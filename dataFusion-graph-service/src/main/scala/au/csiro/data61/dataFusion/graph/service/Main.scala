@@ -131,7 +131,7 @@ Test with:
   
     /**
      * return the q.n items from q.ids that have the most connections (edges) over all the docs.
-     * @return Seq of n * (clientIntrnlId, number of edges) sorted on number of edges descending
+     * @return Seq of n * (nodeId, number of edges) sorted on number of edges descending
      */
     @Path("topConnectedClients")
     @ApiOperation(httpMethod = "POST", response = classOf[ClientEdgeCounts], value = "graph of the most connected nodes matching the query")

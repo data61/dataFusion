@@ -41,12 +41,16 @@ lazy val commonSettings = Seq(
   EclipseKeys.eclipseOutput in Test := Some("test-bin"), // default is sbt's target/scala-2.11/test-classes
 
   licenseOverrides := {
-    case DepModuleInfo(org, _, _) if hasPrefix(org, Seq("org.apache", "com.fasterxml", "com.google.guava", "org.javassist", "io.swagger", "org.json4s", "xalan")) => LicenseInfo(LicenseCategory.Apache, "The Apache Software License, Version 2.0", "http://www.apache.org/licenses/LICENSE-2.0.txt")
+    case DepModuleInfo(org, _, _) if hasPrefix(org, Seq("org.apache", "com.fasterxml", "com.google.guava", "org.javassist", "io.swagger", "org.json4s", "xalan", "commons-codec", "commons-logging", "regexp")) => LicenseInfo(LicenseCategory.Apache, "The Apache Software License, Version 2.0", "http://www.apache.org/licenses/LICENSE-2.0.txt")
     case DepModuleInfo(org, _, _) if hasPrefix(org, Seq("com.thoughtworks.paranamer")) => LicenseInfo(LicenseCategory.BSD, "BSD-Style", "http://www.opensource.org/licenses/bsd-license.php")
     case DepModuleInfo(org, _, _) if hasPrefix(org, Seq("javax.ws.rs", "org.jvnet.mimepull", "org.glassfish")) => LicenseInfo(LicenseCategory.GPLClasspath, "CDDL + GPLv2 with classpath exception", "https://glassfish.dev.java.net/nonav/public/CDDL+GPL.html")
     case DepModuleInfo(org, _, _) if hasPrefix(org, Seq("ch.qos.logback")) => LicenseInfo(LicenseCategory.LGPL, "EPL + GNU Lesser General Public License", "http://logback.qos.ch/license.html")
     case DepModuleInfo(org, _, _) if hasPrefix(org, Seq("com.google.code.findbugs")) => LicenseInfo(LicenseCategory.LGPL, "GNU Lesser General Public License", "http://www.gnu.org/licenses/lgpl.html")
     case DepModuleInfo(org, _, _) if hasPrefix(org, Seq("org.slf4j")) => LicenseInfo(LicenseCategory.MIT, "MIT License", "http://www.slf4j.org/license.html")
+    case DepModuleInfo(org, _, _) if hasPrefix(org, Seq("org.bouncycastle")) => LicenseInfo(LicenseCategory.MIT, "Bouncy Castle Licence (MIT)", "http://www.bouncycastle.org/licence.html")
+    case DepModuleInfo(org, _, _) if hasPrefix(org, Seq("org.opengis")) => LicenseInfo(LicenseCategory.BSD, "OGC copyright (BSD 2 clause)", "https://svn.code.sf.net/p/geoapi/code/branches/3.0.x/LICENSE.txt")
+    case DepModuleInfo(org, _, _) if hasPrefix(org, Seq("javax.measure")) => LicenseInfo(LicenseCategory.BSD, "BSD-Style", "http://www.opensource.org/licenses/bsd-license.php")
+    case DepModuleInfo(org, _, _) if hasPrefix(org, Seq("net.jcip")) => LicenseInfo(LicenseCategory.CC0, "Creative Commons Attribution License", "http://creativecommons.org/licenses/by/2.5")
     }
   )
 

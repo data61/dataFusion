@@ -36,5 +36,4 @@ LGPL | [LGPL](http://www.gnu.org/copyleft/lesser.html) | com.googlecode.efficien
 LGPL | [The GNU Lesser General Public License, Version 2.1](http://www.gnu.org/licenses/lgpl-2.1.html) | com.io7m.xom # xom # 1.2.10 | <notextile></notextile>
 MIT | [MIT License](http://www.opensource.org/licenses/mit-license.php) | com.github.scopt # scopt_2.12 # 3.7.0 | <notextile></notextile>
 MIT | [MIT License](http://www.slf4j.org/license.html) | org.slf4j # slf4j-api # 1.7.25 | <notextile></notextile>
-unrecognized | [Apple License](http://developer.apple.com/library/mac/#samplecode/AppleJavaExtensions/Listings/README_txt.html#//apple_ref/doc/uid/DTS10000677-README_txt-DontLinkElementID_3) | com.apple # AppleJavaExtensions # 1.4 | <notextile></notextile>
 
