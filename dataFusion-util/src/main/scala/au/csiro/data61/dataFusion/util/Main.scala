@@ -20,7 +20,7 @@ object Main {
   
   case class CliOption(hits: Option[File], email: Boolean, output: Option[File], startId: Long, proximity: Boolean, decay: Double, resetEnglishScore: Boolean, resetId: Boolean, numWorkers: Int)
   
-  val defaultCliOption = CliOption(None, false, None, 0L, false, 20.0f, false, false, Runtime.getRuntime.availableProcessors)
+  val defaultCliOption = CliOption(None, false, None, 0L, false, 500.0f, false, false, Runtime.getRuntime.availableProcessors)
   
   val defGazOut = "gaz.json" // gaz for gazetteer
   val node = "node.json"
@@ -47,7 +47,7 @@ object Main {
     } text (s"create proximity network, output defaults to ${defProximity + node} and ${defProximity + edge}, --output sets the prefix")
     opt[Double]("decay") action { (v, c) =>
       c.copy(decay = v)
-    } text (s"proximity score is exp(- num words separating start of names / decay), defaults to ${defaultCliOption.decay}")
+    } text (s"proximity score is exp(- num chars separating start of names / decay), defaults to ${defaultCliOption.decay}")
     opt[Unit]("resetEnglishScore") action { (_, c) =>
       c.copy(resetEnglishScore = true, output = c.output.orElse(Some(new File(defResetOut))))
     } text (s"reset englishScore in metdata (to reprocess after a change to the scoring), output defaults to $defResetOut")

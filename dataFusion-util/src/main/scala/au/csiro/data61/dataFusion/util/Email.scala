@@ -118,19 +118,11 @@ object Email {
     val per3map = m(n => n.impl == GAZ && n.typ == T_PERSON)
     val per2map = m(n => n.impl == GAZ && n.typ == T_PERSON2)
     offStr =>
-    {
       for {
-        l <- per3map.get(offStr)
+        l <- per3map.get(offStr).orElse(per2map.get(offStr))
         n <- l.headOption
         e <- n.extRef
       } yield e
-    }.orElse {
-      for {
-        l <- per2map.get(offStr)
-        n <- l.headOption
-        e <- n.extRef
-      } yield e
-    }
   }
   
   val augment: Doc => Doc = { d =>

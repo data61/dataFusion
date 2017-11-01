@@ -63,9 +63,9 @@ object Search {
      * Building the queries programatically rather than with a QueryParser allows us to search for terms that would match
      * QueryParser keywords such as "and".
      */
-    def search(slop: Int, q: PosQuery) = 
+    def search(slop: Int, q: PosQuery, minScore: Float) = 
       try {
-        searchSpans(indexSearcher, slop, q)
+        searchSpans(indexSearcher, slop, q, minScore)
       } catch {
         // TODO: probably wrong to eat exception here, do in Parallel.work instead?
         case NonFatal(e) => {
@@ -74,8 +74,8 @@ object Search {
         }
       }
       
-    def multiSearch(slop: Int, qs: PosMultiQuery) =
-      PMultiHits(qs.queries.map { q => PosDocSearcher.search(slop, q) })
+    def multiSearch(slop: Int, qs: PosMultiQuery, minScore: Float) =
+      PMultiHits(qs.queries.map { q => PosDocSearcher.search(slop, q, minScore) })
   }
   
   object MetaSearcher {
@@ -225,7 +225,7 @@ object Search {
 
       def workNoFilter(q: PosQuery) = {
         searchCount.incrementAndGet
-        PosDocSearcher.search(c.slop, q)
+        PosDocSearcher.search(c.slop, q, c.minScore)
       }
       
       def workFilter(termFilter: BloomFilter[CharSequence])(q: PosQuery) = {

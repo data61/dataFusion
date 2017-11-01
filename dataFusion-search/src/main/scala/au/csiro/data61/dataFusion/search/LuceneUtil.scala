@@ -14,6 +14,8 @@ import org.apache.lucene.store.{ Directory, FSDirectory }
 import com.typesafe.scalalogging.Logger
 
 import au.csiro.data61.dataFusion.common.Timer
+import org.apache.lucene.analysis.TokenFilter
+
 
 
 /**
@@ -54,6 +56,35 @@ object LuceneUtil {
     Iterator.range(0, p.freq).map { _ =>
       val pos = p.nextPosition
       (pos, p)
+    }
+  }
+  
+  /**
+   * TokenFilter that removes all trailing chars after the last letter or digit.
+   * Based on: org.apache.lucene.analysis.en.EnglishPossessiveFilter.
+   */
+  class TrailingPunctuationFilter(in: TokenStream) extends TokenFilter(in) {
+    val termAtt = addAttribute(classOf[CharTermAttribute])
+  
+    override def incrementToken: Boolean = {
+      if (!in.incrementToken()) {
+        return false;
+      }
+      val buf = termAtt.buffer
+      val len = termAtt.length
+      
+      val lastAlphaNum = {
+        var last = -1
+        var i = len - 1
+        while (i >= 0 && last == -1) {
+          if (Character.isLetterOrDigit(buf(i))) last = i
+          i -= 1
+        }
+        last
+      }
+      
+      if (lastAlphaNum != -1) termAtt.setLength(lastAlphaNum + 1)
+      return true;
     }
   }
   

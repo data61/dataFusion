@@ -91,18 +91,24 @@ class Proximity(decay: Double) {
     edgeMap.synchronized { edgeMap += k -> (edgeMap(k) + weight) }
   }
   
+  /** take EMAIL Ners and GAZ Ners that do not start at the same location as an EMAIL Ner (avoid duplicates) */
+  def nerFilter(ner: List[Ner]): Iterator[Ner] = {
+    val emailNer = ner.filter(n => n.impl == EMAIL)
+    val offStr = emailNer.view.map(_.offStr).toSet
+    emailNer.iterator ++ ner.view.filter(n => n.impl == GAZ && (n.typ == T_PERSON || n.typ == T_PERSON2 || n.typ == T_ORGANIZATION) && !offStr.contains(n.offStr))
+  }
+  
   // used multi-threaded usage so must be thread-safe
   def accDoc(d: Doc): Unit = {
-    def pred(n: Ner) = n.impl == GAZ && (n.typ == T_PERSON || n.typ == T_PERSON2 || n.typ == T_ORGANIZATION)
     val cutoff = (decay * 5).toInt
     for {
-      ners <- Iterator.single(d.ner.view.filter(pred)) ++ d.embedded.view.map(_.ner.view.filter(pred))
-      v = ners.toIndexedSeq.sortBy(_.posStr)
+      ners <- nerFilter(d.ner) +: d.embedded.view.map(e => nerFilter(e.ner))
+      v = ners.toIndexedSeq.sortBy(_.offStr)
       // _ = log.info(s"v.size = ${v.size}")
       i <- 0 until v.size - 1 // exclude last
       ni = v(i)
       extRefi <- ni.extRef
-      (j, dist) <- (i + 1 until v.size).view.map { j => (j, v(j).posStr - ni.posStr) }.takeWhile(_._2 < cutoff)
+      (j, dist) <- (i + 1 until v.size).view.map { j => (j, v(j).offStr - ni.offStr) }.takeWhile(_._2 < cutoff)
       nj = v(j)
       extRefj <- nj.extRef
     } {

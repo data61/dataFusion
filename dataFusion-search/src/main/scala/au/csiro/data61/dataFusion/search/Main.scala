@@ -9,9 +9,9 @@ import com.typesafe.scalalogging.Logger
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(output: File, index: Boolean, searchJson: Boolean, searchCsv: Boolean, csvDelim: Char, csvPerson: Seq[String], csvOrg: String, csvId: String, csvPersonWith2Names: Boolean, docFreq: Boolean, export: Boolean, filterQueryOnly: Boolean, filterQuery: Boolean, maxTerms: Int, nerToQuery: Boolean, slop: Int, numWorkers: Int)
+  case class CliOption(output: File, index: Boolean, searchJson: Boolean, searchCsv: Boolean, csvDelim: Char, csvPerson: Seq[String], csvOrg: String, csvId: String, csvPersonWith2Names: Boolean, minScore: Float, docFreq: Boolean, export: Boolean, filterQueryOnly: Boolean, filterQuery: Boolean, maxTerms: Int, nerToQuery: Boolean, slop: Int, numWorkers: Int)
   
-  val defaultCliOption = CliOption(new File("hits.json"), false, false, false, '\t', Seq("STRCTRD_FMLY_NM", "STRCTRD_GVN_NM", "STRCTRD_OTHR_GVN_NM"), "USTRCTRD_FULL_NM", "CLNT_INTRNL_ID", true, false, false, false, true, 10000000, false, 0, Runtime.getRuntime.availableProcessors)
+  val defaultCliOption = CliOption(new File("hits.json"), false, false, false, '\t', Seq("STRCTRD_FMLY_NM", "STRCTRD_GVN_NM", "STRCTRD_OTHR_GVN_NM"), "USTRCTRD_FULL_NM", "CLNT_INTRNL_ID", true, 3.5f, false, false, false, true, 10000000, false, 0, Runtime.getRuntime.availableProcessors)
   
   val parser = new scopt.OptionParser[CliOption]("search") {
     head("search", "0.x")
@@ -45,6 +45,9 @@ object Main {
     opt[Boolean]("csvPersonWith2Names") action { (v, c) =>
       c.copy(csvPersonWith2Names = v)
     } text (s"CSV used to generate 2 name (omitting middle name) searches for people in addition to 3 name search (default ${defaultCliOption.csvPersonWith2Names})")
+    opt[Double]("minScore") action { (v, c) =>
+      c.copy(minScore = v.toFloat)
+    } text (s"minScore queries with a (IDF) score below this are skipped, (default ${defaultCliOption.minScore})")
     opt[Unit]("docFreq") action { (_, c) =>
       c.copy(docFreq = true)
     } text (s"output term document frequencies from index as CSV (default ${defaultCliOption.docFreq})")

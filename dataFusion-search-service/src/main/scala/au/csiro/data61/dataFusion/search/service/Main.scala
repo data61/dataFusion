@@ -38,7 +38,7 @@ import javax.ws.rs.core.MediaType
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(posQuery: String, slop: Int)
+  case class CliOption(posQuery: String, slop: Int, minScore: Float)
     
   @Api(value = "search", description = "lucene search", produces = "application/json")
   @Path("")
@@ -59,7 +59,7 @@ object Main {
     @Path("pos/search")
     @ApiOperation(httpMethod = "POST", response = classOf[PHits], value = "search hits matching the query")
     @Consumes(Array(MediaType.APPLICATION_JSON))
-    def posSearch(q: PosQuery): PHits = PosDocSearcher.search(cliOption.slop, q)
+    def posSearch(q: PosQuery): PHits = PosDocSearcher.search(cliOption.slop, q, cliOption.minScore)
     
     def posSearchRoute =
       post { path("pos/search") { entity(as[PosQuery]) { q => complete {
@@ -71,7 +71,7 @@ object Main {
     @Path("pos/multiSearch")
     @ApiOperation(httpMethod = "POST", response = classOf[PMultiHits], value = "search hits matching the query")
     @Consumes(Array(MediaType.APPLICATION_JSON))
-    def posMultiSearch(qs: PosMultiQuery): PMultiHits = PosDocSearcher.multiSearch(cliOption.slop, qs)
+    def posMultiSearch(qs: PosMultiQuery): PMultiHits = PosDocSearcher.multiSearch(cliOption.slop, qs, cliOption.minScore)
     
     def posMultiSearchRoute =
       post { path("pos/multiSearch") { entity(as[PosMultiQuery]) { qs => complete {
@@ -143,7 +143,7 @@ Test with:
 """)
   }
 
-  val defaultCliOption = CliOption("unord", 0)
+  val defaultCliOption = CliOption("unord", 0, 3.5f)
   
   val parser = new scopt.OptionParser[CliOption]("search-service") {
     head("search-service", "0.x")
@@ -154,6 +154,9 @@ Test with:
     opt[Int]('s', "slop") action { (v, c) =>
       c.copy(slop = v)
     } text (s"slop for posQuery, (default ${defaultCliOption.slop})")
+    opt[Double]("minScore") action { (v, c) =>
+      c.copy(minScore = v.toFloat)
+    } text (s"minScore queries with a (IDF) score below this are skipped, (default ${defaultCliOption.minScore})")
     help("help") text ("prints this usage text")
   }
   

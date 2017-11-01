@@ -24,12 +24,13 @@ import org.apache.lucene.util.BytesRef
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
-import LuceneUtil.tokenIter
+import LuceneUtil.{ tokenIter, TrailingPunctuationFilter }
 import au.csiro.data61.dataFusion.common.Data.{ ExtRef, IdEmbIdx, LPosDoc, PHits, PosInfo, Stats, T_ORGANIZATION }
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol.{ idEmbIdxCodec, pHitsCodec, statsCodec, extRefFormat }
 import au.csiro.data61.dataFusion.common.Timer
 import spray.json.{ pimpAny, pimpString }
 import spray.json.DefaultJsonProtocol._
+import org.apache.lucene.analysis.core.WhitespaceTokenizer
 
 /**
  * dataFusion specific field names, analyzers etc. for Lucene.
@@ -100,8 +101,9 @@ object DataFusionLucene {
   // TODO: may need another version without FlattenGraphFilter for queries?
   val synonymAnalyzer = new Analyzer {
     override protected def createComponents(fieldName: String): TokenStreamComponents = {
-      val src = new StandardTokenizer
-      val f1 = new LowerCaseFilter(src)
+      val src = new WhitespaceTokenizer
+      val f0 = new TrailingPunctuationFilter(src)
+      val f1 = new LowerCaseFilter(f0)
       val f2 = new SynonymGraphFilter(f1, synonyms, false)
       val f3 = new FlattenGraphFilter(f2)
       new TokenStreamComponents(src, f3)
@@ -323,8 +325,8 @@ object DataFusionLucene {
 //      val searchSpansScoreTimer = Timer()
 //      val searchSpansNonScoreTimer = Timer()
 //      var searchSpansCount = 0
-      
-      def searchSpans(searcher: IndexSearcher, slop: Int, q: PosQuery): PHits = {
+            
+      def searchSpans(searcher: IndexSearcher, slop: Int, q: PosQuery, minScore: Float): PHits = {
         val terms = tokenIter(analyzer, F_CONTENT, q.extRef.name).map(new Term(F_CONTENT, _)).toList
         // Here we score using only Lucene's version of IDF, no term freq or doc length norm etc.
         // This depends only on the query not the doc, so it could go in PHits once rather than
@@ -332,9 +334,12 @@ object DataFusionLucene {
         // https://lucene.apache.org/core/6_6_0/core/org/apache/lucene/search/similarities/TFIDFSimilarity.html
         val reader = searcher.getIndexReader
         val score = terms.foldLeft(0.0) { (score, t) => score + 1.0 + Math.log10( (reader.numDocs + 1.0) / (reader.docFreq(t) + 1.0)) }.toFloat
-        if (terms.size > 1) searchSpansPhrase(searcher, slop, q, terms, score)
+        val noHits = PHits(Stats(0, 0.0f), List.empty, None, q.extRef, score, q.typ)
+
+        if (score <= minScore) noHits 
+        else if (terms.size > 1) searchSpansPhrase(searcher, slop, q, terms, score)
         else if (terms.size == 1) searchSpansTerm(searcher, q, terms.head, score)
-        else PHits(Stats(0, 0.0f), List.empty, None, q.extRef, score, q.typ)
+        else noHits
       }
       
       /** 

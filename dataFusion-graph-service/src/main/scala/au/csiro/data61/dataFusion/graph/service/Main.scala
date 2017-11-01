@@ -24,6 +24,7 @@ import spray.json.pimpString
 import java.io.File
 import au.csiro.data61.dataFusion.common.Data._
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol._
+import scala.collection.mutable
 
 // keeps getting deleted by Eclipse > Source > Organize Imports
 
@@ -78,8 +79,8 @@ Test with:
 
   case class Nodes(nodes: List[Node])
 //  case class NodeQuery(text: String, typ: String)
-  case class TopClientsQuery(ids: List[Int], n: Int)
-  case class GraphQuery(id: Int, maxHops: Int, maxEdges: Int)
+  case class TopClientsQuery(extRefIds: List[Long], n: Int)
+  case class GraphQuery(extRefId: Int, maxHops: Int, maxEdges: Int)
   case class Graph(nodes: List[Node], edges: List[Edge])
   case class ClientEdgeCounts(counts: List[ClientEdgeCount])
   
@@ -98,14 +99,26 @@ Test with:
       val n = json.parseJson.convertTo[Node]
       n.nodeId -> n
     }.toMap
-    val edges = edgeSource.getLines.map(_.parseJson.convertTo[Edge]).toList
-    (nodes, edges.groupBy(_.source).withDefaultValue(List.empty), edges.groupBy(_.target).withDefaultValue(List.empty))
+    
+    // extRef.id -> node.id
+    def extRefIdToNodeId(pred: Node => Boolean) = (for {
+      n <- nodes.values if pred(n)
+      id <- n.extRef.ids
+    } yield id -> n.nodeId).toMap
+    
+    val edges = edgeSource.getLines.map(_.parseJson.convertTo[Edge]).toIndexedSeq
+    def edgeMap(key: Edge => Int) = edges.groupBy(key).withDefaultValue(IndexedSeq.empty)
+    val person2Email = Set(T_PERSON2, "FROM", "TO", "CC", "BCC")
+    (nodes, extRefIdToNodeId(n => n.typ == T_PERSON), extRefIdToNodeId(n => person2Email.contains(n.typ)), edgeMap(_.source), edgeMap(_.target))
   }
   
   @Api(value = "graph", description = "graph service", produces = "application/json")
   @Path("")
   class GraphService(nodeSource: Source, edgeSource: Source) {
-    val (nodes, edgesBySource, edgesByTarget) = load(nodeSource, edgeSource)
+    val (nodes, extRefIdToPersonNodeId, extRefIdToPerson2EmailNodeId, edgesBySource, edgesByTarget) = load(nodeSource, edgeSource)
+    
+    /** extRef.id -> list of 0, 1, or 2 nodeIds */
+    def extRefIdToNodeId(id: Long) = extRefIdToPersonNodeId.get(id).toList ++ extRefIdToPerson2EmailNodeId.get(id).toList
     
     // ----------------------------------------------------------
   
@@ -137,9 +150,10 @@ Test with:
     @ApiOperation(httpMethod = "POST", response = classOf[ClientEdgeCounts], value = "graph of the most connected nodes matching the query")
     @Consumes(Array(MediaType.APPLICATION_JSON))
     def topConnectedClients(q: TopClientsQuery): ClientEdgeCounts = {
-      val l = q.ids.map { id => 
+      val nodeIds = q.extRefIds.flatMap(extRefIdToNodeId).toSet
+      val l = nodeIds.view.map { id => 
         ClientEdgeCount(id, edgesBySource(id).size + edgesByTarget(id).size)
-      }.sortBy(-_.numEdges).take(q.n)
+      }.toList.sortBy(-_.numEdges).take(q.n)
       ClientEdgeCounts(l)
     }
     
@@ -157,9 +171,14 @@ Test with:
       val topIds = nodes.keys.map { id => 
         (id, edgesBySource(id).size + edgesByTarget(id).size)
       }.toList.sortBy(-_._2).take(num).map(_._1)
-      val topEdges = topIds.flatMap(id => edgesBySource(id) ++ edgesByTarget(id)).sortBy(_.distance).take(num)
-      val ids = (topEdges.map(_.source) ++ topEdges.map(_.target)).toSet
-      Graph(ids.toList.map(nodes), topEdges)
+      
+      val topEdges = topIds.foldLeft(new mutable.HashSet[Edge]) { case (s, nodeId) => 
+        s ++= edgesBySource(nodeId)
+        s ++= edgesByTarget(nodeId)
+      }.toList.sortBy(- _.distance).take(num)
+      
+      val nodesInTopeEdges = (topEdges.view.map(_.source) ++ topEdges.view.map(_.target)).toSet.view.map(nodes).toList
+      Graph(nodesInTopeEdges, topEdges)
     }
       
     def topConnectedGraphRoute =
@@ -200,7 +219,8 @@ Test with:
     @ApiOperation(httpMethod = "POST", response = classOf[Graph], value = "graph matching the query")
     @Consumes(Array(MediaType.APPLICATION_JSON))
     def graph(q: GraphQuery) = {
-      val (_, _, nodeDist, edges) = expand(q.maxHops, Set(q.id), Map(q.id -> 0.0f))
+      val nodeIds = extRefIdToNodeId(q.extRefId).toSet
+      val (_, _, nodeDist, edges) = expand(q.maxHops, nodeIds, nodeIds.map(_ -> 0.0f).toMap)
       // sort edges by distance to furtherest end, ascending
       val topEdges = edges.toList.sortBy(e => Math.max(nodeDist(e.source), nodeDist(e.target))).take(q.maxEdges)
       val ids = (topEdges.map(_.source) ++ topEdges.map(_.target)).toSet
