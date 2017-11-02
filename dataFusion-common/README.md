@@ -6,11 +6,8 @@ Common [Scala](http://scala-lang.org/) code shared by the other Scala sub-projec
 
 This module provides:
 
-- the JSON structures described in AP460 Logical data model; and
+- shared JSON data structures; and
 - a simple parallel processing framework used by all dataFusion’s multi-threaded CLI’s.
-
-It is included as a dependency in all the other dataFusion sub-projects.
-
 
 The parallel processing framework provides the following:
 
