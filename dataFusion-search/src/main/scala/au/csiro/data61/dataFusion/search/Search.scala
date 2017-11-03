@@ -28,6 +28,7 @@ import resource.managed
 import spray.json.{ pimpAny, pimpString }
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ListBuffer
+import au.csiro.data61.dataFusion.common.CSV
 
    
 object Search {
@@ -115,94 +116,77 @@ object Search {
   }
 
   /**
-   * return the indices of the fields for: id, organisation name and person's: family, first given and other given names.
-   * @param csvHdr the header line from the CSV file
-   */
-  def csvHeaderToIndices(c: CliOption, csvHdr: String): Seq[Int] = {
-    val hdrs = csvHdr.toUpperCase.split(c.csvDelim)
-    val fields = (c.csvId +: c.csvOrg +: c.csvPerson).map(_.toUpperCase)
-    val hdrIdx = fields map hdrs.indexOf
-    val missing = for ((f, i) <- fields zip hdrIdx if i == -1) yield f
-    if (!missing.isEmpty) throw new Exception(s"CSV header is missing fields: ${missing.mkString(",")}")
-    hdrIdx
-  }
-  
-  /**
    * Map the input CSV lines to PosQuery's
    */
   def inCsv(c: CliOption, iter: Iterator[String]): Iterator[PosQuery] = {
-    if (iter.hasNext) {
-      val indices = csvHeaderToIndices(c: CliOption, iter.next)
-      val alpha = "[A-Z]".r
-      val space = "\\s".r
-      val nameOKRE = "^[A-Z](?:[' A-Z-]*[A-Z])?$".r
-      def nameOK(n: String) = nameOKRE.unapplySeq(n).isDefined // matches
-      
-      // single threaded load used to take 20 min using immutable data structs
-      val buf = new ArrayBuffer[PosQuery](20000000)
-      def add(q: PosQuery) = buf.synchronized {
-        buf += q
-      }
-      
-      def work(line: String): List[String] = {
-        val data = line.toUpperCase.split(c.csvDelim).toIndexedSeq.padTo(indices.max + 1, "") // data is all upper, but make sure
-        val Seq(idStr, org, fam, gvn, oth) = indices.map(data(_).trim)
-        val id = List(idStr.toLong)
-        
-        val warnBuf = new ListBuffer[String]
-        
-        // TODO: are any one word org names valid? If so we have to do a non-phrase search for them
-        if (alpha.findFirstMatchIn(org).isDefined && space.findFirstMatchIn(org).isDefined) add(PosQuery(ExtRef(org, id), T_ORGANIZATION))
-        else if (org.nonEmpty) warnBuf += s"Rejected organisation: ${c.csvId} = $idStr, $org"
-        
-        if (nameOK(fam) && nameOK(gvn) && nameOK(oth)) add(PosQuery(ExtRef(s"$gvn $oth $fam", id), T_PERSON))
-        else if (fam.nonEmpty || gvn.nonEmpty || oth.nonEmpty) warnBuf += s"Rejected person for 3 name query: ${c.csvId} = $idStr, family = '$fam', given = '$gvn', other = '$oth'"
-
-        if (c.csvPersonWith2Names) {
-          if (nameOK(fam) && nameOK(gvn)) add(PosQuery(ExtRef(s"$gvn $fam", id), T_PERSON2))
-          else if (fam.nonEmpty || gvn.nonEmpty) warnBuf += s"Rejected person for 2 name query: ${c.csvId} = $idStr, family = '$fam', given = '$gvn', other = '$oth'"
-        }
-        
-        warnBuf.toList
-      }
-      
-      def out(msgs: List[String]): Unit = for (m <- msgs) log.warn(m)
-      
-      doParallel(iter, work, out, "done", List("done"), Math.min(4, c.numWorkers)) // 1 worker -> 12.5 min, 2 -> 7.5 min, 4 -> 6.5 min, slower with more
-      log.info(s"inCsv: load completed")
-      
-      val endMarker = PosQuery(ExtRef("done", List.empty), "done")
-      buf += endMarker
-      val sorted = buf.toArray
-      buf.clear
-      val cmp = new java.util.Comparator[PosQuery] {
-        override def compare(a: PosQuery, b: PosQuery): Int = {
-          val i = a.extRef.name.compareTo(b.extRef.name)
-          if (i != 0) i else a.typ.compareTo(b.typ)
-        }
-      }
-      java.util.Arrays.parallelSort(sorted, 0, sorted.length - 1, cmp) // don't sort endMarker, ~20 sec compared to 7 min for scala groupBy! 
-      log.info(s"inCsv: sort completed")
-      
-      // manual groupBy, merge sorted items with same query & typ
-      val extRefId = new ListBuffer[Long]
-      sorted.iterator.sliding(2).flatMap {
-        case Seq(a, b) => {
-          extRefId ++= a.extRef.ids
-          if (a.extRef.name == b.extRef.name && a.typ == b.typ) {
-            Iterator.empty
-          } else {
-            val p = a.copy(extRef = a.extRef.copy(ids = extRefId.toList))
-            extRefId.clear
-            Iterator.single(p)
-          }
-        }
-        case _ => Iterator.empty
-      }
-      
-    } else {
-      Iterator.empty
+    val alpha = "[A-Z]".r
+    val space = "\\s".r
+    val nameOKRE = "^[A-Z](?:[' A-Z-]*[A-Z])?$".r
+    def nameOK(n: String) = nameOKRE.unapplySeq(n).isDefined // matches
+    
+    // single threaded load used to take 20 min using immutable data structs
+    val buf = new ArrayBuffer[PosQuery](20000000)
+    def add(q: PosQuery) = buf.synchronized {
+      buf += q
     }
+      
+    val mkFieldData = CSV.mkFieldData(c.csvDelim, c.csvId +: c.csvOrg +: c.csvPerson, iter)
+      
+    def work(line: String): List[String] = {
+      val Seq(idStr, org, fam, gvn, oth) = mkFieldData(line)
+      val id = List(idStr.toLong)
+      
+      val warnBuf = new ListBuffer[String]
+      
+      // TODO: are any one word org names valid? If so we have to do a non-phrase search for them
+      if (alpha.findFirstMatchIn(org).isDefined && space.findFirstMatchIn(org).isDefined) add(PosQuery(ExtRef(org, id), T_ORGANIZATION))
+      else if (org.nonEmpty) warnBuf += s"Rejected organisation: ${c.csvId} = $idStr, $org"
+      
+      if (nameOK(fam) && nameOK(gvn) && nameOK(oth)) add(PosQuery(ExtRef(s"$gvn $oth $fam", id), T_PERSON))
+      else if (fam.nonEmpty || gvn.nonEmpty || oth.nonEmpty) warnBuf += s"Rejected person for 3 name query: ${c.csvId} = $idStr, family = '$fam', given = '$gvn', other = '$oth'"
+
+      if (c.csvPersonWith2Names) {
+        if (nameOK(fam) && nameOK(gvn)) add(PosQuery(ExtRef(s"$gvn $fam", id), T_PERSON2))
+        else if (fam.nonEmpty || gvn.nonEmpty) warnBuf += s"Rejected person for 2 name query: ${c.csvId} = $idStr, family = '$fam', given = '$gvn', other = '$oth'"
+      }
+      
+      warnBuf.toList
+    }
+    
+    def out(msgs: List[String]): Unit = for (m <- msgs) log.warn(m)
+    
+    doParallel(iter, work, out, "done", List("done"), Math.min(4, c.numWorkers)) // 1 worker -> 12.5 min, 2 -> 7.5 min, 4 -> 6.5 min, slower with more
+    log.info(s"inCsv: load completed")
+      
+    val endMarker = PosQuery(ExtRef("done", List.empty), "done")
+    buf += endMarker
+    val sorted = buf.toArray
+    buf.clear
+    val cmp = new java.util.Comparator[PosQuery] {
+      override def compare(a: PosQuery, b: PosQuery): Int = {
+        val i = a.extRef.name.compareTo(b.extRef.name)
+        if (i != 0) i else a.typ.compareTo(b.typ)
+      }
+    }
+    java.util.Arrays.parallelSort(sorted, 0, sorted.length - 1, cmp) // don't sort endMarker, ~20 sec compared to 7 min for scala groupBy! 
+    log.info(s"inCsv: sort completed")
+      
+    // manual groupBy, merge sorted items with same query & typ
+    val extRefId = new ListBuffer[Long]
+    sorted.iterator.sliding(2).flatMap {
+      case Seq(a, b) => {
+        extRefId ++= a.extRef.ids
+        if (a.extRef.name == b.extRef.name && a.typ == b.typ) {
+          Iterator.empty
+        } else {
+          val p = a.copy(extRef = a.extRef.copy(ids = extRefId.toList))
+          extRefId.clear
+          Iterator.single(p)
+        }
+      }
+      case _ => Iterator.empty
+    }
+    
   }
     
   /**
