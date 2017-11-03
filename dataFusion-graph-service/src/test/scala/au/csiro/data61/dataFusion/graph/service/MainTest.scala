@@ -15,7 +15,7 @@ class MainTest extends FlatSpec with Matchers {
   "graph" should "provide local network" in {
     def getSource(resourcePath: String) = Source.fromInputStream(getClass.getClassLoader.getResourceAsStream(resourcePath))
     val data = new GraphService(getSource("node.json"), getSource("edge.json"))
-    val g = data.graph(GraphQuery(1, 2, 20))
+    val g = data.graph(GraphQuery(224, 2, 20))
     log.debug(s"g = $g")
     g.nodes.map(_.nodeId).toSet should be(Set(1, 2, 3, 4))
     g.edges.map(e => (e.source, e.target)).toSet should be(Set((2,3), (3,4), (1,2), (1,3)))

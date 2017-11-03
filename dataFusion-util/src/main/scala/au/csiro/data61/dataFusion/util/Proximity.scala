@@ -20,8 +20,16 @@ object Proximity {
 
   def fileWithSuffix(f: File, suffix: String) = new File(f.getPath + suffix)
 
+  /** take EMAIL Ners and GAZ Ners that do not start at the same location as an EMAIL Ner (avoid duplicates) */
+  def nerFilter(ner: List[Ner]): Iterator[Ner] = {
+    val emailNer = ner.filter(n => n.impl == EMAIL)
+    val offStr = emailNer.view.map(_.offStr).toSet
+    emailNer.iterator ++ ner.view.filter(n => n.impl == GAZ && (n.typ == T_PERSON || n.typ == T_PERSON2 || n.typ == T_ORGANIZATION) && !offStr.contains(n.offStr))
+  }
+  
   def doProximity(cliOption: CliOption) = {
-    val prox = new Proximity(cliOption.decay)
+    val nf: List[Ner] => Iterator[Ner] = if (cliOption.person2) nerFilter else ner => ner.iterator.filter(n => n.impl == GAZ && (n.typ == T_PERSON || n.typ == T_ORGANIZATION))
+    val prox = new Proximity(cliOption.decay, nf)
     
     val in = Source.fromInputStream(System.in, "UTF-8").getLines
     def work(json: String) = {
@@ -67,7 +75,7 @@ object Proximity {
 }
 
 /** thread-safe for concurrent accDoc's */
-class Proximity(decay: Double) {
+class Proximity(decay: Double, nerFilter: List[Ner]=> Iterator[Ner]) {
   import Proximity.NodeKey
 
   var nextId = 0
@@ -89,13 +97,6 @@ class Proximity(decay: Double) {
   def accEdge(source: Int, target: Int, weight: Double): Unit = {
     val k = if (source < target) (source, target) else (target, source)
     edgeMap.synchronized { edgeMap += k -> (edgeMap(k) + weight) }
-  }
-  
-  /** take EMAIL Ners and GAZ Ners that do not start at the same location as an EMAIL Ner (avoid duplicates) */
-  def nerFilter(ner: List[Ner]): Iterator[Ner] = {
-    val emailNer = ner.filter(n => n.impl == EMAIL)
-    val offStr = emailNer.view.map(_.offStr).toSet
-    emailNer.iterator ++ ner.view.filter(n => n.impl == GAZ && (n.typ == T_PERSON || n.typ == T_PERSON2 || n.typ == T_ORGANIZATION) && !offStr.contains(n.offStr))
   }
   
   // used multi-threaded usage so must be thread-safe
