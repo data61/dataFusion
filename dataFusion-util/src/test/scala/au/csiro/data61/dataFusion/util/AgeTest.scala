@@ -35,4 +35,10 @@ To: Bloggs Frederick (Akaroa); Smith
      d2 should be(d)
   }
 
+  it should "not find age in a phone number" in {
+     val d = Doc(1, Some(content.replaceFirst("\\(37\\)", "(65) 2345-6034")), Map.empty, "path", List(n), List.empty)
+     log.debug(s"d.content = ${d.content}")
+     val d2 = Age.augment(d)
+     d2 should be(d)
+  }
 }

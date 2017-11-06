@@ -8,7 +8,7 @@ import au.csiro.data61.dataFusion.common.Data.{ Doc, GAZ, Ner, T_PERSON, T_PERSO
 object Age {
   private val log = Logger(getClass)
 
-  val ageRe = """\s*\((\d{2})\)""".r // look for " (age)" after a name
+  val ageRe = """\s*\((\d{2})\)(?!\s*\d)""".r // look for " (age)" after a name not followed by further digits (a phone number)
   
   def toNer(content: String, ner: List[Ner]): Iterator[Ner] = {
     for {
