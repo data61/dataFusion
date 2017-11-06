@@ -18,9 +18,9 @@ import spray.json.{ pimpAny, pimpString }
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(hits: Option[File], email: Boolean, tmner: Option[File], output: Option[File], startId: Long, proximity: Boolean, person2: Boolean, decay: Double, resetEnglishScore: Boolean, resetId: Boolean, numWorkers: Int)
+  case class CliOption(hits: Option[File], email: Boolean, age: Boolean, tmner: Option[File], output: Option[File], startId: Long, proximity: Boolean, person2: Boolean, decay: Double, resetEnglishScore: Boolean, resetId: Boolean, numWorkers: Int)
   
-  val defaultCliOption = CliOption(None, false, None, None, 0L, false, true, 500.0f, false, false, Runtime.getRuntime.availableProcessors)
+  val defaultCliOption = CliOption(None, false, false, None, None, 0L, false, true, 500.0f, false, false, Runtime.getRuntime.availableProcessors)
   
   val defGazOut = "gaz.json" // gaz for gazetteer
   val node = "node.json"
@@ -32,13 +32,16 @@ object Main {
     head("util", "0.x")
     opt[File]("hits") action { (v, c) =>
       c.copy(hits = Some(v), output = c.output.orElse(Some(new File(defGazOut))))
-    } text (s"Read hits from specified file. Read tika/ner json from stdin and write it augmented with NER data derived from hits. Output defaults to $defGazOut. Can be combined with --email and/or --tmner.")
+    } text (s"Read hits from specified file. Read tika/ner json from stdin and write it augmented with NER data derived from hits. Output defaults to $defGazOut")
     opt[Unit]("email") action { (_, c) =>
-      c.copy(email = true, output = c.output.orElse(Some(new File(defProximity))))
-    } text (s"Parse content for people in email headers. Read tika/ner json from stdin and write it augmented with NER data derived from email headers. Output defaults to $defGazOut. Can be combined with --hits and/or --tmner.")
+      c.copy(email = true, output = c.output.orElse(Some(new File(defGazOut))))
+    } text (s"Parse content for people in email headers. Read tika/ner json from stdin and write it augmented with NER data derived from email headers. Output defaults to $defGazOut")
+    opt[Unit]("age") action { (_, c) =>
+      c.copy(age = true, output = c.output.orElse(Some(new File(defGazOut))))
+    } text (s"Parse content for parenthesized age after a person's name. Read tika/ner json from stdin and write it augmented with NER data derived from age matches. Output defaults to $defGazOut")
     opt[File]("tmner") action { (v, c) =>
       c.copy(tmner = Some(v), output = c.output.orElse(Some(new File(defGazOut))))
-    } text (s"Read tmner JSON (Debbie's NER) from specified file. Read tika/ner json from stdin and write it augmented with NER data derived from tmner. Output defaults to $defGazOut. Can be combined with --hits and/or --email.")
+    } text (s"Read tmner JSON (Debbie's NER) from specified file. Read tika/ner json from stdin and write it augmented with NER data derived from tmner. Output defaults to $defGazOut")
     opt[File]("output") action { (v, c) =>
       c.copy(output = Some(v))
     } text (s"output JSON file")
@@ -63,6 +66,7 @@ object Main {
     opt[Int]("numWorkers") action { (v, c) =>
       c.copy(numWorkers = v)
     } text (s"numWorkers for CLI queries, (default ${defaultCliOption.numWorkers} the number of CPUs)")
+    note("The options: --hits, --email, --age and --tmner; can be combined. Likewise: --startId, --resetId and --resetEnglishScore; can be combined.")
     help("help") text ("prints this usage text")
   }
     
@@ -71,7 +75,7 @@ object Main {
       log.info("start")
       parser.parse(args, defaultCliOption).foreach { c => 
         log.info(s"main: cliOptions = $c")
-        if (c.hits.isDefined || c.email || c.tmner.isDefined) doHitsEmailTmner(c)
+        if (c.hits.isDefined || c.email || c.age || c.tmner.isDefined) doHitsEmailAgeTmner(c)
         else if (c.proximity) Proximity.doProximity(c)
         else if (c.resetEnglishScore || c.resetId) resetEnglishScoreId(c)
         else log.info("Nothing to do. Try --help")
@@ -94,18 +98,23 @@ object Main {
     m
   }
   
-  def doHitsEmailTmner(c: CliOption) = {
-    val augment: Doc => Doc = (c.hits, c.email, c.tmner) match {
-      case (Some(h), true, None) => Email.augment  compose Hits.augment(hitsMap(h)) // Hits before Email (because Email can use Hits info)
-      case (Some(h), false, None) => Hits.augment(hitsMap(h))
-      case (None, true, None) => Email.augment
-      case (None, false, None) => identity
-      case (Some(h), true, Some(t)) => TmNer.augment(tmnerMap(t)) compose Email.augment  compose Hits.augment(hitsMap(h))
-      case (Some(h), false, Some(t)) => TmNer.augment(tmnerMap(t)) compose Hits.augment(hitsMap(h))
-      case (None, true, Some(t)) => TmNer.augment(tmnerMap(t)) compose Email.augment
-      case (None, false, Some(t)) => TmNer.augment(tmnerMap(t)) 
+  def doHitsEmailAgeTmner(c: CliOption) = {
+    type D2D = Option[Doc => Doc]
+    
+    def compose2(p: (D2D, D2D)): D2D = p match {
+      case (Some(a), Some(b)) => Some(a compose b)
+      case (x@Some(a), None) => x
+      case (None, x@Some(b)) => x
+      case (None, None) => None
     }
-
+    
+    val a1: D2D = c.hits.map(h => Hits.augment(hitsMap(h)))
+    val a2: D2D = if (c.email) Some(Email.augment) else None
+    val a3: D2D = if (c.age) Some(Age.augment) else None
+    val a4: D2D = c.tmner.map(t => TmNer.augment(tmnerMap(t)))
+    
+    val augment: Doc => Doc = compose2(a4, compose2(a3, compose2(a2, a1))).getOrElse(identity)
+    
     for {
       oFile <- c.output
       w <- managed(bufWriter(oFile))
