@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="graph.css">
+<svg width="960" height="600"></svg>
+<div>
+<label for="includePerson2">include person nodes using only first and family names</label><input type="checkbox" id="includePerson2" name="includePerson2" />
+<br>
+<span>collections:</span>
+<label for="colCbc">CBC</label><input type="checkbox" id="colCbc" name="colCbc" />
+<label for="colChanley">Chanley</label><input type="checkbox" id="colChanley" name="colChanley" />
+<label for="colMascot">MASCOT</label><input type="checkbox" id="colMascot" name="colMascot" />
+<label for="colRtp">RTP</label><input type="checkbox" id="colRtp" name="colRtp" />
+<label for="colRulings">rulings</label><input type="checkbox" id="colRulings" name="colRulings" />
+<br>
+<label for="chargeStrength">charge strength</label><input type="text" id="chargeStrength" name="chargeStrength" value="-3" />
+<br>
+<span>distance range:</span>
+<label for="distanceLogScale">log scale</label><input type="checkbox" id="distanceLogScale" name="distanceLogScale" />
+<label for="distanceFrom">from</label><input type="text" id="distanceFrom" name="distanceFrom" value="20" />
+<label for="distanceTo">to</label><input type="text" id="distanceTo" name="distanceTo" value="300" />
+<br>
+<span>node radius range:</span>
+<label for="nodeRadiusLogScale">log scale</label><input type="checkbox" id="nodeRadiusLogScale" name="nodeRadiusLogScale" />
+<label for="nodeRadiusFrom">from</label><input type="text" id="nodeRadiusFrom" name="nodeRadiusFrom" value="2" />
+<label for="nodeRadiusTo">to</label><input type="text" id="nodeRadiusTo" name="nodeRadiusTo" value="10" />
+<br>
+<span>edge width range:</span>
+<label for="edgeWidthLogScale">log scale</label><input type="checkbox" id="edgeWidthLogScale" name="edgeWidthLogScale" />
+<label for="edgeWidthFrom">from</label><input type="text" id="edgeWidthFrom" name="edgeWidthFrom" value="1" />
+<label for="edgeWidthTo">to</label><input type="text" id="edgeWidthTo" name="edgeWidthTo" value="4" />
+<br>
+<label for="topN">top</label><input type="text" id="topN" name="topN" value="100" />
+<button type="button" onclick="topConnected();">Top Connected</button>
+<br>
+<label for="nodeId">nodeId</label><input type="text" id="nodeId" name="nodeId" />
+<label for="extRefId">extRefId</label><input type="text" id="extRefId" name="extRefId" />
+<label for="maxHops">maxHops</label><input type="text" id="maxHops" name="maxHops" value="2" />
+<button type="button" onclick="localNetwork();">Local Network</button>
+</div>
+<script src="d3.v4.min.js"></script>
+<script src="graph.js"></script>
