@@ -18,9 +18,9 @@ import spray.json.{ pimpAny, pimpString }
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(hits: Option[File], email: Boolean, age: Boolean, tmner: Option[File], output: Option[File], startId: Long, proximity: Boolean, person2: Boolean, decay: Double, resetEnglishScore: Boolean, resetId: Boolean, numWorkers: Int)
+  case class CliOption(hits: Option[File], email: Boolean, age: Boolean, tmner: Option[File], output: Option[File], startId: Long, proximity: Boolean, collectionRe: String, decay: Double, resetEnglishScore: Boolean, resetId: Boolean, numWorkers: Int)
   
-  val defaultCliOption = CliOption(None, false, false, None, None, 0L, false, true, 500.0f, false, false, Runtime.getRuntime.availableProcessors)
+  val defaultCliOption = CliOption(None, false, false, None, None, 0L, false, "/collection/([^/]+)/", 500.0f, false, false, Runtime.getRuntime.availableProcessors)
   
   val defGazOut = "gaz.json" // gaz for gazetteer
   val node = "node.json"
@@ -54,9 +54,9 @@ object Main {
     opt[Double]("decay") action { (v, c) =>
       c.copy(decay = v)
     } text (s"proximity score is exp(- num chars separating start of names / decay), defaults to ${defaultCliOption.decay}")
-    opt[Boolean]("person2") action { (v, c) =>
-      c.copy(person2 = v)
-    } text (s"proximity includes PERSON2 and EMAIL NERs (GAZ PERSON and ORGANIZATION always included), defaults to ${defaultCliOption.person2}")
+    opt[String]("collectionRe") action { (v, c) =>
+      c.copy(collectionRe = v)
+    } text (s"regex to extract collection name from path, defaults to ${defaultCliOption.collectionRe}")
     opt[Unit]("resetEnglishScore") action { (_, c) =>
       c.copy(resetEnglishScore = true, output = c.output.orElse(Some(new File(defResetOut))))
     } text (s"reset englishScore in metdata (to reprocess after a change to the scoring), output defaults to $defResetOut")

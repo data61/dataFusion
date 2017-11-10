@@ -1,15 +1,18 @@
 package au.csiro.data61.dataFusion.util
 
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
-import scala.collection.mutable
+import scala.collection.JavaConverters.{ asScalaSetConverter, collectionAsScalaIterableConverter }
 import scala.io.Source
 
 import com.typesafe.scalalogging.Logger
 
 import Main.CliOption
-import au.csiro.data61.dataFusion.common.Data._
-import au.csiro.data61.dataFusion.common.Data.JsonProtocol._
+import au.csiro.data61.dataFusion.common.Data.{ Doc, EMAIL, Edge, ExtRef, GAZ }
+import au.csiro.data61.dataFusion.common.Data.{ Ner, Node, T_ORGANIZATION, T_PERSON, T_PERSON2, WeightMap }
+import au.csiro.data61.dataFusion.common.Data.JsonProtocol.{ docFormat, edgeFormat, nodeFormat }
 import au.csiro.data61.dataFusion.common.Parallel.doParallel
 import au.csiro.data61.dataFusion.common.Util.bufWriter
 import resource.managed
@@ -28,8 +31,7 @@ object Proximity {
   }
   
   def doProximity(cliOption: CliOption) = {
-    val nf: List[Ner] => Iterator[Ner] = if (cliOption.person2) nerFilter else ner => ner.iterator.filter(n => n.impl == GAZ && (n.typ == T_PERSON || n.typ == T_ORGANIZATION))
-    val prox = new Proximity(cliOption.decay, nf)
+    val prox = new Proximity(cliOption, nerFilter)
     
     val in = Source.fromInputStream(System.in, "UTF-8").getLines
     def work(json: String) = {
@@ -46,7 +48,7 @@ object Proximity {
       for {
         o <- cliOption.output
         w <- managed(bufWriter(fileWithSuffix(o, "node.json")))
-        n <- prox.nodeMap.valuesIterator
+        n <- prox.nodeMap.values.asScala
       } {
         w.write(n.toJson.compactPrint)
         w.write('\n')
@@ -58,9 +60,9 @@ object Proximity {
       for {
         o <- cliOption.output
         w <- managed(bufWriter(fileWithSuffix(o, "edge.json")))
-        ((source, target), weight) <- prox.edgeMap
+        e <- prox.edgeMap.entrySet.asScala
       } {
-        w.write(Edge(source, target, (1.0/weight).toFloat, GAZ).toJson.compactPrint)
+        w.write(Edge(e.getKey._1, e.getKey._2, e.getValue, GAZ).toJson.compactPrint)
         w.write('\n')
       }
       "more"
@@ -75,33 +77,36 @@ object Proximity {
 }
 
 /** thread-safe for concurrent accDoc's */
-class Proximity(decay: Double, nerFilter: List[Ner]=> Iterator[Ner]) {
+class Proximity(cliOption: CliOption, nerFilter: List[Ner]=> Iterator[Ner]) {
   import Proximity.NodeKey
 
-  var nextId = 0
-  val nodeMap = mutable.HashMap[NodeKey, Node]()
+  val nextId = new AtomicInteger(0)
+  val nodeMap = new ConcurrentHashMap[NodeKey, Node]()
 
-  def accNode(k: NodeKey, extRef: ExtRef): Int = nodeMap.synchronized {
-    nodeMap.get(k).map(_.nodeId).getOrElse {
-      val id = nextId
-      nextId += 1
-      val n = Node(id, extRef, k.typ)
-      nodeMap += k -> n
-      id
-    }
-  }
+  // Scala's concurrent map TrieMap does not have anything like Java's ConcurrentHashMap.compute, which I think makes it rather useless!
   
-  // sourceNodeId, targetNodeId -> weight
-  val edgeMap = mutable.HashMap[(Int, Int), Double]() withDefaultValue 0.0
+  def accNode(k: NodeKey, score: Double, extRef: ExtRef): Int =
+    nodeMap.computeIfAbsent(k, k => Node(nextId.getAndIncrement, extRef, score, k.typ)).nodeId
+
+  val edgeMap = new ConcurrentHashMap[(Int, Int), WeightMap]
   
-  def accEdge(source: Int, target: Int, weight: Double): Unit = {
+  def accEdge(source: Int, target: Int, collection: String, weight: Double): Unit = {
     val k = if (source < target) (source, target) else (target, source)
-    edgeMap.synchronized { edgeMap += k -> (edgeMap(k) + weight) }
+    edgeMap.compute(k, (k, v) => 
+      if (v == null) Map(collection -> (weight, 1)) withDefaultValue (0.0, 0)
+      else {
+        val (w0, c0) = v(collection)
+        v + (collection -> (w0 + weight, c0 + 1))
+      }
+    )
   }
+  
+  val collectionRE = cliOption.collectionRe.r
+  def collection(path: String) = collectionRE.findFirstMatchIn(path).map(_.group(1)).getOrElse("UNKNOWN")
   
   // used multi-threaded usage so must be thread-safe
   def accDoc(d: Doc): Unit = {
-    val cutoff = (decay * 5).toInt
+    val cutoff = (cliOption.decay * 5).toInt
     for {
       ners <- nerFilter(d.ner) +: d.embedded.view.map(e => nerFilter(e.ner))
       v = ners.toIndexedSeq.sortBy(_.offStr)
@@ -114,9 +119,9 @@ class Proximity(decay: Double, nerFilter: List[Ner]=> Iterator[Ner]) {
       extRefj <- nj.extRef
     } {
       // log.info(s"$i, $j -> $dist")
-      val idi = accNode(NodeKey(extRefi.name, ni.typ), extRefi)
-      val idj = accNode(NodeKey(extRefj.name, nj.typ), extRefj)
-      accEdge(idi, idj, Math.exp(-dist/decay)) // additive weight, Edge.distance will be 1/sum(weights)
+      val idi = accNode(NodeKey(extRefi.name, ni.typ), ni.score, extRefi)
+      val idj = accNode(NodeKey(extRefj.name, nj.typ), nj.score, extRefj)
+      if (idi != idj) accEdge(idi, idj, collection(d.path), Math.exp(-dist/cliOption.decay)) // additive weight (distance = 1/sum(weights))
     }
   }
   

@@ -78,17 +78,25 @@ Test with:
   }
 
   case class Nodes(nodes: List[Node])
+  case class EdgeTotal(edge: Edge, totalWeight: Double, totalCount: Int)
 //  case class NodeQuery(text: String, typ: String)
-  case class TopClientsQuery(extRefIds: List[Long], n: Int)
-  case class GraphQuery(extRefId: Int, maxHops: Int, maxEdges: Int)
-  case class Graph(nodes: List[Node], edges: List[Edge])
+  case class TopClientsQuery(includePerson2: Boolean, extRefIds: List[Long], n: Int)
+  case class TopConnectedQuery(includePerson2: Boolean, collections: Option[Set[String]], n: Int)
+  case class GraphQuery(includePerson2: Boolean, collections: Option[Set[String]], nodeId: Option[Int], extRefId: Option[Long], maxHops: Int, maxEdges: Int) // specify either nodeId or extRefId
+  case class Graph(nodes: List[Node], edges: List[EdgeTotal])
   case class ClientEdgeCounts(counts: List[ClientEdgeCount])
+  
+  type NodeMap = Map[Int, Node]
+  type EdgeMap = Map[Int, IndexedSeq[Edge]]
+  case class NodeEdgeMap(nodes: NodeMap, edges: IndexedSeq[Edge], edgesBySource: EdgeMap, edgesByTarget: EdgeMap)
   
   object JsonProtocol {
     implicit val nodesCodec = jsonFormat1(Nodes)
+    implicit val edgeTotalCodec = jsonFormat3(EdgeTotal)
 //    implicit val nodeQueryCodec = jsonFormat2(NodeQuery)
-    implicit val topClientsQueryCodec = jsonFormat2(TopClientsQuery)
-    implicit val graphQueryCodec = jsonFormat3(GraphQuery)
+    implicit val topClientsQueryCodec = jsonFormat3(TopClientsQuery)
+    implicit val topConnectedQueryCodec = jsonFormat3(TopConnectedQuery)
+    implicit val graphQueryCodec = jsonFormat6(GraphQuery)
     implicit val graphCodec = jsonFormat2(Graph)
     implicit val clientEdgeCountsCodec = jsonFormat1(ClientEdgeCounts)
   }
@@ -99,23 +107,36 @@ Test with:
       val n = json.parseJson.convertTo[Node]
       n.nodeId -> n
     }.toMap
+    log.info(s"load: loaded ${nodes.size} nodes")
+        
+    val edges = edgeSource.getLines.map(_.parseJson.convertTo[Edge]).toIndexedSeq
+    log.info(s"load: loaded ${edges.size} edges")
+    
+    // exclude T_PERSON2 and D61EMAIL FROM|TO etc. nodes
+    // user can choose network restricted to these nodes or not
+    def perOrgPred(n: Node) = n.typ == T_PERSON || n.typ == T_ORGANIZATION    
+    val node3Ids = nodes.values.view.filter(perOrgPred).map(_.nodeId).toSet
+    val edges3 = edges.filter(e => node3Ids.contains(e.source) && node3Ids.contains(e.target))
+    val node3Ids2 = (edges3.view.map(_.source) ++ edges3.view.map(_.target)).toSet
+    val nodes3 = nodes.filter { case (nodeId, _) => node3Ids2.contains(nodeId) }
+    log.info(s"load: filtered typ = ${T_PERSON} or ${T_ORGANIZATION}: ${nodes3.size} nodes and ${edges3.size} edges")
     
     // extRef.id -> node.id
     def extRefIdToNodeId(pred: Node => Boolean) = (for {
-      n <- nodes.values if pred(n)
+      n <- nodes.values.view if pred(n)
       id <- n.extRef.ids
-    } yield id -> n.nodeId).toMap
+    } yield id -> n.nodeId).toMap // a many to one mapping
     
-    val edges = edgeSource.getLines.map(_.parseJson.convertTo[Edge]).toIndexedSeq
-    def edgeMap(key: Edge => Int) = edges.groupBy(key).withDefaultValue(IndexedSeq.empty)
-    val person2Email = Set(T_PERSON2, "FROM", "TO", "CC", "BCC")
-    (nodes, extRefIdToNodeId(n => n.typ == T_PERSON), extRefIdToNodeId(n => person2Email.contains(n.typ)), edgeMap(_.source), edgeMap(_.target))
+    def edgeMap(edges: IndexedSeq[Edge], key: Edge => Int) = edges.groupBy(key).withDefaultValue(IndexedSeq.empty)
+    
+    (NodeEdgeMap(nodes, edges, edgeMap(edges, _.source), edgeMap(edges, _.target)), NodeEdgeMap(nodes3, edges3, edgeMap(edges3, _.source), edgeMap(edges3, _.target)), extRefIdToNodeId(perOrgPred), extRefIdToNodeId(n => !perOrgPred(n)))
   }
   
   @Api(value = "graph", description = "graph service", produces = "application/json")
   @Path("")
   class GraphService(nodeSource: Source, edgeSource: Source) {
-    val (nodes, extRefIdToPersonNodeId, extRefIdToPerson2EmailNodeId, edgesBySource, edgesByTarget) = load(nodeSource, edgeSource)
+    val (nodeEdgeMap, nodeEdgeMap3, extRefIdToPersonNodeId, extRefIdToPerson2EmailNodeId) = load(nodeSource, edgeSource)
+    log.info(s"GraphService.ctor: load complete: extRefIdToPersonNodeId.size = ${extRefIdToPersonNodeId.size}, extRefIdToPerson2EmailNodeId.size = ${extRefIdToPerson2EmailNodeId.size}")
     
     /** extRef.id -> list of 0, 1, or 2 nodeIds */
     def extRefIdToNodeId(id: Long) = extRefIdToPersonNodeId.get(id).toList ++ extRefIdToPerson2EmailNodeId.get(id).toList
@@ -147,12 +168,14 @@ Test with:
      * @return Seq of n * (nodeId, number of edges) sorted on number of edges descending
      */
     @Path("topConnectedClients")
-    @ApiOperation(httpMethod = "POST", response = classOf[ClientEdgeCounts], value = "graph of the most connected nodes matching the query")
+    @ApiOperation(httpMethod = "POST", response = classOf[ClientEdgeCounts], value = "graph of the n strongest edges from nodes matching the query")
     @Consumes(Array(MediaType.APPLICATION_JSON))
     def topConnectedClients(q: TopClientsQuery): ClientEdgeCounts = {
+      log.info(s"topConnectedClients: q = $q")
+      val nem = if (q.includePerson2) nodeEdgeMap else nodeEdgeMap3
       val nodeIds = q.extRefIds.flatMap(extRefIdToNodeId).toSet
       val l = nodeIds.view.map { id => 
-        ClientEdgeCount(id, edgesBySource(id).size + edgesByTarget(id).size)
+        ClientEdgeCount(id, nodeEdgeMap.edgesBySource(id).size + nodeEdgeMap.edgesByTarget(id).size)
       }.toList.sortBy(-_.numEdges).take(q.n)
       ClientEdgeCounts(l)
     }
@@ -164,52 +187,63 @@ Test with:
   
     // ----------------------------------------------------------
     
+    // TODO: needs to be as fast as possible
+    def edgeTotalWeight(collections: Option[Set[String]]): Edge => EdgeTotal = collections.map { col => 
+      (e: Edge) => 
+        val (w, c) = e.weights.foldLeft((0.0, 0)) { case (z@(w, c), (k, (w1, c1))) => if (col contains k) (w + w1, c + c1) else z }
+        EdgeTotal(e, w, c)
+    }.getOrElse {
+      (e: Edge) => 
+        val (w, c) = e.weights.values.foldLeft((0.0, 0)) { case ((w, c), (w1, c1)) => (w + w1, c + c1) }
+        EdgeTotal(e, w, c)
+    }
+    
     @Path("topConnectedGraph")
-    @ApiOperation(httpMethod = "GET", response = classOf[Graph], value = "graph of the num most connected nodes")
-    def topConnectedGraph(@QueryParam("num") num: Int) = {
-      // as above but for all nodes
-      val topIds = nodes.keys.map { id => 
-        (id, edgesBySource(id).size + edgesByTarget(id).size)
-      }.toList.sortBy(-_._2).take(num).map(_._1)
+    @ApiOperation(httpMethod = "POST", response = classOf[Graph], value = "graph of the strongest edges from nodes matching the query")
+    @Consumes(Array(MediaType.APPLICATION_JSON))
+    def topConnectedGraph(q: TopConnectedQuery): Graph = {
+      log.info(s"topConnectedGraph: q = $q")
       
-      val topEdges = topIds.foldLeft(new mutable.HashSet[Edge]) { case (s, nodeId) => 
-        s ++= edgesBySource(nodeId)
-        s ++= edgesByTarget(nodeId)
-      }.toList.sortBy(- _.distance).take(num)
-      
-      val nodesInTopeEdges = (topEdges.view.map(_.source) ++ topEdges.view.map(_.target)).toSet.view.map(nodes).toList
-      Graph(nodesInTopeEdges, topEdges)
+      val nem = if (q.includePerson2) nodeEdgeMap else nodeEdgeMap3
+      val etw = edgeTotalWeight(q.collections)
+      val edges1 = nem.edges.view.map(etw).filter(_.totalWeight > 0.0).toIndexedSeq
+      log.info("topConnectedGraph: got total weights for all edges")
+      val edges = edges1.sortBy(-_.totalWeight).view.take(q.n).toList // sort by weight descending
+      log.info("topConnectedGraph: got highest weight edges")
+      val nodes = (edges.view.map(_.edge.source) ++ edges.view.map(_.edge.target)).toSet.view.map(nem.nodes).toList
+      log.info("topConnectedGraph: got nodes")
+      Graph(nodes, edges)
     }
       
     def topConnectedGraphRoute =
-      get { path("topConnectedGraph") { parameters("num".as[Int]) { num => complete {
-        topConnectedGraph(num)
+      post { path("topConnectedGraph") { entity(as[TopConnectedQuery]) { q => complete {
+        topConnectedGraph(q)
       }}}}
     
     // ----------------------------------------------------------
     
-    def distance(a: Float, b: Float) = Math.sqrt(a * a + b * b).toFloat
+    def distance(a: Double, b: Double) = Math.sqrt(a * a + b * b)
     
-    @tailrec final def expand(n: Int, newIds: Set[Int], nodeDist: Map[Int, Float], edges: Set[Edge]= Set.empty): (Int, Set[Int], Map[Int, Float], Set[Edge]) = {
+    @tailrec final def expand(nem: NodeEdgeMap, ew: Edge => EdgeTotal, n: Int, newIds: Set[Int], nodeDist: Map[Int, Double], edges: Set[EdgeTotal]= Set.empty): (Int, Set[Int], Map[Int, Double], Set[EdgeTotal]) = {
       if (n < 1) (n, newIds, nodeDist, edges) else {
-        val l = newIds.toList
-        val knownSource = l.flatMap(id => edgesBySource(id)) // edges with known node as source
-        val knownTarget = l.flatMap(id => edgesByTarget(id)) // edges with known node as target
+        val knownSource = newIds.view.flatMap(id => nem.edgesBySource(id).view.map(ew)) // edges with known node as source
         val nodeDist1 = knownSource.foldLeft(nodeDist) { (z, e) => 
-          val d0 = z.get(e.target)
-          val d1 = distance(z(e.source), e.distance)
+          val d0 = z.get(e.edge.target)
+          val d1 = distance(z(e.edge.source), 1.0/e.totalWeight)
           val d3 = d0.map(Math.min(_, d1)).getOrElse(d1)
-          z + (e.target -> d3)
+          z + (e.edge.target -> d3)
         }
+        val knownTarget = newIds.view.flatMap(id => nem.edgesByTarget(id).view.map(ew)) // edges with known node as target
         val nodeDist2 = knownTarget.foldLeft(nodeDist1) { (z, e) => 
-          val d0 = z.get(e.source)
-          val d1 = distance(z(e.target), e.distance)
+          val d0 = z.get(e.edge.source)
+          val d1 = distance(z(e.edge.target), 1.0/e.totalWeight)
           val d3 = d0.map(Math.min(_, d1)).getOrElse(d1)
-          z + (e.source -> d3)
+          z + (e.edge.source -> d3)
         }
         val nIds = nodeDist2.keySet &~ nodeDist.keySet
-        log.debug(s"expand: nIds = $nIds, knownSource = $knownSource, knownTarget = $knownTarget, nodeDist2 = $nodeDist2")
-        expand(n - 1, nIds, nodeDist2, knownSource.toSet ++ knownTarget.toSet ++ edges)
+        // log.debug(s"expand: nIds = $nIds, knownSource = $knownSource, knownTarget = $knownTarget, nodeDist2 = $nodeDist2")
+        log.info("expand: recurse ...")
+        expand(nem, ew, n - 1, nIds, nodeDist2, (knownSource ++ knownTarget).toSet ++ edges)
       }
     }
     
@@ -218,13 +252,24 @@ Test with:
     @Path("graph")
     @ApiOperation(httpMethod = "POST", response = classOf[Graph], value = "graph matching the query")
     @Consumes(Array(MediaType.APPLICATION_JSON))
-    def graph(q: GraphQuery) = {
-      val nodeIds = extRefIdToNodeId(q.extRefId).toSet
-      val (_, _, nodeDist, edges) = expand(q.maxHops, nodeIds, nodeIds.map(_ -> 0.0f).toMap)
-      // sort edges by distance to furtherest end, ascending
-      val topEdges = edges.toList.sortBy(e => Math.max(nodeDist(e.source), nodeDist(e.target))).take(q.maxEdges)
-      val ids = (topEdges.map(_.source) ++ topEdges.map(_.target)).toSet
-      Graph(ids.toList.map(nodes), topEdges)
+    def graph(q: GraphQuery): Graph = {
+      log.info(s"graph: q = $q")
+      val nem = if (q.includePerson2) nodeEdgeMap else nodeEdgeMap3
+      val etw = edgeTotalWeight(q.collections)
+      q.nodeId.map(Set(_)).orElse(q.extRefId.map(extRefIdToNodeId(_).toSet)).map { nodeIds =>
+        log.debug(s"graph: nodeIds = ${nodeIds}")
+        val (_, _, nodeDist, edges) = expand(nem, etw, q.maxHops, nodeIds, nodeIds.map(_ -> 0.0).toMap)
+        log.info(s"graph: got ${edges.size} edges")
+        // sort edges by distance to furtherest end, ascending
+        val topEdges = edges.toIndexedSeq.sortBy(e => Math.max(nodeDist(e.edge.source), nodeDist(e.edge.target))).take(q.maxEdges)
+        log.info(s"graph: got top edges")
+        val topNodes = (topEdges.view.map(_.edge.source) ++ topEdges.view.map(_.edge.target)).toSet.view.map(nem.nodes).toList
+        log.info(s"graph: got top nodes")
+        Graph(topNodes, topEdges.toList)
+      }.getOrElse {
+        log.info(s"graph: no nodes match query q = $q")
+        Graph(List.empty, List.empty)
+      }
     }
     
     def graphRoute =

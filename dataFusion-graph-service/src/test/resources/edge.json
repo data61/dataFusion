@@ -1,4 +1,10 @@
-{"source":1,"target":2,"typ":"D61GAZ","distance":1.0}
-{"source":1,"target":3,"typ":"D61GAZ","distance":1.0}
-{"source":2,"target":3,"typ":"D61GAZ","distance":1.0}
-{"source":3,"target":4,"typ":"D61GAZ","distance":1.0}
+{"source":1,"target":2,"typ":"D61GAZ","weights":{"collectionA":[1.0,1]}}
+{"source":1,"target":3,"typ":"D61GAZ","weights":{"collectionA":[1.0,1]}}
+{"source":2,"target":3,"typ":"D61GAZ","weights":{"collectionA":[1.0,1]}}
+{"source":3,"target":4,"typ":"D61GAZ","weights":{"collectionA":[1.0,1]}}
+{"source":2,"target":5,"typ":"D61GAZ","weights":{"collectionB":[1.0,1]}}
+{"source":3,"target":5,"typ":"D61GAZ","weights":{"collectionB":[1.0,1]}}
+{"source":1,"target":6,"typ":"D61GAZ","weights":{"collectionB":[1.0,1]}}
+{"source":2,"target":6,"typ":"D61GAZ","weights":{"collectionB":[1.0,1]}}
+{"source":4,"target":6,"typ":"D61GAZ","weights":{"collectionA":[1.0,1]}}
+{"source":5,"target":6,"typ":"D61GAZ","weights":{"collectionB":[1.0,1]}}

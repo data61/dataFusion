@@ -1,4 +1,6 @@
-{"nodeId":1,"extRef":{"ids":[211,212],"name":"fred"},"typ":"PERSON"}
-{"nodeId":2,"extRef":{"ids":[213,214],"name":"fred"},"typ":"ORGANIZATION"}
-{"nodeId":3,"extRef":{"ids":[223,224],"name":"fred"},"typ":"PERSON"}
-{"nodeId":4,"extRef":{"ids":[234,235],"name":"fred"},"typ":"PERSON"}
+{"nodeId":1,"extRef":{"ids":[211,212],"name":"fred"},"typ":"PERSON","score":1}
+{"nodeId":2,"extRef":{"ids":[213,214],"name":"fred"},"typ":"ORGANIZATION","score":1}
+{"nodeId":3,"extRef":{"ids":[223,224],"name":"fred"},"typ":"PERSON","score":1}
+{"nodeId":4,"extRef":{"ids":[234,235],"name":"fred"},"typ":"PERSON","score":1}
+{"nodeId":5,"extRef":{"ids":[211,212],"name":"fred"},"typ":"PERSON2","score":1}
+{"nodeId":6,"extRef":{"ids":[223,224],"name":"fred"},"typ":"TO","score":1}

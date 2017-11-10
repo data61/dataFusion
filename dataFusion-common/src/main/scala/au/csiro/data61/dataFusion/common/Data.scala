@@ -25,8 +25,12 @@ object Data {
   case class Embedded(content: Option[String], meta: Map[String, String], ner: List[Ner])
   case class Doc(id: Long, content: Option[String], meta: Map[String, String], path: String, ner: List[Ner], embedded: List[Embedded])
 
-  case class Node(nodeId: Int, extRef: ExtRef, typ: String)
-  case class Edge(source: Int, target: Int, distance: Float, typ: String)  
+  // collection -> (weight, count)
+  type WeightMap = Map[String, (Double, Int)]
+  
+  // sourceNodeId, targetNodeId -> Scores
+  case class Node(nodeId: Int, extRef: ExtRef, score: Double, typ: String)
+  case class Edge(source: Int, target: Int, weights: WeightMap, typ: String)  
   case class ClientEdgeCount(clntIntrnlId: Long, numEdges: Int)
 
   val EMB_IDX_MAIN = -1 // a searchable value for embIdx to represent main content - not embedded
@@ -42,7 +46,7 @@ object Data {
     implicit val nerFormat = jsonFormat9(Ner)
     implicit val embeddedFormat = jsonFormat3(Embedded)
     implicit val docFormat = jsonFormat6(Doc)
-    implicit val nodeFormat = jsonFormat3(Node)
+    implicit val nodeFormat = jsonFormat4(Node)
     implicit val edgeFormat = jsonFormat4(Edge)
     implicit val clientEdgeCountFormat = jsonFormat2(ClientEdgeCount)
     implicit val statsCodec = jsonFormat2(Stats)
