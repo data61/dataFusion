@@ -4,11 +4,8 @@ import org.scalatest.{ FlatSpec, Matchers }
 
 import com.typesafe.scalalogging.Logger
 
-import DataFusionLucene.LDoc
-import DataFusionLucene.DFSearching.DocSearch
-import DocSearch.DHits
-import DocSearch.JsonProtocol._
-import au.csiro.data61.dataFusion.common.Data.{ EMB_IDX_MAIN, IdEmbIdx, Stats }
+import au.csiro.data61.dataFusion.common.Data.{ DHits, EMB_IDX_MAIN, IdEmbIdx, LDoc, Stats }
+import au.csiro.data61.dataFusion.common.Data.JsonProtocol.dHitsCodec
 import spray.json.{ pimpAny, pimpString }
 
 class JsonTest extends FlatSpec with Matchers {

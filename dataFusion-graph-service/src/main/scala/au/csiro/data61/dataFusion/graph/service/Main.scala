@@ -1,5 +1,7 @@
 package au.csiro.data61.dataFusion.graph.service
 
+import java.io.File
+
 import scala.annotation.tailrec
 import scala.io.Source
 import scala.language.postfixOps
@@ -12,23 +14,19 @@ import com.typesafe.scalalogging.Logger
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Directives.{ _enhanceRouteWithConcatenation, _segmentStringToPathMatcher, as, complete, entity, path, post }
 import akka.stream.ActorMaterializer
-import au.csiro.data61.dataFusion.common.Data.ClientEdgeCount
-import au.csiro.data61.dataFusion.common.Data.JsonProtocol.clientEdgeCountFormat
+import au.csiro.data61.dataFusion.common.Data.{ ClientEdgeCount, Edge, Node, T_ORGANIZATION, T_PERSON }
+import au.csiro.data61.dataFusion.common.Data.JsonProtocol._
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives.cors
 import io.swagger.annotations.{ Api, ApiOperation }
-import javax.ws.rs.{ Consumes, Path, QueryParam }, javax.ws.rs.core.MediaType
-import spray.json.DefaultJsonProtocol._
+import javax.ws.rs.{ Consumes, Path }
+import javax.ws.rs.core.MediaType
 import spray.json.pimpString
-import java.io.File
-import au.csiro.data61.dataFusion.common.Data._
-import au.csiro.data61.dataFusion.common.Data.JsonProtocol._
-import scala.collection.mutable
 
 // keeps getting deleted by Eclipse > Source > Organize Imports
+// import javax.ws.rs.core.MediaType
 
-// TODO: change input from JSON files to some Hadoop data source?
 object Main {
   private val log = Logger(getClass)
   

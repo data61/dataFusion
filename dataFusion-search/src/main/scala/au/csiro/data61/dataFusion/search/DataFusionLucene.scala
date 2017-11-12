@@ -10,7 +10,7 @@ import scala.language.implicitConversions
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.Analyzer.TokenStreamComponents
 import org.apache.lucene.analysis.LowerCaseFilter
-import org.apache.lucene.analysis.core.{ FlattenGraphFilter, KeywordAnalyzer }
+import org.apache.lucene.analysis.core.{ FlattenGraphFilter, KeywordAnalyzer, WhitespaceTokenizer }
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 import org.apache.lucene.analysis.standard.StandardTokenizer
 import org.apache.lucene.analysis.synonym.{ SolrSynonymParser, SynonymGraphFilter }
@@ -24,13 +24,11 @@ import org.apache.lucene.util.BytesRef
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
-import LuceneUtil.{ tokenIter, TrailingPunctuationFilter }
-import au.csiro.data61.dataFusion.common.Data.{ ExtRef, IdEmbIdx, LPosDoc, PHits, PosInfo, Stats, T_ORGANIZATION }
-import au.csiro.data61.dataFusion.common.Data.JsonProtocol.{ idEmbIdxCodec, pHitsCodec, statsCodec, extRefFormat }
+import LuceneUtil.{ TrailingPunctuationFilter, tokenIter }
+import au.csiro.data61.dataFusion.common.Data.{ DHits, IdEmbIdx, LDoc, LMeta, LNer, LPosDoc, MHits, PHits, PosInfo, PosQuery, Stats, T_ORGANIZATION }
+import au.csiro.data61.dataFusion.common.Data.JsonProtocol._
 import au.csiro.data61.dataFusion.common.Timer
 import spray.json.{ pimpAny, pimpString }
-import spray.json.DefaultJsonProtocol._
-import org.apache.lucene.analysis.core.WhitespaceTokenizer
 
 /**
  * dataFusion specific field names, analyzers etc. for Lucene.
@@ -44,17 +42,6 @@ object DataFusionLucene {
   val Seq(docIndex, metaIndex, nerIndex) = 
     Seq("docIndex", "metaIndex", "nerIndex").map(k => new File(conf.getString(k)))
 
-  case class LDoc(idEmbIdx: IdEmbIdx, content: String, path: String)
-  case class LMeta(idEmbIdx: IdEmbIdx, key: String, `val`: String)
-  case class LNer(idEmbIdx: IdEmbIdx, posStr: Int, posEnd: Int, offStr: Int, offEnd: Int, text: String, typ: String, impl: String)
-  
-  object JsonProtocol {
-    implicit val ldocCodec = jsonFormat3(LDoc)
-    implicit val lmetaCodec = jsonFormat3(LMeta)
-    implicit val lnerCodec = jsonFormat8(LNer)  
-  }
-  import JsonProtocol._
-  
   /** field names */
   
   val F_ID_EMB_IDX = "idEmbIdx" // for a DocValues, so we can fetch IdEmbIdx without loading the Lucene Document
@@ -235,22 +222,9 @@ object DataFusionLucene {
   
   object DFSearching {
     
-    case class Query(query: String, numHits: Int)
-
-    object JsonProtocol {
-      implicit val queryCodec = jsonFormat2(Query)
-    }
-    import JsonProtocol._
-    
     def ldoc(doc: Document) = doc.get(F_JSON).parseJson.convertTo[LDoc]
      
     object DocSearch {
-      case class DHits(stats: Stats, hits: List[(Float, LDoc)], error: Option[String])
-      
-      object JsonProtocol {
-        implicit val dHitsCodec = jsonFormat3(DHits)
-      }
-  
       def toHit(scoreDoc: ScoreDoc, doc: Document) = {
         val d = ldoc(doc)
         (scoreDoc.score, d)
@@ -261,16 +235,6 @@ object DataFusionLucene {
     }
     
     object PosDocSearch {
-      case class PosQuery(extRef: ExtRef, typ: String)
-      case class PosMultiQuery(queries: List[PosQuery])
-      case class PMultiHits(pHits: List[PHits])
-      
-      object JsonProtocol {
-        implicit val posQueryCodec = jsonFormat2(PosQuery)
-        implicit val posMultiQueryCodec = jsonFormat1(PosMultiQuery)
-        implicit val pMultiHitsCodec = jsonFormat1(PMultiHits)
-      }
-
       class MyCollector(reader: IndexReader, t: Term, score: Float) extends SimpleCollector {
         // val fieldsToLoad = java.util.Collections.singleton(F_CONTENT)
         private var pe: PostingsEnum = null
@@ -393,12 +357,6 @@ object DataFusionLucene {
     }
   
     object MetaSearch {
-      case class MHits(stats: Stats, hits: List[(Float, LMeta)], error: Option[String])
-      
-      object JsonProtocol {
-        implicit val mHitsCodec = jsonFormat3(MHits)
-      }
-  
       def toHit(scoreDoc: ScoreDoc, doc: Document) = (scoreDoc.score, doc.get(F_JSON).parseJson.convertTo[LMeta])
       
       def toResult(totalHits: Int, elapsedSecs: Float, hits: Seq[(Float, LMeta)], error: Option[String])

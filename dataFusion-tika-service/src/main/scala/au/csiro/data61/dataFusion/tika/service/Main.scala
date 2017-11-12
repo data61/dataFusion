@@ -40,7 +40,7 @@ object Main {
   @Path("")
   class TikaService(cliOption: CliOption)(implicit materializer: Materializer, val executionContext: ExecutionContext)  {
     val tikaUtil = new TikaUtil(cliOption)
-    val id = new AtomicLong(cliOption.startId)  
+    val id = new AtomicLong(cliOption.startId)
     
 //    // isn't getting executed
 //    sys.addShutdownHook {
@@ -82,7 +82,7 @@ object Main {
       new ApiResponse(code = 500, message = "tika error")
     ))
     def tika(
-      @ApiParam(value = "file name, may be used as a hint for the data format", required = true) @QueryParam("path") path: String, 
+      @ApiParam(value = "path may be used as a hint for the data format", required = true) @QueryParam("path") path: String, 
       data: Array[Byte]
     ): Try[Doc] = {
       Try { tikaUtil.tika(new ByteArrayInputStream(data), path, id.getAndIncrement) } // stream opened/closed in parseTextMeta
@@ -107,7 +107,7 @@ object Main {
     // override def swaggerConfig = new Swagger().basePath(prependSlashIfNecessary(basePath)) // don't specify protocol://host basePath
     override val host = s"${hst}:${prt}" // the url of your api, not swagger's json endpoint
     override val basePath = "/"          // the basePath for the API you are exposing
-    override val info = new com.github.swagger.akka.model.Info()                    // provides license and other description details
+    override val info = new io.swagger.models.Info()                    // provides license and other description details
     override val apiDocsPath = "api-docs"   // http://host:port/api-docs/swagger.json
   }
   

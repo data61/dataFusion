@@ -1,6 +1,6 @@
 package au.csiro.data61.dataFusion.common
 
-import spray.json.DefaultJsonProtocol._
+import spray.json.DefaultJsonProtocol
 
 object Data {
   val T_PERSON = "PERSON"
@@ -41,18 +41,44 @@ object Data {
   case class LPosDoc(idEmbIdx: IdEmbIdx, posInfos: List[PosInfo])
   case class PHits(stats: Stats, hits: List[LPosDoc], error: Option[String], extRef: ExtRef, score: Float, typ: String)
   
-  object JsonProtocol {
+  case class LDoc(idEmbIdx: IdEmbIdx, content: String, path: String)
+  case class LMeta(idEmbIdx: IdEmbIdx, key: String, `val`: String)
+  case class LNer(idEmbIdx: IdEmbIdx, posStr: Int, posEnd: Int, offStr: Int, offEnd: Int, text: String, typ: String, impl: String) 
+  
+  case class Query(query: String, numHits: Int)
+  case class DHits(stats: Stats, hits: List[(Float, LDoc)], error: Option[String])
+  case class MHits(stats: Stats, hits: List[(Float, LMeta)], error: Option[String])
+      
+  case class PosQuery(extRef: ExtRef, typ: String)
+  case class PosMultiQuery(queries: List[PosQuery])
+  case class PMultiHits(pHits: List[PHits])
+      
+  object JsonProtocol extends DefaultJsonProtocol {
     implicit val extRefFormat = jsonFormat2(ExtRef)
     implicit val nerFormat = jsonFormat9(Ner)
     implicit val embeddedFormat = jsonFormat3(Embedded)
     implicit val docFormat = jsonFormat6(Doc)
+    
     implicit val nodeFormat = jsonFormat4(Node)
     implicit val edgeFormat = jsonFormat4(Edge)
     implicit val clientEdgeCountFormat = jsonFormat2(ClientEdgeCount)
-    implicit val statsCodec = jsonFormat2(Stats)
     implicit val idEmbIdxCodec = jsonFormat2(IdEmbIdx)
+    
+    implicit val statsCodec = jsonFormat2(Stats)
     implicit val posInfoCodec = jsonFormat4(PosInfo)
     implicit val lposDocCodec = jsonFormat2(LPosDoc)
     implicit val pHitsCodec = jsonFormat6(PHits)
+    
+    implicit val ldocCodec = jsonFormat3(LDoc)
+    implicit val lmetaCodec = jsonFormat3(LMeta)
+    implicit val lnerCodec = jsonFormat8(LNer)  
+
+    implicit val queryCodec = jsonFormat2(Query)
+    implicit val dHitsCodec = jsonFormat3(DHits)
+    implicit val mHitsCodec = jsonFormat3(MHits)
+    
+    implicit val posQueryCodec = jsonFormat2(PosQuery)
+    implicit val posMultiQueryCodec = jsonFormat1(PosMultiQuery)
+    implicit val pMultiHitsCodec = jsonFormat1(PMultiHits)
   }
 }

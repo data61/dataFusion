@@ -14,19 +14,9 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-import au.csiro.data61.dataFusion.common.Data.JsonProtocol.pHitsCodec
-import au.csiro.data61.dataFusion.common.Data.PHits
-import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.DocSearch.DHits
-import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.DocSearch.JsonProtocol.dHitsCodec
-import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.JsonProtocol.queryCodec
-import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.MetaSearch.JsonProtocol.mHitsCodec
-import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.MetaSearch.MHits
-import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.NerSearch.JsonProtocol.nHitsCodec
-import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.NerSearch.NHits
-import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.PosDocSearch.{ PMultiHits, PosMultiQuery, PosQuery }
-import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.PosDocSearch.JsonProtocol.{ pMultiHitsCodec, posMultiQueryCodec, posQueryCodec }
-import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.Query
-import au.csiro.data61.dataFusion.search.Search.{ DocSearcher, MetaSearcher, NerSearcher, PosDocSearcher }
+import au.csiro.data61.dataFusion.common.Data.{ PHits, PosQuery }
+import au.csiro.data61.dataFusion.common.Data.JsonProtocol.{ pHitsCodec, posQueryCodec }
+import au.csiro.data61.dataFusion.search.Search.PosDocSearcher
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives.cors
 import io.swagger.annotations.{ Api, ApiOperation }
 import javax.ws.rs.{ Consumes, Path }
@@ -44,15 +34,15 @@ object Main {
   @Path("")
   class SearchService(cliOption: CliOption)(implicit val ec: ExecutionContext) {
     
-    @Path("doc/search")
-    @ApiOperation(httpMethod = "POST", response = classOf[DHits], value = "search hits matching the query")
-    @Consumes(Array(MediaType.APPLICATION_JSON))
-    def docSearch(q: Query): DHits = DocSearcher.search(q)
-    
-    def docSearchRoute =
-      post { path("doc/search") { entity(as[Query]) { q => complete {
-        docSearch(q)
-      }}}}
+//    @Path("doc/search")
+//    @ApiOperation(httpMethod = "POST", response = classOf[DHits], value = "search hits matching the query")
+//    @Consumes(Array(MediaType.APPLICATION_JSON))
+//    def docSearch(q: Query): DHits = DocSearcher.search(q)
+//    
+//    def docSearchRoute =
+//      post { path("doc/search") { entity(as[Query]) { q => complete {
+//        docSearch(q)
+//      }}}}
     
     // ----------------------------------------------------------
     
@@ -68,48 +58,48 @@ object Main {
   
     // ----------------------------------------------------------
     
-    @Path("pos/multiSearch")
-    @ApiOperation(httpMethod = "POST", response = classOf[PMultiHits], value = "search hits matching the query")
-    @Consumes(Array(MediaType.APPLICATION_JSON))
-    def posMultiSearch(qs: PosMultiQuery): PMultiHits = PosDocSearcher.multiSearch(cliOption.slop, qs, cliOption.minScore)
-    
-    def posMultiSearchRoute =
-      post { path("pos/multiSearch") { entity(as[PosMultiQuery]) { qs => complete {
-        posMultiSearch(qs)
-      }}}}
+//    @Path("pos/multiSearch")
+//    @ApiOperation(httpMethod = "POST", response = classOf[PMultiHits], value = "search hits matching the query")
+//    @Consumes(Array(MediaType.APPLICATION_JSON))
+//    def posMultiSearch(qs: PosMultiQuery): PMultiHits = PosDocSearcher.multiSearch(cliOption.slop, qs, cliOption.minScore)
+//    
+//    def posMultiSearchRoute =
+//      post { path("pos/multiSearch") { entity(as[PosMultiQuery]) { qs => complete {
+//        posMultiSearch(qs)
+//      }}}}
+//    
+//    // ----------------------------------------------------------
+//    
+//    @Path("meta/search")
+//    @ApiOperation(httpMethod = "POST", response = classOf[MHits], value = "search hits matching the query")
+//    @Consumes(Array(MediaType.APPLICATION_JSON))
+//    def metaSearch(q: Query): MHits = MetaSearcher.search(q)
+//    
+//    def metaSearchRoute =
+//      post { path("meta/search") { entity(as[Query]) { q => complete {
+//        metaSearch(q)
+//      }}}}
+//    
+//    // ----------------------------------------------------------
+//    
+//    @Path("ner/search")
+//    @ApiOperation(httpMethod = "POST", response = classOf[NHits], value = "search hits matching the query")
+//    @Consumes(Array(MediaType.APPLICATION_JSON))
+//    def nerSearch(q: Query): NHits = NerSearcher.search(q)
+//    
+//    def nerSearchRoute =
+//      post { path("ner/search") { entity(as[Query]) { q => complete {
+//        nerSearch(q)
+//      }}}}
     
     // ----------------------------------------------------------
     
-    @Path("meta/search")
-    @ApiOperation(httpMethod = "POST", response = classOf[MHits], value = "search hits matching the query")
-    @Consumes(Array(MediaType.APPLICATION_JSON))
-    def metaSearch(q: Query): MHits = MetaSearcher.search(q)
-    
-    def metaSearchRoute =
-      post { path("meta/search") { entity(as[Query]) { q => complete {
-        metaSearch(q)
-      }}}}
-    
-    // ----------------------------------------------------------
-    
-    @Path("ner/search")
-    @ApiOperation(httpMethod = "POST", response = classOf[NHits], value = "search hits matching the query")
-    @Consumes(Array(MediaType.APPLICATION_JSON))
-    def nerSearch(q: Query): NHits = NerSearcher.search(q)
-    
-    def nerSearchRoute =
-      post { path("ner/search") { entity(as[Query]) { q => complete {
-        nerSearch(q)
-      }}}}
-    
-    // ----------------------------------------------------------
-    
-    val routes = 
-      docSearchRoute ~
-      posSearchRoute ~
-      posMultiSearchRoute ~
-      metaSearchRoute ~
-      nerSearchRoute  
+    val routes = posSearchRoute
+//      docSearchRoute ~
+//      posSearchRoute ~
+//      posMultiSearchRoute ~
+//      metaSearchRoute ~
+//      nerSearchRoute  
   }
 
   def swaggerService(hst: String, prt: Int)(implicit s: ActorSystem, m: ActorMaterializer) = new SwaggerHttpService with HasActorSystem {

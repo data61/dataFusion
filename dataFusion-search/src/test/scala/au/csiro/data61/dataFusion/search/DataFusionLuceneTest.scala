@@ -7,11 +7,11 @@ import org.scalatest.{ FlatSpec, Matchers }
 
 import com.typesafe.scalalogging.Logger
 
-import DataFusionLucene._
+import DataFusionLucene.{ F_CONTENT, analyzer, synonymAnalyzer }
 import DataFusionLucene.DFIndexing.{ ldoc2doc, mkIndexer }
-import DataFusionLucene.DFSearching.PosDocSearch.{ PosQuery, searchSpans }
+import DataFusionLucene.DFSearching.PosDocSearch.searchSpans
 import LuceneUtil.tokenIter
-import au.csiro.data61.dataFusion.common.Data.{ ExtRef, IdEmbIdx, T_ORGANIZATION, T_PERSON }
+import au.csiro.data61.dataFusion.common.Data.{ ExtRef, IdEmbIdx, LDoc, PosQuery, T_ORGANIZATION, T_PERSON }
 
 class DataFusionLuceneTest extends FlatSpec with Matchers {
   val log = Logger(getClass)

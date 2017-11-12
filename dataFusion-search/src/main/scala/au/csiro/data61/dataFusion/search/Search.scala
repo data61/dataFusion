@@ -2,6 +2,7 @@ package au.csiro.data61.dataFusion.search
 
 import java.util.concurrent.atomic.AtomicInteger
 
+import scala.collection.mutable.{ ArrayBuffer, ListBuffer }
 import scala.io.Source
 import scala.language.postfixOps
 import scala.util.control.NonFatal
@@ -14,22 +15,16 @@ import com.google.common.hash.BloomFilter
 import com.typesafe.scalalogging.Logger
 
 import DataFusionLucene.{ F_CONTENT, F_JSON, F_TEXT, F_VAL, analyzer, docIndex, metaIndex, nerIndex }
-import DataFusionLucene.DFSearching.{ Query, PosDocSearch, DocSearch, MetaSearch, NerSearch }
-import PosDocSearch.PosQuery
-import PosDocSearch.JsonProtocol.posQueryCodec
 import LuceneUtil.{ Searcher, directory }
 import Main.CliOption
-import au.csiro.data61.dataFusion.common.Data.{ PHits, Stats, ExtRef, T_ORGANIZATION, T_PERSON, T_PERSON2 }
-import au.csiro.data61.dataFusion.common.Data.JsonProtocol.pHitsCodec
+import au.csiro.data61.dataFusion.common.CSV
+import au.csiro.data61.dataFusion.common.Data.{ DHits, ExtRef, MHits, PHits, PMultiHits, PosMultiQuery, PosQuery, Query, Stats, T_ORGANIZATION, T_PERSON, T_PERSON2 }
+import au.csiro.data61.dataFusion.common.Data.JsonProtocol.{ pHitsCodec, posQueryCodec }
 import au.csiro.data61.dataFusion.common.Parallel.doParallel
 import au.csiro.data61.dataFusion.common.Timer
 import au.csiro.data61.dataFusion.common.Util.bufWriter
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.ListBuffer
-import au.csiro.data61.dataFusion.common.CSV
-
    
 object Search {
   private val log = Logger(getClass)
@@ -40,7 +35,7 @@ object Search {
     .orElse(Some(e.getClass.getName))
     
   object DocSearcher {
-    import DocSearch._
+    import DataFusionLucene.DFSearching.DocSearch._
     
     val searcher = new Searcher(directory(docIndex), toHit, toResult)
     
@@ -56,7 +51,7 @@ object Search {
   }
   
   object PosDocSearcher {
-    import PosDocSearch._
+    import DataFusionLucene.DFSearching.PosDocSearch._
     
     val indexSearcher = DocSearcher.searcher.searcher // reuse above IndexSearcher
         
@@ -80,7 +75,7 @@ object Search {
   }
   
   object MetaSearcher {
-    import MetaSearch._
+    import DataFusionLucene.DFSearching.MetaSearch._
     
     val searcher = new Searcher(directory(metaIndex), toHit, toResult)
     
@@ -98,7 +93,7 @@ object Search {
   }
   
   object NerSearcher {
-    import NerSearch._
+    import DataFusionLucene.DFSearching.NerSearch._
     
     val searcher = new Searcher(directory(nerIndex), toHit, toResult)
     

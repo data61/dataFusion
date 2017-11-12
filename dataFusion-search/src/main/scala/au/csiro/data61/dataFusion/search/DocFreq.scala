@@ -1,26 +1,24 @@
 package au.csiro.data61.dataFusion.search
 
 import java.io.OutputStreamWriter
+import java.nio.charset.Charset
 
-import scala.collection.mutable.HashSet
 import scala.io.Source
 
 import org.apache.lucene.index.{ DirectoryReader, MultiFields }
 
+import com.google.common.hash.{ BloomFilter, Funnels }
 import com.typesafe.scalalogging.Logger
 
 import DataFusionLucene.{ F_CONTENT, analyzer, docIndex }
-import DataFusionLucene.DFSearching.PosDocSearch, PosDocSearch.PosQuery, PosDocSearch.JsonProtocol._
 import LuceneUtil.{ directory, termIter, tokenIter }
 import Main.CliOption
+import au.csiro.data61.dataFusion.common.Data.{ PosQuery, T_ORGANIZATION }
+import au.csiro.data61.dataFusion.common.Data.ExtRef
+import au.csiro.data61.dataFusion.common.Data.JsonProtocol.posQueryCodec
 import au.csiro.data61.dataFusion.common.Timer
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
-import au.csiro.data61.dataFusion.common.Data.{ ExtRef, Doc, T_ORGANIZATION }
-import au.csiro.data61.dataFusion.common.Data.JsonProtocol._
-import com.google.common.hash.BloomFilter
-import com.google.common.hash.Funnels
-import java.nio.charset.Charset
 
 object DocFreq {
   private val log = Logger(getClass)
