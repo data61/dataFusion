@@ -18,11 +18,11 @@ Lucene's default `StandardTokenizer` removes punctuation, but as some organizati
 ### Synonyms
 Lucene's `SynonymGraphFilter` is used to map synonyms specified in a file `synonyms.txt` (the location is specified in Configuration), initially set to map "proprietary" to "pty" and "limited" to "ltd", but can be updated by the user. The synonym mapping should be consistent for indexing and searching.
 ### Organizations
-A search hit must match all tokens in an organization's name with tokens in the same order.
+A search hit must match all tokens in the query with tokens in the same order.
 ### People
-A search hit must match all tokens in an person's name, but the tokens may appear in any order.
+A search hit must match all tokens in the query, but the tokens may appear in any order.
 ### Scoring
-A query for a name is assigned an IDF score as per [Lucene's scoring formula](https://lucene.apache.org/core/7_1_0/core/org/apache/lucene/search/similarities/TFIDFSimilarity.html). This is the score in the search result. If this score is below the threshhold set by the `--minScore` option (default 3.5) then the query is deemed to be insufficiently distiguishing and is skipped.
+A query is assigned an IDF score as per [Lucene's scoring formula](https://lucene.apache.org/core/7_1_0/core/org/apache/lucene/search/similarities/TFIDFSimilarity.html). This is the score in the search result. If this score is below the threshhold set by the `--minScore` option (default 3.5) then the query is deemed to be insufficiently distiguishing and is skipped.
 ### Query Generation from CSV
 The `--searchCsv`  option generates queries from CSV data.
 - People's names are expected to be segmented into 3 fields for the person's family, first given and other names.
