@@ -18,7 +18,7 @@ import DataFusionLucene.{ F_CONTENT, F_JSON, F_TEXT, F_VAL, analyzer, docIndex, 
 import LuceneUtil.{ Searcher, directory }
 import Main.CliOption
 import au.csiro.data61.dataFusion.common.CSV
-import au.csiro.data61.dataFusion.common.Data.{ DHits, ExtRef, MHits, PHits, PMultiHits, PosMultiQuery, PosQuery, Query, Stats, T_ORGANIZATION, T_PERSON, T_PERSON2 }
+import au.csiro.data61.dataFusion.common.Data.{ DHits, ExtRef, MHits, NHits, PHits, PMultiHits, PosMultiQuery, PosQuery, Query, Stats, T_ORGANIZATION, T_PERSON, T_PERSON2 }
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol.{ pHitsCodec, posQueryCodec }
 import au.csiro.data61.dataFusion.common.Parallel.doParallel
 import au.csiro.data61.dataFusion.common.Timer

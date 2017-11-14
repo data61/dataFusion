@@ -25,7 +25,7 @@ import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
 import LuceneUtil.{ TrailingPunctuationFilter, tokenIter }
-import au.csiro.data61.dataFusion.common.Data.{ DHits, IdEmbIdx, LDoc, LMeta, LNer, LPosDoc, MHits, PHits, PosInfo, PosQuery, Stats, T_ORGANIZATION }
+import au.csiro.data61.dataFusion.common.Data.{ DHits, IdEmbIdx, LDoc, LMeta, LNer, LPosDoc, MHits, NHits, PHits, PosInfo, PosQuery, Stats, T_ORGANIZATION }
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol._
 import au.csiro.data61.dataFusion.common.Timer
 import spray.json.{ pimpAny, pimpString }
@@ -364,12 +364,6 @@ object DataFusionLucene {
     }
   
     object NerSearch {
-      case class NHits(stats: Stats, hits: List[(Float, LNer)], error: Option[String])
-
-      object JsonProtocol {
-        implicit val nHitsCodec = jsonFormat3(NHits)
-      }
-  
       def toHit(scoreDoc: ScoreDoc, doc: Document) = (scoreDoc.score, doc.get(F_JSON).parseJson.convertTo[LNer])
       
       def toResult(totalHits: Int, elapsedSecs: Float, hits: Seq[(Float, LNer)], error: Option[String])

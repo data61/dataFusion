@@ -48,7 +48,8 @@ object Data {
   case class Query(query: String, numHits: Int)
   case class DHits(stats: Stats, hits: List[(Float, LDoc)], error: Option[String])
   case class MHits(stats: Stats, hits: List[(Float, LMeta)], error: Option[String])
-      
+  case class NHits(stats: Stats, hits: List[(Float, LNer)], error: Option[String])
+
   case class PosQuery(extRef: ExtRef, typ: String)
   case class PosMultiQuery(queries: List[PosQuery])
   case class PMultiHits(pHits: List[PHits])
@@ -76,6 +77,7 @@ object Data {
     implicit val queryCodec = jsonFormat2(Query)
     implicit val dHitsCodec = jsonFormat3(DHits)
     implicit val mHitsCodec = jsonFormat3(MHits)
+    implicit val nHitsCodec = jsonFormat3(NHits)
     
     implicit val posQueryCodec = jsonFormat2(PosQuery)
     implicit val posMultiQueryCodec = jsonFormat1(PosMultiQuery)
