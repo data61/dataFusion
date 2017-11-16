@@ -11,7 +11,8 @@ import au.csiro.data61.dataFusion.common.Data.Doc
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol.docFormat
 import au.csiro.data61.dataFusion.common.Data.META_EN_SCORE
 import au.csiro.data61.dataFusion.common.Parallel.doParallel
-import au.csiro.data61.dataFusion.common.Util.{ bufWriter, englishScore }
+import au.csiro.data61.dataFusion.common.Util.bufWriter
+import au.csiro.data61.dataFusion.common.EnglishScore.englishScore
 import resource.managed
 import spray.json.{ pimpAny, pimpString }
 

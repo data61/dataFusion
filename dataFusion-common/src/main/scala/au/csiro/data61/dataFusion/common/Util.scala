@@ -2,56 +2,41 @@ package au.csiro.data61.dataFusion.common
 
 import java.io.{ BufferedWriter, File, FileOutputStream, OutputStreamWriter }
 import com.typesafe.scalalogging.Logger
+import scala.collection.mutable.ListBuffer
 
 object Util {
   private val log = Logger(getClass)
   
+  /** @return a BufferedWriter using UTF-8 encoding */
   def bufWriter(f: File) = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(f), "UTF-8"))
   
-  case class Feat(wordLike: Boolean, initCap: Boolean, endsDot: Boolean)
+  /**
+   * Modified from: https://stackoverflow.com/questions/5674741/simplest-way-to-get-the-top-n-elements-of-a-scala-iterable
+   * Well the simplest is sort.take(n), but for a large collection where n << the collection size, this is much more efficient!
+   */
+  def extremeN[T](n: Int, it: Iterator[T])(comp1: ((T, T) => Boolean), comp2: ((T, T) => Boolean)): List[T] = {
 
-  // A metric for English text quality.
-  // Near enough is good enough, no need to handle voweless works like "sky" or apostrophes.  
+    def sortedIns (el: T, list: List[T]): List[T] = 
+      if (list.isEmpty) List (el) else 
+      if (comp2 (el, list.head)) el :: list else 
+        list.head :: sortedIns (el, list.tail)
   
-  val word = """\S+""".r
-  val vowels = "AEIOUaeiou".toSet
-  val upper = ('A' to 'Z').toSet
-  val letter = upper ++ upper.map(Character.toLowerCase)
-  val punct = ",;:'\"!@#$%^&*()-_+=/[]{}.".toSet
+    def updateSofar (sofar: List [T], el: T) : List [T] =
+      if (comp1 (el, sofar.head)) 
+        sortedIns (el, sofar.tail)
+      else sofar
 
-  def word2feat(w: String): Feat = {
-    val numVowel = w.count(vowels contains _)
-    val numLetter = w.count(letter contains _)
-    val numUpper = w.count(upper contains _)
-    val startsPunct = punct contains w.head 
-    val endsPunct = punct contains w.last
-    val endsDot = w.endsWith(".")
-    val expectedLetters = w.length - (if (startsPunct) 1 else 0) - (if (endsPunct) 1 else 0)
-    val initCap = numUpper == 1 && (startsPunct && w.length > 1 && Character.isUpperCase(w(1))|| Character.isUpperCase(w.head))
-    val wordLike = w.length < 30 && numLetter == expectedLetters && (numUpper == 0 || initCap) && numVowel > 0
-    // log.debug(s"word2feat: numVowel = $numVowel, numLetter = $numLetter, numUpper = $numUpper, startsPunct = $startsPunct, endsPunct = $endsPunct, endsDot = $endsDot, initCap = $initCap, length = ${w.length}, expectedLetters = $expectedLetters, wordLike = $wordLike")
-    Feat(wordLike, initCap, endsDot)
-  }
-
-  def englishScore(text: String): Double = {
-    val feats = word.findAllIn(text).map(word2feat).toSeq
-    val numWords = feats.count(_.wordLike)
-    val wordScore = numWords.toDouble / feats.size // ratio
-    
-    // unit test with text from wikipedia is getting a very low sentenceScore, so disabled for now
-    val numSentence = feats.sliding(2).count {
-      case Seq(a, b) => a.wordLike && a.endsDot && b.wordLike && b.initCap
-      case _ => false
+    val initN = {
+      val buf = new ListBuffer[T]
+      for (_ <- 0 until n if it.hasNext) buf += it.next
+      buf.toList
     }
-    val x = numWords.toDouble / numSentence // avgSentenceLength
-    // See http://hearle.nahoo.net/Academic/Maths/Sentence.html
-    // try piece-wise linear score
-    val sentenceScore = if (x < 10.0) 0.6 + 0.4 * x/10.0
-      else if (x < 30.0) 1.0
-      else if (x < 100.0) 1.0 - 0.8 * (x - 30.0)/70.0 
-      else 0.2
-    
-    log.debug(s"englishScore: numSentence = $numSentence, numWords = $numWords, wordScore = $wordScore, sentenceScore = $sentenceScore")
-    wordScore * sentenceScore
+    (initN.sortWith(comp2) /: it) { updateSofar }
   }
+  
+  /** @return smallest n elements in descending order */
+  def bottom[T](n: Int, it: Iterator[T])(implicit ord: Ordering[T]): List[T] = extremeN(n, it)(ord.lt, ord.gt)
+
+  /** @return largest n elements in ascending order */
+  def top[T](n: Int, it: Iterator[T])(implicit ord: Ordering[T]): List[T] = extremeN(n, it)(ord.gt, ord.lt)
 }

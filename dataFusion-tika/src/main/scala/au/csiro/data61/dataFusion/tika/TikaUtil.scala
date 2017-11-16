@@ -27,10 +27,10 @@ import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
 import au.csiro.data61.dataFusion.common.Data.{ Doc, Embedded, META_EN_SCORE, META_LANG_CODE, META_LANG_PROB }
+import au.csiro.data61.dataFusion.common.EnglishScore.englishScore
 import au.csiro.data61.dataFusion.tika.Main.CliOption
 import resource.managed
 
-import au.csiro.data61.dataFusion.common.Util.englishScore
 
 class TikaUtil(cliOption: CliOption) {
   private val log = Logger(getClass)

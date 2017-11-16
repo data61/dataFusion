@@ -1,13 +1,28 @@
 # dataFusion-util
 
 ## Introduction
-
 This project provides command line utilities for:
-- converting bulk entity search results into the NER data format and merging into the NER results (--hits option)
-- finding mentions of people in email headers and merging into the NER results (--email option)
-- network building from the NER results (including bulk search and email headers, --proximity option)
+- converting bulk entity search results into the NER data format and merging into the NER results (`--hits` CLI option)
+- finding mentions of people in email headers and merging into the NER results (`--email` CLI option)
+- network building from the NER results (including bulk search and email headers, `--proximity` CLI option)
 
-Additionally the --resetId option is provided to reallocate the id's in a NER format JSON file. This can be useful in the case of merging multiple partial tika runs where the ids would otherwise not be unique. 
+Additionally the `--resetId` CLI option is provided to reallocate the id's in a NER format JSON file. This can be useful in the case of merging multiple partial tika runs where the ids would otherwise not be unique. 
+
+## Network Building
+Network building uses the follow named entities (see [dataFusion-common](../dataFusion/common) for the definitions of the NER structure and these fields):
+- `impl=D62GAZ` and `typ=PERSON|PERSON2|ORGANIZATION`;
+- `impl=D61EMAIL` and `typ=FROM|TO|CC|BCC`
+
+Parameters are the decay value (set by the `--decay` CLI option with default value 500 characters) and a cutoff which is `5 * decay`.
+
+TODO: Getting there but this isn't quite right yet.
+
+    (weight, count) for named entities n1 and n2 in collection c =
+      sum over documents d in collection c
+      sum over subdocuments e of d (main content and each embedded document)
+      sum over edge = pair of named entities n1 & n2 where dist = n2.offStr - n2.offStr < cutoff
+      weight = exp( - dist / decay )
+      
 
 ## Build, Configuration and Running
 

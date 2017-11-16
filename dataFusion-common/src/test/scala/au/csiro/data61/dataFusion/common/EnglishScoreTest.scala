@@ -4,9 +4,10 @@ import org.scalatest.{ FlatSpec, Matchers }
 
 import com.typesafe.scalalogging.Logger
 
-import au.csiro.data61.dataFusion.common.Util.{ Feat, englishScore, word2feat }
+import au.csiro.data61.dataFusion.common.EnglishScore.{ Feat, englishScore, word2feat }
 
-class UtilTest extends FlatSpec with Matchers {
+
+class EnglishScoreTest extends FlatSpec with Matchers {
   val log = Logger(getClass)
     
   "word2feat" should "analyze words" in {

@@ -23,6 +23,7 @@ import io.swagger.annotations.{ Api, ApiOperation }
 import javax.ws.rs.{ Consumes, Path }
 import javax.ws.rs.core.MediaType
 import spray.json.pimpString
+import au.csiro.data61.dataFusion.common.Util
 
 // keeps getting deleted by Eclipse > Source > Organize Imports
 // import javax.ws.rs.core.MediaType
@@ -78,8 +79,8 @@ Test with:
   case class Nodes(nodes: List[Node])
   case class EdgeTotal(edge: Edge, totalWeight: Double, totalCount: Int)
 //  case class NodeQuery(text: String, typ: String)
-  case class TopClientsQuery(includePerson2: Boolean, extRefIds: List[Long], n: Int)
-  case class TopConnectedQuery(includePerson2: Boolean, collections: Option[Set[String]], n: Int)
+  case class TopClientsQuery(includePerson2: Boolean, extRefIds: List[Long], maxEdges: Int)
+  case class TopConnectedQuery(includePerson2: Boolean, minScore: Double, collections: Option[Set[String]], maxEdges: Int)
   case class GraphQuery(includePerson2: Boolean, collections: Option[Set[String]], nodeId: Option[Int], extRefId: Option[Long], maxHops: Int, maxEdges: Int) // specify either nodeId or extRefId
   case class Graph(nodes: List[Node], edges: List[EdgeTotal])
   case class ClientEdgeCounts(counts: List[ClientEdgeCount])
@@ -93,7 +94,7 @@ Test with:
     implicit val edgeTotalCodec = jsonFormat3(EdgeTotal)
 //    implicit val nodeQueryCodec = jsonFormat2(NodeQuery)
     implicit val topClientsQueryCodec = jsonFormat3(TopClientsQuery)
-    implicit val topConnectedQueryCodec = jsonFormat3(TopConnectedQuery)
+    implicit val topConnectedQueryCodec = jsonFormat4(TopConnectedQuery)
     implicit val graphQueryCodec = jsonFormat6(GraphQuery)
     implicit val graphCodec = jsonFormat2(Graph)
     implicit val clientEdgeCountsCodec = jsonFormat1(ClientEdgeCounts)
@@ -174,7 +175,7 @@ Test with:
       val nodeIds = q.extRefIds.flatMap(extRefIdToNodeId).toSet
       val l = nodeIds.view.map { id => 
         ClientEdgeCount(id, nodeEdgeMap.edgesBySource(id).size + nodeEdgeMap.edgesByTarget(id).size)
-      }.toList.sortBy(-_.numEdges).take(q.n)
+      }.toList.sortBy(-_.numEdges).take(q.maxEdges)
       ClientEdgeCounts(l)
     }
     
@@ -196,17 +197,21 @@ Test with:
         EdgeTotal(e, w, c)
     }
     
+    def edgeScoreFilter(minScore: Double, nodes: NodeMap): Edge => Boolean =
+      if (minScore > 0.0) e => nodes(e.source).score > minScore && nodes(e.target).score > minScore
+      else e => true
+    
     @Path("topConnectedGraph")
-    @ApiOperation(httpMethod = "POST", response = classOf[Graph], value = "graph of the strongest edges from nodes matching the query")
+    @ApiOperation(httpMethod = "POST", response = classOf[Graph], value = "graph of the strongest edges from the selected collections")
     @Consumes(Array(MediaType.APPLICATION_JSON))
     def topConnectedGraph(q: TopConnectedQuery): Graph = {
       log.info(s"topConnectedGraph: q = $q")
       
       val nem = if (q.includePerson2) nodeEdgeMap else nodeEdgeMap3
       val etw = edgeTotalWeight(q.collections)
-      val edges1 = nem.edges.view.map(etw).filter(_.totalWeight > 0.0).toIndexedSeq
-      log.info("topConnectedGraph: got total weights for all edges")
-      val edges = edges1.sortBy(-_.totalWeight).view.take(q.n).toList // sort by weight descending
+      val esf = edgeScoreFilter(q.minScore, nem.nodes)
+      val edges1 = nem.edges.iterator.map(etw).filter(e => e.totalWeight > 0.001 && esf(e.edge))
+      val edges = Util.top(q.maxEdges, edges1)(Ordering.by(_.totalWeight)) // top edges by weight
       log.info("topConnectedGraph: got highest weight edges")
       val nodes = (edges.view.map(_.edge.source) ++ edges.view.map(_.edge.target)).toSet.view.map(nem.nodes).toList
       log.info("topConnectedGraph: got nodes")
@@ -220,17 +225,21 @@ Test with:
     
     // ----------------------------------------------------------
     
+    // this way of combining distances gives a shorter multi-hop distance than just summing the lengths of the edges
+    // so we'll slightly favour multi-hop paths over single edges.
     def distance(a: Double, b: Double) = Math.sqrt(a * a + b * b)
     
     @tailrec final def expand(nem: NodeEdgeMap, ew: Edge => EdgeTotal, n: Int, newIds: Set[Int], nodeDist: Map[Int, Double], edges: Set[EdgeTotal]= Set.empty): (Int, Set[Int], Map[Int, Double], Set[EdgeTotal]) = {
       if (n < 1) (n, newIds, nodeDist, edges) else {
+        // TODO: filter out those outside maxEdges shortest? Check that end result is the same.
         val knownSource = newIds.view.flatMap(id => nem.edgesBySource(id).view.map(ew)) // edges with known node as source
         val nodeDist1 = knownSource.foldLeft(nodeDist) { (z, e) => 
           val d0 = z.get(e.edge.target)
           val d1 = distance(z(e.edge.source), 1.0/e.totalWeight)
           val d3 = d0.map(Math.min(_, d1)).getOrElse(d1)
-          z + (e.edge.target -> d3)
+          z + (e.edge.target -> d3)  // TODO: only add if d3 
         }
+        // TODO: filter out those outside maxEdges shortest?
         val knownTarget = newIds.view.flatMap(id => nem.edgesByTarget(id).view.map(ew)) // edges with known node as target
         val nodeDist2 = knownTarget.foldLeft(nodeDist1) { (z, e) => 
           val d0 = z.get(e.edge.source)
@@ -246,7 +255,7 @@ Test with:
     }
     
     // ----------------------------------------------------------
-  
+      
     @Path("graph")
     @ApiOperation(httpMethod = "POST", response = classOf[Graph], value = "graph matching the query")
     @Consumes(Array(MediaType.APPLICATION_JSON))
@@ -258,8 +267,9 @@ Test with:
         log.debug(s"graph: nodeIds = ${nodeIds}")
         val (_, _, nodeDist, edges) = expand(nem, etw, q.maxHops, nodeIds, nodeIds.map(_ -> 0.0).toMap)
         log.info(s"graph: got ${edges.size} edges")
-        // sort edges by distance to furtherest end, ascending
-        val topEdges = edges.toIndexedSeq.sortBy(e => Math.max(nodeDist(e.edge.source), nodeDist(e.edge.target))).take(q.maxEdges)
+        // take the closest maxEdges
+        val topEdges = Util.bottom(q.maxEdges, edges.iterator)(Ordering.by(e => Math.max(nodeDist(e.edge.source), nodeDist(e.edge.target)))) // 8s
+        // val topEdges2 = edges.toIndexedSeq.sortBy(e => Math.max(nodeDist(e.edge.source), nodeDist(e.edge.target))).take(q.maxEdges) // 1m1s 
         log.info(s"graph: got top edges")
         val topNodes = (topEdges.view.map(_.edge.source) ++ topEdges.view.map(_.edge.target)).toSet.view.map(nem.nodes).toList
         log.info(s"graph: got top nodes")

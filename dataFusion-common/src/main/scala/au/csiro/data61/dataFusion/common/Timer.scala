@@ -2,7 +2,16 @@ package au.csiro.data61.dataFusion.common
 
 import com.typesafe.scalalogging.Logger
 
-/** Accumulate time since constructed or reset. */
+/** Accumulate time since constructed or reset.
+ *  
+ *  Usage:
+ *  {{{
+ *  val t = Timer()
+ *  ...
+ *  t.stop
+ *  log.info(s"... took ${t.elapsedSecs} secs")
+ *  }}}
+ */
 class Timer {
   private var t0 = 0L      // start of currently measured time period
   private var elapsed = 0L // sum of previous time periods ended by stop/elapsedSecs
@@ -14,12 +23,12 @@ class Timer {
     start
   }
 
-  /** `start` and `stop` need not be used - used to discard (not accumulate) the time between `stop` and `start`. */
+  /** `start` need not be used - used to discard (not accumulate) the time between `stop` and `start`. */
   def start = t0 = System.currentTimeMillis
 
   def stop = elapsed += (System.currentTimeMillis - t0)
 
-  /** Get accumulated seconds. */
+  /** Get accumulated seconds up to `stop` */
   def elapsedSecs: Float = elapsed * 1e-3f
 }
 
