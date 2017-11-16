@@ -16,7 +16,7 @@ This user interface provides many input fields affecting the graph layout that w
 ### Description of Input Fields
 
 - `include person nodes using only first and family names`
-If not ticked then we use only NER's with `impl=D62GAZ` and `typ=PERSON|ORGANIZATION`. If ticked we use the above plus: `impl=D61GAZ` and `typ=PERSON2`; and `impl=D61EMAIL` and `typ=FROM|TO|CC|BCC`, which includes many more people at the expense of some lower quality matches. Please see [dataFusion-common](../dataFusion/common) for the definitions of the NER structure and these fields.
+If not ticked then we use only NER's with `impl=D62GAZ` and `typ=PERSON|ORGANIZATION`. If ticked we use the above plus: `impl=D61GAZ` and `typ=PERSON2`; and `impl=D61EMAIL` and `typ=FROM|TO|CC|BCC`, which includes many more people at the expense of some lower quality matches. Please see [dataFusion-common](../dataFusion-common) for the definitions of the NER structure and these fields.
 
 - `collections`
 Tick the collections you want included in the graph (none ticked includes all collections).

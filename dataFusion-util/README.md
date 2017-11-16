@@ -15,13 +15,11 @@ Network building uses the follow named entities (see [dataFusion-common](../data
 
 Parameters are the decay value (set by the `--decay` CLI option with default value 500 characters) and a cutoff which is `5 * decay`.
 
-TODO: Getting there but this isn't quite right yet.
-
-    (weight, count) for named entities n1 and n2 in collection c =
+    (weight, count) for edge representing co-occurrences of named entities n1 and n2 in collection c =
       sum over documents d in collection c
-      sum over subdocuments e of d (main content and each embedded document)
-      sum over edge = pair of named entities n1 & n2 where dist = n2.offStr - n2.offStr < cutoff
-      weight = exp( - dist / decay )
+      sum over sub-documents e in d (main content and each embedded document)
+      sum over pairs of instances of n1 & n2 in e, where dist = abs( n2.offStr - n2.offStr ) < cutoff
+      weight = exp( - dist / decay ), count = 1
       
 
 ## Build, Configuration and Running
