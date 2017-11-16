@@ -6,7 +6,7 @@ This project provides a [RESTful](https://en.wikipedia.org/wiki/Representational
 
 ## Build, Configuration and Running
 
-See the top level README.
+See the top level [README](../README.md).
 
 Example:
 

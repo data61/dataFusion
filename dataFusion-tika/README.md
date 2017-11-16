@@ -11,7 +11,7 @@ This project provides a library and multi-threaded CLI (command line interface) 
 
 ## Build, Configuration and Running
 
-See the top level README.
+See the top level [README](../README.md).
 
 Example:
 

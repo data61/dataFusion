@@ -6,4 +6,4 @@ This project provides [RESTful](https://en.wikipedia.org/wiki/Representational_s
 
 ## Build, Configuration and Running
 
-This is mostly covered by the top level README, however note the particular requirements of dataFusion-ner.
+This is mostly covered by the top level [README](../README.md), however note the particular requirements of [dataFusion-ner](../dataFusion-ner).

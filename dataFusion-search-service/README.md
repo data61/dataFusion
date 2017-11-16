@@ -6,5 +6,5 @@ This project provides [RESTful](https://en.wikipedia.org/wiki/Representational_s
 
 ## Build, Configuration, Running and Swagger Support
 
-See the top level README.
+See the top level [README](../README.md).
 

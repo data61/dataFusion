@@ -27,4 +27,4 @@ The edges computed above (with count > 0) are written in [Edge JSON format](../d
 
 ## Build, Configuration and Running
 
-See the top level README.
+See the top level [README](../README.md).

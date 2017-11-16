@@ -7,7 +7,7 @@ It performs [Named Entity Recognition](https://en.wikipedia.org/wiki/Named-entit
 
 ## Build, Configuration and Running
 
-This is mostly covered by the top level README, however MITIE has some particular requirements and
+This is mostly covered by the top level [README](../README.md), however MITIE has some particular requirements and
 we use a local build of CoreNLP to get a bug fix made since the latest 3.8.0 release.
 
 ## MITIE Requirements

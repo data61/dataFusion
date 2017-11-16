@@ -25,7 +25,7 @@ Parameters to the framework are:
 All the dataFusion muti-threaded CLI’s operate by defining these parameters to suit the task at hand and using this framework.
 
 ## Build
-See the top level README.
+See the top level [README](../README.md#build).
 
 ## JSON Data Formats
 This section describes the JSON based data file formats used throughout the dataFusion project.

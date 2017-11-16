@@ -34,5 +34,5 @@ The `--searchCsv`  option generates queries from CSV data.
 
 ## Build, Configuration and Running
 
-See the top level README.
+See the top level [README](../README.md).
 
