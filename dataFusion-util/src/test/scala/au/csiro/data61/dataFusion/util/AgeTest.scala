@@ -29,16 +29,34 @@ To: Bloggs Frederick (Akaroa); Smith
   }
   
   it should "not find age after other text" in {
-     val d = Doc(1, Some(content.replaceFirst("\\(37\\)", "aged (37)")), Map.empty, "path", List(n), List.empty)
-     log.debug(s"d.content = ${d.content}")
-     val d2 = Age.augment(d)
-     d2 should be(d)
+    val d = Doc(1, Some(content.replaceFirst("\\(37\\)", "ate (37) hotdogs")), Map.empty, "path", List(n), List.empty)
+    log.debug(s"d.content = ${d.content}")
+    val d2 = Age.augment(d)
+    d2 should be(d)
   }
 
   it should "not find age in a phone number" in {
-     val d = Doc(1, Some(content.replaceFirst("\\(37\\)", "(65) 2345-6034")), Map.empty, "path", List(n), List.empty)
-     log.debug(s"d.content = ${d.content}")
-     val d2 = Age.augment(d)
-     d2 should be(d)
+    val d = Doc(1, Some(content.replaceFirst("\\(37\\)", "(65) 2345-6034")), Map.empty, "path", List(n), List.empty)
+    log.debug(s"d.content = ${d.content}")
+    val d2 = Age.augment(d)
+    d2 should be(d)
+  }
+  
+  it should "find age after name, aged dd" in {
+    val d = Doc(1, Some(content.replaceFirst(" \\(37\\)", ", aged 37")), Map.empty, "path", List(n), List.empty)
+    log.debug(s"d.content = ${d.content}")
+    val d2 = Age.augment(d)
+    log.debug(s"d2 = $d2")
+    val expected = Ner(n.posEnd + 2, n.posEnd + 3, n.offEnd + 7, n.offEnd + 9, 1.0, "37", "AGE", "D61AGE", extRef)
+    assert(d2.ner.contains(expected))
+  }
+  
+  it should "find age after name, up 2 20 chars, aged dd" in {
+    val d = Doc(1, Some(content.replaceFirst("\\(37\\)", "up 2 20 chars aged 37")), Map.empty, "path", List(n), List.empty)
+    log.debug(s"d.content = ${d.content}")
+    val d2 = Age.augment(d)
+    log.debug(s"d2 = $d2")
+    val expected = Ner(n.posEnd + 6, n.posEnd + 7, n.offEnd + 20, n.offEnd + 22, 1.0, "37", "AGE", "D61AGE", extRef)
+    assert(d2.ner.contains(expected))
   }
 }
