@@ -2,14 +2,13 @@
 
 ## Introduction
 This project provides command line utilities for:
-- converting bulk entity search results into the NER data format and merging into the NER results (`--hits` CLI option)
-- finding mentions of people in email headers and merging into the NER results (`--email` CLI option)
-- network building from the NER results (including bulk search and email headers, `--proximity` CLI option)
-
-Additionally the `--resetId` CLI option is provided to reallocate the id's in a NER format JSON file. This can be useful in the case of merging multiple partial tika runs where the ids would otherwise not be unique. 
+- converting and merging [Search Result JSON format](../dataFusion-common#search-result-json-format) into the [Document JSON format](../dataFusion-common#document-json-format) (`--hits` CLI option);
+- finding mentions of people in email headers and merging results into the [Document JSON format](../dataFusion-common#document-json-format) (`--email` CLI option);
+- network building from the [Document JSON format](../dataFusion-common#document-json-format) (`--proximity` CLI option); and
+- reallocating the id's in a [Document JSON format](../dataFusion-common#document-json-format) file, which can be useful in the case of merging multiple partial tika runs where the joint ids would otherwise not be unique (`--resetId` CLI option). 
 
 ## Network Building
-Network building uses the follow named entities (see [dataFusion-common](../dataFusion/common) for the definitions of the NER structure and these fields):
+Network building uses the follow named entities (see [NER Structure](../dataFusion-common#ner-structure) for details):
 - `impl=D62GAZ` and `typ=PERSON|PERSON2|ORGANIZATION`;
 - `impl=D61EMAIL` and `typ=FROM|TO|CC|BCC`
 
@@ -21,6 +20,7 @@ Parameters are the decay value (set by the `--decay` CLI option with default val
       sum over pairs of instances of n1 & n2 in e, where dist = abs( n2.offStr - n2.offStr ) < cutoff
       weight = exp( - dist / decay ), count = 1
       
+The edges computed above (with weight, count > 0) are written to proximity-edge.json and the nodes referenced 
 
 ## Build, Configuration and Running
 

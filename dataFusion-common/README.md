@@ -31,8 +31,8 @@ See the top level README.
 This section describes the JSON based data file formats used throughout the dataFusion project.
 ### File Structure
 Each line is a JSON structure describing one item of some type. This is more efficient to read and write than making the entire file a JSON array of such structures, because parsing/serialisation can operate document/line at a time, without storing all the data in memory. Since the line delimiter is used as a structure delimiter, the JSON structures must not be “pretty printed” across multiple lines in the file, however “pretty printing” is used here as an aid to human readability.
-### Document Representation
-This section describes the Document JSON format. A line in the file describes one document using the following structure.
+### Document JSON format
+This section describes the parsed representation of an unstructured document. A line in the file describes one document using the following structure.
 #### Document Structure
 
     {
@@ -109,8 +109,9 @@ This describes information from an external (with respect to DataFusion) data so
 where:
 - `name` is the name generated from the external data source (and is what was searched for by dataFusion-search); and 
 - `ids` are references to entities in the external data source with this name (e.g. for the client register this will be    `clnt_intrnl_id`s). 
-### Search Result Representation
-This section describes the Search Result JSON format. A line in the file describes all the matches in all collections for a given entity name. Search results produced in this format are then merged into the Document JSON format described above using `dataFusion-util --hits`. It is recommended to use the merged Document JSON format data rather than the data in this format.
+
+### Search Result JSON format
+This section describes the representation Search Results. A line in the file describes all the matches in all collections for a given entity name. Search results produced in this format are then merged into the Document JSON format described above using `dataFusion-util --hits`. It is recommended to use the merged Document JSON format data rather than the data in this format.
 #### Search Result Structure
     {
       "stats": {
@@ -152,7 +153,8 @@ where:
         }
 
 where fields have the same meaning as in NER Structure.
-### Query Representation
+
+### PosQuery JSON format
 The recommended method to generate queries for `dataFusion-search` is to let it generate the queries directly from a CSV data file, however it can also accept queries in the PosQuery JSON file format, with one PosQuery per line.
 #### PosQuery Structure
 
@@ -164,8 +166,9 @@ The recommended method to generate queries for `dataFusion-search` is to let it 
 where:
 - `extRef` is as described in ExtRef Structure; and
 - `typ` is as described in Search Result Structure.
-### Network Representation
-This section describes the Node and Edge JSON file formats, which together define a network. Again there is one structure per line.
+
+### Node and Edge JSON formats
+This section describes the network representation as a set of nodes in one file and a set of edges in another. Again there is one structure per line.
 #### Node Structure
 
     {
