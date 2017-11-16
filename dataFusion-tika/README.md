@@ -4,10 +4,10 @@
 
 This project provides a library and multi-threaded CLI (command line interface) for bulk processing. It provides:
 
-- access to [Apache Tika](https://tika.apache.org/) customized to OCR images embedded in PDFs (including TIFF, JPEG2000 and JBIG2, which are not handled by Tika out-of-the-box)
-- some cleaning and filtering of Tika metadata
-- augmentation of the metadata with the language of the text (`language-code` and `language-prob`)
-- representation of results in dataFusion data structures
+- access to [Apache Tika](https://tika.apache.org/) customized to OCR images embedded in PDFs (including TIFF, JPEG2000 and JBIG2, which are not handled by Tika out-of-the-box);
+- some cleaning and filtering of Tika metadata;
+- augmentation of the metadata with the language of the text (`language-code` and `language-prob`) and a score for how closely the text matches a simple model for English sentences `english-score`; and
+- results in the [Document JSON format](../dataFusion-common#document-json-format).
 
 ## Build, Configuration and Running
 

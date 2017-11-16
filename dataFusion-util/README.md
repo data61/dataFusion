@@ -3,9 +3,12 @@
 ## Introduction
 This project provides command line utilities for:
 - converting and merging [Search Result JSON format](../dataFusion-common#search-result-json-format) into the [Document JSON format](../dataFusion-common#document-json-format) (`--hits` CLI option);
-- finding mentions of people in email headers and merging results into the [Document JSON format](../dataFusion-common#document-json-format) (`--email` CLI option);
+- parse content for mentions of people in email headers and merging results into the [Document JSON format](../dataFusion-common#document-json-format) (`--email` CLI option);
+- parse content for parenthesized age after a person's name and merging results into the [Document JSON format](../dataFusion-common#document-json-format) (`--age` CLI option);
 - network building from the [Document JSON format](../dataFusion-common#document-json-format) (`--proximity` CLI option); and
 - reallocating the id's in a [Document JSON format](../dataFusion-common#document-json-format) file, which can be useful in the case of merging multiple partial tika runs where the joint ids would otherwise not be unique (`--resetId` CLI option). 
+
+The CLI options `--hits`, `--email` and `--age` can be used jointly.
 
 ## Network Building
 Network building uses the follow named entities (see [NER Structure](../dataFusion-common#ner-structure) for details):
