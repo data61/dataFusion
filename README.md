@@ -40,7 +40,7 @@ cleans out previous build products, runs unit tests, publishes libraries to your
 
 Notes:
 - Without `-J-Xmx2G` tests may fail due to insufficient memory. 
-- Without MITIE-models installed (see the [dataFusion-ner README](dataFusion-ner) for details) and `source sh/setenv` (with appropriate locations in that file) tests involving MITIE may fail.
+- Without MITIE-models installed (see [dataFusion-ner](dataFusion-ner) for details) and `source sh/setenv` (with appropriate locations in that file) tests involving MITIE may fail.
 
 ## Run
 
