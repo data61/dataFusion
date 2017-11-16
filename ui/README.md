@@ -37,7 +37,7 @@ The [dataFusion-graph-service](../dataFusion-graph-service) provides a totalCoun
 The maximum number of edges to display.
 
 - `minScore`
-The minimum `score` of nodes to display. Low IDF scores reflect names without highly distinguishing terms and so bear a higher probability of spuruous matches. Many (possibly spurious) connections to a low scoring node can obscure more important connections. Raising `minScore` above that of the low scoring node can address this. 
+The minimum `score` of nodes to display. Low IDF scores reflect names without highly distinguishing terms and so bear a higher probability of spurious matches. Many (possibly spurious) connections to a low scoring node can obscure more important connections. Raising `minScore` above that of the low scoring node can address this. 
 
 - `Top Connected`
 Display the `maxEdges` shortest edges within the specified collections.

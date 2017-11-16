@@ -14,13 +14,13 @@ Network building uses the follow named entities (see [NER Structure](../dataFusi
 
 Parameters are the decay value (set by the `--decay` CLI option with default value 500 characters) and a cutoff which is `5 * decay`.
 
-    (weight, count) for edge representing co-occurrences of named entities n1 and n2 in collection c =
+    (weight, count) for an edge representing co-occurrences of named entities n1 and n2 in collection c =
       sum over documents d in collection c
       sum over sub-documents e in d (main content and each embedded document)
       sum over pairs of instances of n1 & n2 in e, where dist = abs( n2.offStr - n2.offStr ) < cutoff
       weight = exp( - dist / decay ), count = 1
       
-The edges computed above (with weight, count > 0) are written to proximity-edge.json and the nodes referenced 
+The edges computed above (with count > 0) are written in [Edge JSON format](../dataFusion-common#node-and-edge-json-formats) to proximity-edge.json and the nodes referenced in these edges are written in [Node JSON format](../dataFusion-common#node-and-edge-json-formats) to proximity-node.json.
 
 ## Build, Configuration and Running
 
