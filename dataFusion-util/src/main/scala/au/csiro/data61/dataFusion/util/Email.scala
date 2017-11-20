@@ -7,111 +7,84 @@ import java.util.regex.Pattern
 import com.typesafe.scalalogging.Logger
 
 import au.csiro.data61.dataFusion.common.Data.{ Doc, EMAIL, ExtRef, GAZ, Ner, T_PERSON, T_PERSON2 }
+import scala.collection.mutable.ArrayBuffer
 
-// TODO: perhaps convert to scala rexex, although I don't think the code is more compact
+/**
+ * Handle email messages printed from MS Outlook then scanned.
+ * 
+ * We're seeing headers missing the colon after From To etc. and other punctuation in the main .content (provided by the scanner's OCR),
+ * however these are present in the embedded[].content (Tika's Tesseract OCR).
+ * When matching on headers missing the colon we can't separate recipient's names due to missing semi-colons (or names from their
+ * parenthesized locations due to the missing parentheses), so there's no point trying to handle the case of missing punctuation.
+ * In most cases we'll get the same data with the punctuation from the embedded[].content.
+ */
+// could convert to scala regex, although I don't think the code would be any more compact
 object Email {
   private val log = Logger(getClass)
 
   def p(re: String) = Pattern.compile(re, MULTILINE | CASE_INSENSITIVE)
   
-  val head = "(?:From|To|Cc|Bcc)"
-  val name = s"(?!^${head})[A-Z'-]+"
+  val name = "[A-Z'-]+,?"
   val location = "\\([^)]+\\)"
   val person = s"${name}(?:\\s+${name})*(?:\\s+${location})?"
-  val personList = p(s"^(${head}):?\\s+(${person}(?:;\\s+${person})*)")
+  val from = p(s"^From:\\s+(${person})\\s*$$")
+  val recipientList = p(s"^(To|Cc|Bcc):\\s+(${person}(?:;\\s+${person})*)$$")
   val personDelim = p("\\s*;\\s+")
-  
-  val startHead = p("^From:?\\s")
-  val endHead = p("^(?:Subject|Sent|Date|From):?\\s")
-  
-  val nonHeadLine = s"^(?!${head}:?\\s).*$$"
-  val body = p(s"nonHeadLine{10}")
-  
-  /** Iterate over blocks of email headers returning the (str, end) character offsets of each block */ 
-  def blockIter(text: String) = new Iterator[(Int, Int)] {
-    var str = 0
-    var end = 0
-    val mStr = startHead.matcher(text)
-    val mEnd = endHead.matcher(text)
-    val mBody = body.matcher(text)
-    
-    override def hasNext = {
-      val has = mStr.find(end)
-      if (has) {
-        str = mStr.start
-        end = if (mEnd.find(str + 1)) mEnd.start
-          else if (mBody.find(str + 1)) mBody.end
-          else text.length
-      }
-      has
-    }
-    
-    override def next = (str, end)
-  }
-  
-  /** Within a block, iterate over each header (From, To, etc.) and it's list of people, returning:
-   *  (Hdr e.g. "To", start offset of list of people, end offset of list of people)
-   */
-  def personListIter(text: String, str0: Int, end0: Int) = new Iterator[(String, Int, Int)] {
-    var str = str0
-    var end = str0
-    val m = personList.matcher(text.substring(0, end0))
-    
-    override def hasNext = {
-      val has = m.find(end)
-      if (has) {
-        str = m.start
-        end = m.end
-      }
-      has
-    }
-    
-    override def next = (m.group(1), m.start(2), m.end(2))
-  }
-  
-  /** Within a list of people, iterate over each person, returning (start offset of person, end offset of person) */
-  def personIter(text: String, str0: Int, end0: Int) = new Iterator[(Int, Int)] {
-    var str = str0
-    var end = str0
-    var pos = str0
-    val m = personDelim.matcher(text.substring(0, end0))
-    
-    override def hasNext = {
-      str = pos
-      if (m.find(pos)) {
-        end = m.start
-        pos = m.end
-        true
-      } else if (pos < end0) {
-        end = end0
-        pos = end0
-        true
-      } else {
-        false
-      }
-    }
-    
-    override def next = (str, end)
-  }
+  val endHead = p("^(?:Subject|Sent|Date):\\s.+$$")
+  val space = "\\s+".r
   
   /** create EMAIL Ner's from names in parsed email headers */
   def toNer(extRef: Int => Option[ExtRef])(text: String): Iterator[Ner] = {
-    val space = "\\s+".r
+    // rough attempt at generating a pos (word offset) from an off (character offset)
     val wordOffsets = (Iterator.single(0) ++ space.findAllMatchIn(text).map(_.end)).toArray
     def toPos(off: Int) = {
       val x = Arrays.binarySearch(wordOffsets, off)
       if (x >= 0) x else -x - 1
     }
     
-    for {
-      (str, end) <- blockIter(text)
-      (hdr, pplStr, pplEnd) <- personListIter(text, str, end)
-      // ppl = text.substring(pplStr, pplEnd)
-      // _ = log.debug(s"hdr = $hdr, pplStr = $pplStr, pplEnd = $pplEnd, ppl = $ppl")
-      (offStr, offEnd) <- personIter(text, pplStr, pplEnd)
-    } yield Ner(toPos(offStr), toPos(offEnd), offStr, offEnd, 1.0f, text.substring(offStr, offEnd), hdr.toUpperCase, EMAIL, extRef(offStr))
+    val mFrom = from.matcher(text)
+    val mRecip = recipientList.matcher(text)
+    val mEnd = endHead.matcher(text)
+    val mPerDelim = personDelim.matcher(text)
+    
+    val buf = new ArrayBuffer[Ner]
+    def addNer(offStr: Int, offEnd: Int, typ: String): Unit = {
+      buf += Ner(toPos(offStr), toPos(offEnd), offStr, offEnd, 1.0f, text.substring(offStr, offEnd), typ, EMAIL, extRef(offStr))
+    }
+    
+    var p = 0
+    while (p < text.length && mFrom.find(p)) {
+      val bufSize = buf.size
+      log.debug(s"toNer: FROM: ${mFrom.group(1)}")
+      addNer(mFrom.start(1), mFrom.end(1), "FROM")
+      p = mFrom.end + 1 // skip past the \n
+      while (p < text.length && { mRecip.region(p, text.length); mRecip }.lookingAt) {
+        log.debug(s"toNer: ${mRecip.group(1)}: ${mRecip.group(2)}")
+        val typ = mRecip.group(1).toUpperCase
+        mPerDelim.region(mRecip.start(2), mRecip.end(2))
+        var pd = mRecip.start(2)
+        while (pd < mRecip.end(2) && mPerDelim.find) {
+          log.debug(s"toNer: ${typ}: ${text.substring(pd, mPerDelim.start)}")
+          addNer(pd, mPerDelim.start, typ)
+          pd = mPerDelim.end
+        }
+        if (pd < mRecip.end(2)) {
+          log.debug(s"toNer: ${typ}: ${text.substring(pd, mRecip.end(2))}")
+          addNer(pd, mRecip.end(2), typ)
+        }
+        p = mRecip.end + 1
+      }
+      if (p < text.length && { mEnd.region(p, text.length); mEnd }.lookingAt) {
+        log.debug("toNer: got end of header")
+        p = mEnd.end + 1
+      } else {
+        log.info(s"Not seeing email end header at offset $p. content: $text")
+      }
+      // if (buf.size < bufSize + 2) buf.remove(bufSize, buf.size - 1)
+    } 
+    buf.iterator
   }
-  
+    
   /** the ExtRef in the Email Ner is taken from a GAZ Ner of typ T_PERSON or T_PERSON2 starting at the same offset */
   def extRef(ner: List[Ner]): Int => Option[ExtRef] = {
     def m(p: Ner => Boolean) = ner.filter(p).groupBy(_.offStr)
@@ -133,4 +106,70 @@ object Email {
     }
     d.copy(ner = ner, embedded = embedded)
   }
+//  /** Iterate over blocks of email headers returning the (str, end) character offsets of each block */ 
+//  def blockIter(text: String) = new Iterator[(Int, Int)] {
+//    var str = 0
+//    var end = 0
+//    val mStr = startHead.matcher(text)
+//    val mRecip = recipientList.matcher(text)
+//    val mEnd = endHead.matcher(text)
+//    
+//    override def hasNext = {
+//      val has = mStr.find(end) && mRecip.find(mStr.end) && mEnd.find(mStr.end) && mRecip.end < mEnd.start
+//      log.debug(s"hasNext: mStr = $mStr, mEnd = $mEnd, mRecip = $mRecip")
+//      if (has) {
+//        str = mStr.start
+//        end = mEnd.start
+//        if (end - str > 1024) log.info(s"hasNext: big header size = ${end - str}, content = ${text.substring(str, end)}")
+//      }
+//      has
+//    }
+//    
+//    override def next = (str, end)
+//  }
+//  
+//  /** Within a block, iterate over each header (From, To, etc.) and it's list of people, returning:
+//   *  (Hdr e.g. "To", start offset of list of people, end offset of list of people)
+//   */
+//  def personListIter(text: String, str0: Int, end0: Int) = new Iterator[(String, Int, Int)] {
+//    var str = str0
+//    var end = str0
+//    val m = personList.matcher(text.substring(0, end0))
+//    
+//    override def hasNext = {
+//      val has = m.find(end)
+//      if (has) {
+//        str = m.start
+//        end = m.end
+//      }
+//      has
+//    }
+//    
+//    override def next = (m.group(1), m.start(2), m.end(2))
+//  }
+//  
+//  /** Within a list of people, iterate over each person, returning (start offset of person, end offset of person) */
+//  def personIter(text: String, str0: Int, end0: Int) = new Iterator[(Int, Int)] {
+//    var str = str0
+//    var end = str0
+//    var pos = str0
+//    val m = personDelim.matcher(text.substring(0, end0))
+//    
+//    override def hasNext = {
+//      str = pos
+//      if (m.find(pos)) {
+//        end = m.start
+//        pos = m.end
+//        true
+//      } else if (pos < end0) {
+//        end = end0
+//        pos = end0
+//        true
+//      } else {
+//        false
+//      }
+//    }
+//    
+//    override def next = (str, end)
+//  }
 }

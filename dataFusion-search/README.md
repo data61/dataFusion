@@ -22,7 +22,7 @@ A search hit must match all tokens in the query with tokens in the same order.
 ### People
 A search hit must match all tokens in the query, but the tokens may appear in any order.
 ### Scoring
-A query is assigned an IDF score as per [Lucene's scoring formula](https://lucene.apache.org/core/7_1_0/core/org/apache/lucene/search/similarities/TFIDFSimilarity.html). This is the score in the search result. If this score is below the threshold set by the `--minScore` option (default 3.5) then the query is deemed to be insufficiently distiguishing and is skipped.
+A query is assigned an [IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf#Inverse_document_frequency) score  calculated using [Lucene’s formula](https://lucene.apache.org/core/7_1_0/core/org/apache/lucene/search/similarities/TFIDFSimilarity.html). If this score is below the threshold set by the `--minScore` CLI option (default 3.5) then the query is deemed to be insufficiently distiguishing and is skipped.
 ### Query Generation from CSV
 The `--searchCsv`  option generates queries from CSV data.
 - People's names are expected to be segmented into 3 fields for the person's family, first given and other names.

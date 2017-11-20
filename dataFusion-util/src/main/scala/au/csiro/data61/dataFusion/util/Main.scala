@@ -39,7 +39,7 @@ object Main {
     } text (s"Parse content for people in email headers. Read tika/ner json from stdin and write it augmented with NER data derived from email headers. Output defaults to $defGazOut")
     opt[Unit]("age") action { (_, c) =>
       c.copy(age = true, output = c.output.orElse(Some(new File(defGazOut))))
-    } text (s"Parse content for parenthesized age after a person's name. Read tika/ner json from stdin and write it augmented with NER data derived from age matches. Output defaults to $defGazOut")
+    } text (s"Parse content for age after a person's name. Read tika/ner json from stdin and write it augmented with NER data derived from age matches. Output defaults to $defGazOut")
     opt[File]("tmner") action { (v, c) =>
       c.copy(tmner = Some(v), output = c.output.orElse(Some(new File(defGazOut))))
     } text (s"Read tmner JSON (Debbie's NER) from specified file. Read tika/ner json from stdin and write it augmented with NER data derived from tmner. Output defaults to $defGazOut")
