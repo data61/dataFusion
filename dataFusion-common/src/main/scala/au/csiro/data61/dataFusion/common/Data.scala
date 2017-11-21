@@ -31,7 +31,7 @@ object Data {
   // sourceNodeId, targetNodeId -> Scores
   case class Node(nodeId: Int, extRef: ExtRef, score: Double, typ: String)
   case class Edge(source: Int, target: Int, weights: WeightMap, typ: String)  
-  case class ClientEdgeCount(clntIntrnlId: Long, numEdges: Int)
+  case class NodeEdgeCount(nodeId: Int, numEdges: Int)
 
   val EMB_IDX_MAIN = -1 // a searchable value for embIdx to represent main content - not embedded
   case class IdEmbIdx(id: Long, embIdx: Int)
@@ -62,7 +62,7 @@ object Data {
     
     implicit val nodeFormat = jsonFormat4(Node)
     implicit val edgeFormat = jsonFormat4(Edge)
-    implicit val clientEdgeCountFormat = jsonFormat2(ClientEdgeCount)
+    implicit val clientEdgeCountFormat = jsonFormat2(NodeEdgeCount)
     implicit val idEmbIdxCodec = jsonFormat2(IdEmbIdx)
     
     implicit val statsCodec = jsonFormat2(Stats)

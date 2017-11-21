@@ -11,7 +11,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.marshalling.{ ToResponseMarshallable, ToResponseMarshaller }
 import akka.http.scaladsl.model.{ StatusCode, StatusCodes }
 import akka.http.scaladsl.server.Directives._
-import au.csiro.data61.dataFusion.common.Data.ClientEdgeCount
+import au.csiro.data61.dataFusion.common.Data.NodeEdgeCount
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol._
 import au.csiro.data61.dataFusion.db.Tables, Tables._
 import io.swagger.annotations.{ Api, ApiImplicitParam, ApiImplicitParams, ApiModel, ApiOperation, ApiResponse, ApiResponses }
@@ -29,7 +29,7 @@ object DbService {
   case class EntityIds(entityIds: List[Long])
   case class Paths(paths: List[String])
     
-  case class ClientEdgeCounts(counts: List[ClientEdgeCount])
+  case class NodeEdgeCounts(counts: List[NodeEdgeCount])
   
   case class SearchHitsResult(hits: Seq[SearchHitsRow])
 
@@ -56,7 +56,7 @@ object DbService {
     implicit val tikaEmbMainCodec = jsonFormat3(TikaEmbMainRow)
     implicit val tikaEmbMetaCodec = jsonFormat4(TikaEmbMetaRow)
     implicit val tikaEmbNerCodec = jsonFormat7(TikaEmbNerRow)
-    implicit val clientEdgeCountsCodec = jsonFormat1(ClientEdgeCounts)
+    implicit val nodeEdgeCountsCodec = jsonFormat1(NodeEdgeCounts)
     implicit val searchHitsResultsCodec = jsonFormat1(SearchHitsResult)
     implicit val tikaMetaDataCodec = jsonFormat1(TikaMetas)
     implicit val tikaNersCodec = jsonFormat1(TikaNers)

@@ -19,14 +19,14 @@ class MainTest extends FlatSpec with Matchers {
     val g = gs.graph(GraphQuery(true, None, None, Some(224), 2, 20))
     log.debug(s"g = $g")
     g.nodes.map(_.nodeId).toSet should be(Set(1, 2, 3, 4, 5, 6))
-    g.edges.map(e => (e.edge.source, e.edge.target)).toSet should be(Set((2,5), (3,4), (1,6), (3,5), (4,6), (2,6), (1,3), (2,3), (1,2), (5,6)))
+    g.edges.map(e => (e.source, e.target)).toSet should be(Set((2,5), (3,4), (1,6), (3,5), (4,6), (2,6), (1,3), (2,3), (1,2), (5,6)))
   }
   
   it should "filter PERSON2|EMAIL nodes" in {
     val g = gs.graph(GraphQuery(false, None, None, Some(224), 2, 20))
     log.debug(s"g = $g")
     g.nodes.map(_.nodeId).toSet should be(Set(1, 2, 3, 4))
-    g.edges.map(e => (e.edge.source, e.edge.target)).toSet should be(Set((2,3), (3,4), (1,2), (1,3)))
+    g.edges.map(e => (e.source, e.target)).toSet should be(Set((2,3), (3,4), (1,2), (1,3)))
   }
   
 }
