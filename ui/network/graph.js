@@ -23,11 +23,6 @@ function edgeTitle(d) {
 var edgeLength = d => 1/d.totalWeight;
 
 function doGraph(graph, p) {
-  graph.edges = graph.edges.map(e => {
-    e.edge.totalWeight = e.totalWeight;
-    e.edge.totalCount = e.totalCount;
-    return e.edge;
-  });
   console.log('graph =', graph);
 
   svg.selectAll("g").remove();
@@ -135,6 +130,11 @@ function getInt(selector, atr = 'value') {
   return s == "" ? 0 : parseInt(s);
 };
 
+function getFloat(selector, atr = 'value') {
+  var s = getStr(selector, atr);
+  return s == "" ? 0.0 : parseFloat(s);
+};
+
 function isChecked(selector) {
   return d3.select(selector + ':checked').node() != null;
 };
@@ -152,7 +152,7 @@ function getFormVals() {
     distanceLogScale: isChecked('#distanceLogScale'), distanceFrom: getInt('#distanceFrom'), distanceTo: getInt('#distanceTo'),
     nodeRadiusLogScale: isChecked('#nodeRadiusLogScale'), nodeRadiusFrom: getInt('#nodeRadiusFrom'), nodeRadiusTo: getInt('#nodeRadiusTo'),
     edgeWidthLogScale: isChecked('#edgeWidthLogScale'), edgeWidthFrom: getInt('#edgeWidthFrom'), edgeWidthTo: getInt('#edgeWidthTo'),
-    topN: getInt('#topN'),
+    maxEdges: getInt('#maxEdges'), minScore: getFloat('#minScore'),
     nodeId: getInt('#nodeId'), extRefId: getInt('#extRefId'), maxHops: getInt('#maxHops'),
     collections: getCollections()
   };
@@ -173,8 +173,8 @@ console.log('protoHost =', protoHost);
 
 function topConnected() {
   var p = getFormVals();
-  var data = p.collections.length ? { includePerson2: p.includePerson2, collections: p.collections, n: p.topN }
-                                  : { includePerson2: p.includePerson2, n: p.topN };
+  var data = { includePerson2: p.includePerson2, maxEdges: p.maxEdges, minScore: p.minScore };
+  if (p.collections.length) data.collections = p.collections;
   console.log('topConnected: request data =', data);
   d3.json(protoHost + ':8089/topConnectedGraph')
     .mimeType("application/json")
@@ -188,8 +188,9 @@ function topConnected() {
 
 function localNetwork() {
   var p = getFormVals();
-  var data = p.nodeId ? { includePerson2: p.includePerson2, nodeId: p.nodeId, maxHops: p.maxHops, maxEdges: p.topN }
-                      : { includePerson2: p.includePerson2, extRefId: p.extRefId, maxHops: p.maxHops, maxEdges: p.topN };
+  var data = { includePerson2: p.includePerson2, maxHops: p.maxHops, maxEdges: p.maxEdges };
+  if (p.nodeId) data.nodeId = p.nodeId;
+  else data.extRefId = p.extRefId;
   if (p.collections.length) data.collections = p.collections;
   console.log('localNetwork: request data =', data);
   d3.request(protoHost + ':8089/graph')
