@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <link rel="stylesheet" href="graph.css">
+<style>
+.links line {
+  stroke: #999;
+  stroke-opacity: 0.6;
+}
+
+.nodes circle {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+</style>
 <svg width="960" height="600"></svg>
 <div>
 <label for="includePerson2">include person nodes using only first and family names</label><input type="checkbox" id="includePerson2" name="includePerson2" />
@@ -31,6 +42,7 @@
 <br>
 <label for="maxEdges">maxEdges</label><input type="text" id="maxEdges" name="maxEdges" value="100" />
 <label for="minScore">minScore</label><input type="text" id="minScore" name="minScore" value="4.5" />
+<label for="port">graph-service port</label><input type="text" id="port" name="port" value="8089" />
 <br>
 <button type="button" onclick="topConnected();">Top Connected</button>
 <br>

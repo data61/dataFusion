@@ -152,7 +152,7 @@ function getFormVals() {
     distanceLogScale: isChecked('#distanceLogScale'), distanceFrom: getInt('#distanceFrom'), distanceTo: getInt('#distanceTo'),
     nodeRadiusLogScale: isChecked('#nodeRadiusLogScale'), nodeRadiusFrom: getInt('#nodeRadiusFrom'), nodeRadiusTo: getInt('#nodeRadiusTo'),
     edgeWidthLogScale: isChecked('#edgeWidthLogScale'), edgeWidthFrom: getInt('#edgeWidthFrom'), edgeWidthTo: getInt('#edgeWidthTo'),
-    maxEdges: getInt('#maxEdges'), minScore: getFloat('#minScore'),
+    maxEdges: getInt('#maxEdges'), minScore: getFloat('#minScore'), port: getInt('#port'),
     nodeId: getInt('#nodeId'), extRefId: getInt('#extRefId'), maxHops: getInt('#maxHops'),
     collections: getCollections()
   };
@@ -176,7 +176,7 @@ function topConnected() {
   var data = { includePerson2: p.includePerson2, maxEdges: p.maxEdges, minScore: p.minScore };
   if (p.collections.length) data.collections = p.collections;
   console.log('topConnected: request data =', data);
-  d3.json(protoHost + ':8089/topConnectedGraph')
+  d3.json(protoHost + ':' + p.port + '/topConnectedGraph')
     .mimeType("application/json")
     .header("Content-Type", "application/json")
     .response(xhr => JSON.parse(xhr.responseText))
@@ -188,12 +188,12 @@ function topConnected() {
 
 function localNetwork() {
   var p = getFormVals();
-  var data = { includePerson2: p.includePerson2, maxHops: p.maxHops, maxEdges: p.maxEdges };
+  var data = { includePerson2: p.includePerson2, minScore: p.minScore, maxHops: p.maxHops, maxEdges: p.maxEdges };
   if (p.nodeId) data.nodeId = p.nodeId;
   else data.extRefId = p.extRefId;
   if (p.collections.length) data.collections = p.collections;
   console.log('localNetwork: request data =', data);
-  d3.request(protoHost + ':8089/graph')
+  d3.request(protoHost + ':' + p.port + '/graph')
     .mimeType("application/json")
     .header("Content-Type", "application/json")
     .response(xhr => JSON.parse(xhr.responseText))
@@ -203,4 +203,4 @@ function localNetwork() {
     });
 };
 
-// topConnected();
+topConnected();
