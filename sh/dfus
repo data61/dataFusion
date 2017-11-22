@@ -1,5 +1,10 @@
 #! /bin/bash
 
+# error if these vars not set
+: ${DFUS_DIR:?must be set to the location of the dataFusion source tree cloned from from https://github.com/data61/dataFusion/. \"source sh/setenv\" from the dataFusion directory to set the environment.}
+: ${SCALA_VER:?must be set to the Scala version. \"source sh/setenv\" from the dataFusion directory to set the environment.}
+: ${DFUS_VER:?must be set to the dataFusion version. \"source sh/setenv\" from the dataFusion directory to set the environment.}
+
 while getopts ":hm:s:" opt; do
   case $opt in
   m)
@@ -28,9 +33,6 @@ done
 eval cmd=\$$OPTIND
 shift $OPTIND
 # echo $cmd "$@"
-
-# default for util --email is 2M stack, else JVM default is 1M
-[[ -z "$STACK" ]] && [[ "$cmd" == "util" ]] && [[ "$*" == *--email* ]] && STACK="-Xss2M"
 
 getJar() {
   echo ${DFUS_DIR}/dataFusion-${1}/target/scala-${SCALA_VER}/datafusion-${1}_${SCALA_VER}-${DFUS_VER}-one-jar.jar

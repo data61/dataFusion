@@ -26,6 +26,8 @@ import spray.json.pimpString
 import au.csiro.data61.dataFusion.common.Util
 import au.csiro.data61.dataFusion.common.Timer
 import au.csiro.data61.dataFusion.common.Data.WeightMap
+import com.google.common.cache.CacheBuilder
+import com.google.common.cache.CacheLoader
 
 // keeps getting deleted by Eclipse > Source > Organize Imports
 // import javax.ws.rs.core.MediaType
@@ -33,14 +35,17 @@ import au.csiro.data61.dataFusion.common.Data.WeightMap
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(nodePath: File, edgePath: File, host: String, port: Int)
+  case class CliOption(cacheSize: Int, nodePath: File, edgePath: File, host: String, port: Int)
 
   def main(args: Array[String]): Unit = {
     val conf = ConfigFactory.load
-    val defaultCliOption = CliOption(new File(conf.getString("graph.nodePath")), new File(conf.getString("graph.edgePath")), conf.getString("http.host"), conf.getInt("http.port"))
+    val defaultCliOption = CliOption(conf.getInt("graph.cacheSize"), new File(conf.getString("graph.nodePath")), new File(conf.getString("graph.edgePath")), conf.getString("http.host"), conf.getInt("http.port"))
     val parser = new scopt.OptionParser[CliOption]("graph") {
       head("graph", "0.x")
       note("Run Graph web service.")
+      opt[Int]("cacheSize") action { (v, c) =>
+        c.copy(cacheSize = v)
+      } text (s"max number of results cached by each service method, default ${defaultCliOption.cacheSize}")
       opt[File]("nodePath") action { (v, c) =>
         c.copy(nodePath = v)
       } text (s"path of JSON file containing nodes, default ${defaultCliOption.nodePath}")
@@ -66,7 +71,7 @@ object Main {
     implicit val exec = system.dispatcher
     implicit val materializer = ActorMaterializer()
     
-    val graphService = new GraphService(Source.fromFile(c.nodePath), Source.fromFile(c.edgePath))
+    val graphService = new GraphService(c.cacheSize, Source.fromFile(c.nodePath), Source.fromFile(c.edgePath))
     val routes = cors() {
       graphService.routes ~ 
       swaggerService(c.host, c.port).routes
@@ -82,9 +87,9 @@ Test with:
   case class GEdge(source: Node, target: Node, typ: String, weights: WeightMap, minScore: Double, totalWeight: Double, totalCount: Int)
   case class GrEdge(source: Int, target: Int, typ: String, weights: WeightMap, minScore: Double, totalWeight: Double, totalCount: Int)
 //  case class NodeQuery(text: String, typ: String)
-  case class TopClientsQuery(includePerson2: Boolean, extRefIds: List[Long], maxNodes: Int)
+  case class TopClientsQuery(includePerson2: Boolean, minScore: Double, extRefIds: List[Long], maxNodes: Int)
   case class TopConnectedQuery(includePerson2: Boolean, minScore: Double, collections: Option[Set[String]], maxEdges: Int)
-  case class GraphQuery(includePerson2: Boolean, collections: Option[Set[String]], nodeId: Option[Int], extRefId: Option[Long], maxHops: Int, maxEdges: Int) // specify either nodeId or extRefId
+  case class GraphQuery(includePerson2: Boolean, minScore: Double, collections: Option[Set[String]], nodeId: Option[Int], extRefId: Option[Long], maxHops: Int, maxEdges: Int) // specify either nodeId or extRefId
   case class Graph(nodes: List[Node], edges: List[GrEdge])
   case class NodeEdgeCounts(counts: List[NodeEdgeCount])
   
@@ -96,9 +101,9 @@ Test with:
     implicit val nodesCodec = jsonFormat1(Nodes)
     implicit val grEdgeCodec = jsonFormat7(GrEdge)
 //    implicit val nodeQueryCodec = jsonFormat2(NodeQuery)
-    implicit val topClientsQueryCodec = jsonFormat3(TopClientsQuery)
+    implicit val topClientsQueryCodec = jsonFormat4(TopClientsQuery)
     implicit val topConnectedQueryCodec = jsonFormat4(TopConnectedQuery)
-    implicit val graphQueryCodec = jsonFormat6(GraphQuery)
+    implicit val graphQueryCodec = jsonFormat7(GraphQuery)
     implicit val graphCodec = jsonFormat2(Graph)
     implicit val clientEdgeCountsCodec = jsonFormat1(NodeEdgeCounts)
   }
@@ -129,29 +134,32 @@ Test with:
     log.info(s"load: filtered typ = ${T_PERSON} or ${T_ORGANIZATION}: ${nodes3.size} nodes and ${edges3.size} edges")
     
     // extRef.id -> node.id
-    def extRefIdToNodeId(pred: Node => Boolean) = (for {
+    def extRefIdToNode(pred: Node => Boolean) = (for {
       n <- nodes.values.view if pred(n)
       id <- n.extRef.ids
-    } yield id -> n.nodeId).toMap // a many to one mapping
+    } yield id -> n).toMap // a many to one mapping
     
     def edgeMap(edges: IndexedSeq[GEdge], key: GEdge => Int) = edges.groupBy(key).withDefaultValue(IndexedSeq.empty)
     
     (
       NodeEdgeMap(nodes, edges, edgeMap(edges, _.source.nodeId), edgeMap(edges, _.target.nodeId)), 
       NodeEdgeMap(nodes3, edges3, edgeMap(edges3, _.source.nodeId), edgeMap(edges3, _.target.nodeId)), 
-      extRefIdToNodeId(perOrgPred), 
-      extRefIdToNodeId(n => !perOrgPred(n))
+      extRefIdToNode(perOrgPred), 
+      extRefIdToNode(n => !perOrgPred(n))
     )
   }
   
+  
   @Api(value = "graph", description = "graph service", produces = "application/json")
   @Path("")
-  class GraphService(nodeSource: Source, edgeSource: Source) {
-    val (nodeEdgeMap, nodeEdgeMap3, extRefIdToPersonNodeId, extRefIdToPerson2EmailNodeId) = load(nodeSource, edgeSource)
-    log.info(s"GraphService.ctor: load complete: extRefIdToPersonNodeId.size = ${extRefIdToPersonNodeId.size}, extRefIdToPerson2EmailNodeId.size = ${extRefIdToPerson2EmailNodeId.size}")
+  class GraphService(cacheSize: Int, nodeSource: Source, edgeSource: Source) {
+    val (nodeEdgeMap, nodeEdgeMap3, extRefIdToPersonNode, extRefIdToPerson2EmailNode) = load(nodeSource, edgeSource)
+    log.info(s"GraphService.ctor: load complete: extRefIdToPersonNodeId.size = ${extRefIdToPersonNode.size}, extRefIdToPerson2EmailNodeId.size = ${extRefIdToPerson2EmailNode.size}")
     
     /** extRef.id -> list of 0, 1, or 2 nodeIds */
-    def extRefIdToNodeId(id: Long) = extRefIdToPersonNodeId.get(id).toList ++ extRefIdToPerson2EmailNodeId.get(id).toList
+    def extRefIdToNode(includePerson2: Boolean): Long => List[Node] = 
+      if (includePerson2) id => extRefIdToPersonNode.get(id).toList ++ extRefIdToPerson2EmailNode.get(id).toList
+      else id => extRefIdToPersonNode.get(id).toList
     
     // ----------------------------------------------------------
   
@@ -185,7 +193,7 @@ Test with:
     def topConnectedClients(q: TopClientsQuery): NodeEdgeCounts = {
       log.info(s"topConnectedClients: q = $q")
       val nem = if (q.includePerson2) nodeEdgeMap else nodeEdgeMap3
-      val nodeIds = q.extRefIds.flatMap(extRefIdToNodeId).toSet
+      val nodeIds = q.extRefIds.flatMap(extRefIdToNode(q.includePerson2)).filter(_.score >= q.minScore).map(_.nodeId).toSet
       val iter = nodeIds.iterator.map { id => 
         NodeEdgeCount(id, nodeEdgeMap.edgesBySource(id).size + nodeEdgeMap.edgesByTarget(id).size)
       }
@@ -193,9 +201,15 @@ Test with:
       NodeEdgeCounts(top)
     }
     
+    val topConnectedClientsCache = CacheBuilder.newBuilder.maximumSize(cacheSize).build(
+       new CacheLoader[TopClientsQuery, NodeEdgeCounts] {
+         def load(q: TopClientsQuery) = topConnectedClients(q)
+       }
+    )
+    
     def topConnectedClientsRoute =
       post { path("topConnectedClients") { entity(as[TopClientsQuery]) { q => complete {
-        topConnectedClients(q)
+        topConnectedClientsCache.get(q)
       }}}}
   
     // ----------------------------------------------------------
@@ -219,15 +233,21 @@ Test with:
         e <- nem.edges.iterator if e.minScore >= q.minScore
       } yield etw(e)
       val edges = Util.top(q.maxEdges, edges1)(Ordering.by(_.totalWeight)) // top edges by weight
-      log.info("topConnectedGraph: got highest weight edges")
+      log.debug("topConnectedGraph: got highest weight edges")
       val nodes = (edges.view.map(_.source) ++ edges.view.map(_.target)).toSet.toList
-      log.info("topConnectedGraph: got nodes")
+      log.debug("topConnectedGraph: got nodes")
       Graph(nodes, edges map toGrEdge)
     }
       
+    val topConnectedGraphCache = CacheBuilder.newBuilder.maximumSize(cacheSize).build(
+       new CacheLoader[TopConnectedQuery, Graph] {
+         def load(q: TopConnectedQuery) = topConnectedGraph(q)
+       }
+    )
+    
     def topConnectedGraphRoute =
       post { path("topConnectedGraph") { entity(as[TopConnectedQuery]) { q => complete {
-        topConnectedGraph(q)
+        topConnectedGraphCache.get(q)
       }}}}
     
     // ----------------------------------------------------------
@@ -236,10 +256,10 @@ Test with:
     // so we'll slightly favour multi-hop paths over single edges.
     def distance(a: Double, b: Double) = Math.sqrt(a * a + b * b)
     
-    @tailrec final def expand(nem: NodeEdgeMap, n: Int, newIds: Set[Int], nodeDist: Map[Int, Double], edges: Set[GEdge]= Set.empty): (Int, Set[Int], Map[Int, Double], Set[GEdge]) = {
+    @tailrec final def expand(nem: NodeEdgeMap, n: Int, minScore: Double, newIds: Set[Int], nodeDist: Map[Int, Double], edges: Set[GEdge]= Set.empty): (Int, Set[Int], Map[Int, Double], Set[GEdge]) = {
       if (n < 1) (n, newIds, nodeDist, edges) else {
         // TODO: filter out those outside maxEdges shortest? Check that end result is the same.
-        val knownSource = newIds.view.flatMap(id => nem.edgesBySource(id)) // edges with known node as source
+        val knownSource = newIds.view.flatMap(id => nem.edgesBySource(id)).filter(_.minScore >= minScore) // edges with known node as source
         val nodeDist1 = knownSource.foldLeft(nodeDist) { (z, e) => 
           val d0 = z.get(e.target.nodeId)
           val d1 = distance(z(e.source.nodeId), 1.0/e.totalWeight)
@@ -247,7 +267,7 @@ Test with:
           z + (e.target.nodeId -> d3)
         }
         // TODO: filter out those outside maxEdges shortest?
-        val knownTarget = newIds.view.flatMap(id => nem.edgesByTarget(id)) // edges with known node as target
+        val knownTarget = newIds.view.flatMap(id => nem.edgesByTarget(id)).filter(_.minScore >= minScore) // edges with known node as target
         val nodeDist2 = knownTarget.foldLeft(nodeDist1) { (z, e) => 
           val d0 = z.get(e.source.nodeId)
           val d1 = distance(z(e.target.nodeId), 1.0/e.totalWeight)
@@ -256,8 +276,8 @@ Test with:
         }
         val nIds = nodeDist2.keySet &~ nodeDist.keySet
         // log.debug(s"expand: nIds = $nIds, knownSource = $knownSource, knownTarget = $knownTarget, nodeDist2 = $nodeDist2")
-        log.info("expand: recurse ...")
-        expand(nem, n - 1, nIds, nodeDist2, edges ++ (knownSource ++ knownTarget))
+        log.debug("expand: recurse ...")
+        expand(nem, n - 1, minScore, nIds, nodeDist2, edges ++ (knownSource ++ knownTarget))
       }
     }
     
@@ -269,15 +289,16 @@ Test with:
     def graph(q: GraphQuery): Graph = {
       log.info(s"graph: q = $q")
       val nem = if (q.includePerson2) nodeEdgeMap else nodeEdgeMap3
-      q.nodeId.map(Set(_)).orElse(q.extRefId.map(extRefIdToNodeId(_).toSet)).map { nodeIds =>
+      val idToNode = extRefIdToNode(q.includePerson2)
+      q.nodeId.map(Set(_)).orElse(q.extRefId.map(id => idToNode(id).map(_.nodeId).toSet)).map { nodeIds =>
         log.debug(s"graph: nodeIds = ${nodeIds}")
-        val (_, _, nodeDist, edges) = expand(nem, q.maxHops, nodeIds, nodeIds.map(_ -> 0.0).toMap)
-        log.info(s"graph: got ${edges.size} edges")
+        val (_, _, nodeDist, edges) = expand(nem, q.maxHops, q.minScore, nodeIds, nodeIds.map(_ -> 0.0).toMap)
+        log.debug(s"graph: got ${edges.size} edges")
         // take the closest maxEdges
         val topEdges = Util.bottom(q.maxEdges, edges.iterator)(Ordering.by(e => Math.max(nodeDist(e.source.nodeId), nodeDist(e.target.nodeId))))
-        log.info(s"graph: got top edges")
+        log.debug(s"graph: got top edges")
         val topNodes = (topEdges.view.map(_.source) ++ topEdges.view.map(_.target)).toSet.toList
-        log.info(s"graph: got top nodes")
+        log.debug(s"graph: got top nodes")
         Graph(topNodes, topEdges map toGrEdge)
       }.getOrElse {
         log.info(s"graph: no nodes match query q = $q")
@@ -285,9 +306,15 @@ Test with:
       }
     }
     
+    val graphCache = CacheBuilder.newBuilder.maximumSize(cacheSize).build(
+       new CacheLoader[GraphQuery, Graph] {
+         def load(q: GraphQuery) = graph(q)
+       }
+    )
+    
     def graphRoute =
       post { path("graph") { entity(as[GraphQuery]) { q => complete {
-        graph(q)
+        graphCache.get(q)
       }}}}
   
     val routes = topConnectedClientsRoute ~ topConnectedGraphRoute ~ graphRoute
