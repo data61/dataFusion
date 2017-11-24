@@ -125,24 +125,29 @@ object Search {
       buf += q
     }
       
-    val mkFieldData = CSV.mkFieldData(c.csvDelim, c.csvId +: c.csvOrg +: c.csvPerson, iter)
+    val mkFieldData = CSV.mkFieldData(c.csvDelim, c.csvFields, iter)
       
     def work(line: String): List[String] = {
-      val Seq(idStr, org, fam, gvn, oth) = mkFieldData(line)
+      val Seq(fam, gvn, oth, typ, org, idStr) = mkFieldData(line)
       val id = List(idStr.toLong)
       
       val warnBuf = new ListBuffer[String]
       
       // TODO: are any one word org names valid? If so we have to do a non-phrase search for them
-      if (alpha.findFirstMatchIn(org).isDefined && space.findFirstMatchIn(org).isDefined) add(PosQuery(ExtRef(org, id), T_ORGANIZATION))
-      else if (org.nonEmpty) warnBuf += s"Rejected organisation: ${c.csvId} = $idStr, $org"
-      
-      if (nameOK(fam) && nameOK(gvn) && nameOK(oth)) add(PosQuery(ExtRef(s"$gvn $oth $fam", id), T_PERSON))
-      else if (fam.nonEmpty || gvn.nonEmpty || oth.nonEmpty) warnBuf += s"Rejected person for 3 name query: ${c.csvId} = $idStr, family = '$fam', given = '$gvn', other = '$oth'"
-
-      if (c.csvPersonWith2Names) {
-        if (nameOK(fam) && nameOK(gvn)) add(PosQuery(ExtRef(s"$gvn $fam", id), T_PERSON2))
-        else if (fam.nonEmpty || gvn.nonEmpty) warnBuf += s"Rejected person for 2 name query: ${c.csvId} = $idStr, family = '$fam', given = '$gvn', other = '$oth'"
+      if (typ == "BUS") {
+        if (org.nonEmpty) {
+          if (alpha.findFirstMatchIn(org).isDefined && space.findFirstMatchIn(org).isDefined) add(PosQuery(ExtRef(org, id), T_ORGANIZATION))
+          else warnBuf += s"Rejected organisation: id = $idStr, $org"
+        }
+      } else {
+        if (fam.nonEmpty || gvn.nonEmpty || oth.nonEmpty) {
+          if (nameOK(fam) && nameOK(gvn) && nameOK(oth)) add(PosQuery(ExtRef(s"$gvn $oth $fam", id), T_PERSON))
+          else warnBuf += s"Rejected person for 3 name query: id = $idStr, family = '$fam', given = '$gvn', other = '$oth'"
+        }
+        if (c.csvPersonWith2Names && (fam.nonEmpty || gvn.nonEmpty)) {
+          if (nameOK(fam) && nameOK(gvn)) add(PosQuery(ExtRef(s"$gvn $fam", id), T_PERSON2))
+          else warnBuf += s"Rejected person for 2 name query: id = $idStr, family = '$fam', given = '$gvn', other = '$oth'"
+        }
       }
       
       warnBuf.toList

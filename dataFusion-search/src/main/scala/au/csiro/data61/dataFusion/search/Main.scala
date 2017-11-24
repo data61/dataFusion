@@ -9,9 +9,9 @@ import com.typesafe.scalalogging.Logger
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(output: File, index: Boolean, searchJson: Boolean, searchCsv: Boolean, csvDelim: Char, csvPerson: Seq[String], csvOrg: String, csvId: String, csvPersonWith2Names: Boolean, minScore: Float, docFreq: Boolean, export: Boolean, filterQueryOnly: Boolean, filterQuery: Boolean, maxTerms: Int, nerToQuery: Boolean, slop: Int, numWorkers: Int)
+  case class CliOption(output: File, index: Boolean, searchJson: Boolean, searchCsv: Boolean, csvDelim: Char, csvFields: Seq[String], csvPersonWith2Names: Boolean, minScore: Float, docFreq: Boolean, export: Boolean, filterQueryOnly: Boolean, filterQuery: Boolean, maxTerms: Int, nerToQuery: Boolean, slop: Int, numWorkers: Int)
   
-  val defaultCliOption = CliOption(new File("hits.json"), false, false, false, '\t', Seq("STRCTRD_FMLY_NM", "STRCTRD_GVN_NM", "STRCTRD_OTHR_GVN_NM"), "USTRCTRD_FULL_NM", "CLNT_INTRNL_ID", true, 3.5f, false, false, false, true, 10000000, false, 0, Runtime.getRuntime.availableProcessors)
+  val defaultCliOption = CliOption(new File("hits.json"), false, false, false, '\t', Seq("STRCTRD_FMLY_NM", "STRCTRD_GVN_NM", "STRCTRD_OTHR_GVN_NM", "SEX_CD", "USTRCTRD_FULL_NM", "CLNT_INTRNL_ID"), true, 3.5f, false, false, false, true, 10000000, false, 0, Runtime.getRuntime.availableProcessors)
   
   val parser = new scopt.OptionParser[CliOption]("search") {
     head("search", "0.x")
@@ -30,18 +30,12 @@ object Main {
     opt[String]("csvDelim") action { (v, c) =>
       c.copy(csvDelim = v.headOption.getOrElse(defaultCliOption.csvDelim))
     } text (s"CSV field delimeter (default ${if (defaultCliOption.csvDelim == '\t') "tab" else defaultCliOption.csvDelim.toString})")
-    opt[Seq[String]]("csvPerson") action { (v, c) =>
-      c.copy(csvPerson = v)
+    opt[Seq[String]]("csvFields") action { (v, c) =>
+      c.copy(csvFields = v)
     } validate { v =>
-      if (v.size == 3) success
-      else failure("3 field names are required")
-    } text (s"CSV field names (3) for person's family, first given and other names (default ${defaultCliOption.csvPerson.toList})")
-    opt[String]("csvOrg") action { (v, c) =>
-      c.copy(csvOrg = v)
-    } text (s"CSV field name for organisation (default ${defaultCliOption.csvOrg})")
-    opt[String]("csvId") action { (v, c) =>
-      c.copy(csvId = v)
-    } text (s"CSV field name for ID (default ${defaultCliOption.csvId})")
+      if (v.size == 6) success
+      else failure("6 field names are required")
+    } text (s"CSV field names (6) for person's family, first given and other names, record type ('BUS' for organization or gender? for a person), business name, id (default ${defaultCliOption.csvFields.toList})")
     opt[Boolean]("csvPersonWith2Names") action { (v, c) =>
       c.copy(csvPersonWith2Names = v)
     } text (s"CSV used to generate 2 name (omitting middle name) searches for people in addition to 3 name search (default ${defaultCliOption.csvPersonWith2Names})")

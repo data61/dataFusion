@@ -15,6 +15,11 @@ Network building uses the follow named entities (see [NER Structure](../dataFusi
 - `impl=D62GAZ` and `typ=PERSON|PERSON2|ORGANIZATION`;
 - `impl=D61EMAIL` and `typ=FROM|TO|CC|BCC`
 
+Documents are grouped into collections.
+Documents in the filesystem are under (but not necessarily directly under) a directory that represents their collection.
+The CLI option `--collectionRe` specifies a [regex](https://en.wikipedia.org/wiki/Regular_expression) to extract the collection from a document's path.
+The default value for this option, `/collection/([^/]+)/`, is suitable if `collection` is the common parent directory for all collections.  
+
 Parameters are the decay value (set by the `--decay` CLI option with default value 500 characters) and a cutoff which is `5 * decay`.
 
     (weight, count) for an edge representing co-occurrences of named entities n1 and n2 in collection c =
