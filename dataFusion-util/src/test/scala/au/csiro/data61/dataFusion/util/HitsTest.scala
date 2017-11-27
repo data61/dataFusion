@@ -62,4 +62,8 @@ class HitsTest extends FlatSpec with Matchers {
     Hits.qTermFreq("Aaron H Bloggs", T_PERSON) should be(None)
   }
   
+  "filterPer2" should "filter PERSON2 within PERSON" in {
+    
+  }
+  
 }

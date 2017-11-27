@@ -6,7 +6,7 @@ import scala.io.Source
 
 import com.typesafe.scalalogging.Logger
 
-import au.csiro.data61.dataFusion.common.Data.{ Doc, EMB_IDX_MAIN, ExtRef, GAZ, IdEmbIdx, T_ORGANIZATION }
+import au.csiro.data61.dataFusion.common.Data._
 import au.csiro.data61.dataFusion.common.Data.{ LPosDoc, Ner, PHits, PosInfo }
 import au.csiro.data61.dataFusion.common.Data.JsonProtocol.pHitsCodec
 import spray.json.pimpString
@@ -14,6 +14,8 @@ import scala.annotation.tailrec
 
 import au.csiro.data61.dataFusion.search.DataFusionLucene._
 import au.csiro.data61.dataFusion.search.LuceneUtil._
+import java.util.Comparator
+import java.util.Arrays
 
 /**
  * In dataFusion-search the phrase search for PERSON|PERSON2, with terms in any order, can make some incorrect matches.
@@ -46,8 +48,8 @@ object Hits {
     if (typ == T_ORGANIZATION) None // not needed for "terms in order" search
     else {
       val tf = termFreq(t)
-      if (tf.values.forall(_ == 1)) None // not needed if no duplicate terms
-      else Some(tf)
+      if (tf.values.exists(_ > 1)) Some(tf)
+      else None // not needed if no duplicate terms
     }
 
   def toNer(text: String, pi: PosInfo, extRef: ExtRef, score: Double, typ: String) = 
@@ -64,10 +66,43 @@ object Hits {
       text = c.substring(pi.offStr, pi.offEnd)
       ok <- qtf.map(_ == termFreq(text)).orElse(Some(true)) if ok // skip if there's a term freq mismatch
     } yield toNer(text, pi, extRefId, score, typ)
+    
+    val nerCmp = new Comparator[Ner] {
+      override def compare(a: Ner, b:Ner) = {
+        val x = a.offEnd - b.offEnd
+        if (x != 0) x else a.offStr - b.offStr
+      }
+    }
+
+    def filterPer2(ners: Seq[Ner]): Seq[Ner] = {
+      val per = {
+        val a = ners.view.filter(n => n.impl == GAZ && n.typ == T_PERSON).toArray
+        Arrays.sort(a, nerCmp)
+        a
+      }
       
-    val ner = d.ner ++ searchNers(d.content, IdEmbIdx(d.id, EMB_IDX_MAIN))
+      def pred(n: Ner): Boolean = n.typ != T_PERSON2 || {
+        val i = Arrays.binarySearch(per, n, nerCmp)
+        if (i >= 0) {
+          false // exact match found
+        } else {
+          val j  = -i - 1 // insertion point, 1st item > n
+          // compare items while per(j).offStr <= n.offStr && per(j).offEnd >= n.offEnd
+          // if any such item false else true
+          log.debug(s"filterPer2.pred: insertion point j = $j, per.length = ${per.length}, n = $n}")
+          if (j < per.length) log.debug(s"filterPer2.pred: per(j) = ${per(j)}")
+          j < per.length && per(j).offStr <= n.offStr
+        }
+      }
+      
+      ners filter pred
+    }
+    
+    def newNers(content: Option[String], idEmbIdx: IdEmbIdx): Seq[Ner] = filterPer2(searchNers(content, idEmbIdx))
+    
+    val ner = d.ner ++ newNers(d.content, IdEmbIdx(d.id, EMB_IDX_MAIN))
     val embedded = d.embedded.zipWithIndex.map { case (e, embIdx) =>
-      val ner = e.ner ++ searchNers(e.content, IdEmbIdx(d.id, embIdx))
+      val ner = e.ner ++ newNers(e.content, IdEmbIdx(d.id, embIdx))
       e.copy(ner = ner)
     }
     d.copy(ner = ner, embedded = embedded)
