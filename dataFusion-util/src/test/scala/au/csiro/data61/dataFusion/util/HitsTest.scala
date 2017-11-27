@@ -4,7 +4,7 @@ import org.scalatest.{ FlatSpec, Matchers }
 
 import com.typesafe.scalalogging.Logger
 
-import au.csiro.data61.dataFusion.common.Data.{ Doc, EMB_IDX_MAIN, Embedded, IdEmbIdx, LPosDoc, ExtRef, Ner, PHits, PosInfo, Stats }
+import au.csiro.data61.dataFusion.common.Data.{ Doc, EMB_IDX_MAIN, Embedded, ExtRef, IdEmbIdx, LPosDoc, Ner, PHits, PosInfo, Stats, T_PERSON, T_ORGANIZATION }
 
 class HitsTest extends FlatSpec with Matchers {
   val log = Logger(getClass)
@@ -41,7 +41,7 @@ class HitsTest extends FlatSpec with Matchers {
     doc2.embedded(0).ner.size should be(0)
   }
   
-  it should "add hit to doc.enbedded.ner" in {
+  it should "add hit to doc.embedded.ner" in {
 //    case class LPosDoc(idEmbIdx: IdEmbIdx, posInfos: List[PosInfo])
     val lPosDoc = LPosDoc(IdEmbIdx(id, 0), List(pi))
     val hits = Seq(PHits(Stats(0, 0), List(lPosDoc), None, extRef, 9.876f, "PERSON"))
@@ -53,6 +53,13 @@ class HitsTest extends FlatSpec with Matchers {
     doc2.embedded.size should be(1)
     doc2.embedded(0).ner.size should be(1)
     doc2.embedded(0).ner(0) should be(expected)
+  }
+  
+  "termFreq" should "count terms" in {
+    Hits.termFreq("Aaron H Aaron") should be(Map("aaron" -> 2, "h" -> 1))
+    Hits.qTermFreq("Aaron H Aaron", T_PERSON) should be(Some(Map("aaron" -> 2, "h" -> 1)))
+    Hits.qTermFreq("Aaron H Aaron", T_ORGANIZATION) should be(None)
+    Hits.qTermFreq("Aaron H Bloggs", T_PERSON) should be(None)
   }
   
 }

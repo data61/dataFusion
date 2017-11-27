@@ -62,10 +62,6 @@ unmanagedSourceDirectories := Nil // no sources in top level project
 lazy val common = (project in file("dataFusion-common")).
   settings(commonSettings: _*)
 
-lazy val util = (project in file("dataFusion-util")).
-  dependsOn(common).
-  settings(commonSettings: _*)
-  
 lazy val tika = (project in file("dataFusion-tika")).
   dependsOn(common).
   settings(commonSettings: _*)
@@ -82,10 +78,6 @@ lazy val db = (project in file("dataFusion-db")).
 lazy val dbService = (project in file("dataFusion-db-service")).
   dependsOn(common).
   dependsOn(db).
-  settings(commonSettings: _*)
-
-lazy val graphService = (project in file("dataFusion-graph-service")).
-  dependsOn(common).
   settings(commonSettings: _*)
 
 lazy val ner = (project in file("dataFusion-ner")).
@@ -106,3 +98,12 @@ lazy val searchService = (project in file("dataFusion-search-service")).
   dependsOn(search).
   settings(commonSettings: _*)
     
+lazy val util = (project in file("dataFusion-util")).
+  dependsOn(common).
+  dependsOn(search).
+  settings(commonSettings: _*)
+  
+lazy val graphService = (project in file("dataFusion-graph-service")).
+  dependsOn(common).
+  settings(commonSettings: _*)
+

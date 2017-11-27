@@ -331,9 +331,13 @@ object DataFusionLucene {
               spans.collect(collector)
               collector.posInfo
             }.filter(p => p.posEnd - p.posStr == terms.size).toList
-            // TODO: handle duplicate terms in query - same num terms in query and match
-            // e.g. search for "Aaron H Aaron" cannot match "H Aaron"
-            // is this good enough? what about "H H H"?
+            // handle duplicate terms in query - same num terms in query and match
+            // e.g. prevents "Aaron H Aaron" from matching "H Aaron"
+            // However this still allows "Aaron H Aaron" to match "Aaron H H"!
+            // Don't see any "min must match" functionality.
+            // We've worked hard not to have to actually fetch the doc content to keep it fast
+            // but that's going to be required to solve this last issue.
+            // In util --hits we have the doc content, so defer this last filtering step to there.
         } yield LPosDoc(idEmbIdx, posns)).filter(_.posInfos.nonEmpty).toList
 //        searchSpansNonScoreTimer.stop
 //        searchSpansCount += 1
