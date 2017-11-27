@@ -4,6 +4,7 @@ Category | License | Dependency | Notes
 --- | --- | --- | ---
 Apache | [Apache 2](https://www.apache.org/licenses/LICENSE-2.0.txt) | ch.megard # akka-http-cors_2.12 # 0.2.1 | <notextile></notextile>
 Apache | [Apache 2](http://www.apache.org/licenses/LICENSE-2.0.txt) | io.spray # spray-json_2.12 # 1.3.3 | <notextile></notextile>
+Apache | [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | com.google.errorprone # error_prone_annotations # 2.0.18 | <notextile></notextile>
 Apache | [Apache 2.0 License](http://www.apache.org/licenses/LICENSE-2.0.html) | com.typesafe.scala-logging # scala-logging_2.12 # 3.5.0 | <notextile></notextile>
 Apache | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) | com.typesafe # config # 1.3.0 | <notextile></notextile>
 Apache | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) | com.typesafe # ssl-config-core_2.12 # 0.2.1 | <notextile></notextile>
@@ -21,7 +22,8 @@ Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licens
 Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | com.fasterxml.jackson.module # jackson-module-paranamer # 2.8.6 | <notextile></notextile>
 Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | com.fasterxml.jackson.module # jackson-module-scala_2.12 # 2.8.6 | <notextile></notextile>
 Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | com.github.swagger-akka-http # swagger-akka-http_2.12 # 0.9.1 | <notextile></notextile>
-Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | com.google.guava # guava # 18.0 | <notextile></notextile>
+Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | com.google.guava # guava # 23.4-jre | <notextile></notextile>
+Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | com.google.j2objc # j2objc-annotations # 1.1 | <notextile></notextile>
 Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | io.swagger # swagger-annotations # 1.5.12 | <notextile></notextile>
 Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | io.swagger # swagger-core # 1.5.12 | <notextile></notextile>
 Apache | [The Apache Software License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.txt) | io.swagger # swagger-jaxrs # 1.5.12 | <notextile></notextile>
@@ -45,6 +47,8 @@ GPL with Classpath Extension | [CDDL + GPLv2 with classpath exception](https://g
 LGPL | [EPL + GNU Lesser General Public License](http://logback.qos.ch/license.html) | ch.qos.logback # logback-classic # 1.2.3 | <notextile></notextile>
 LGPL | [EPL + GNU Lesser General Public License](http://logback.qos.ch/license.html) | ch.qos.logback # logback-core # 1.2.3 | <notextile></notextile>
 LGPL | [GNU Lesser General Public License](http://www.gnu.org/licenses/lgpl.html) | com.google.code.findbugs # annotations # 2.0.1 | <notextile></notextile>
+LGPL | [GNU Lesser General Public License](http://www.gnu.org/licenses/lgpl.html) | com.google.code.findbugs # jsr305 # 1.3.9 | <notextile></notextile>
 MIT | [MIT License](http://www.opensource.org/licenses/mit-license.php) | com.github.scopt # scopt_2.12 # 3.5.0 | <notextile></notextile>
 MIT | [MIT License](http://www.slf4j.org/license.html) | org.slf4j # slf4j-api # 1.7.25 | <notextile></notextile>
+MIT | [MIT license](http://www.opensource.org/licenses/mit-license.php) | org.codehaus.mojo # animal-sniffer-annotations # 1.14 | <notextile></notextile>
 
