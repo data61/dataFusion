@@ -55,6 +55,43 @@ object Hits {
   def toNer(text: String, pi: PosInfo, extRef: ExtRef, score: Double, typ: String) = 
     Ner(pi.posStr, pi.posEnd, pi.offStr, pi.offEnd, score, text, typ, GAZ, Some(extRef))
       
+/**
+ * find if any PERSON NER overlaps with a PERSON2
+ * A----------B        n1 = PERSON
+ *       C--------D    n2 = PERSON2
+ * no overlap = D < A or B < C
+ * overlap = D >= A and B >= C
+ * A & C are offStr; B & D are offEnd - 1 because offEnd is exclusive (1 past the end)
+ * So overlap = n2.offEnd - 1 >= n1.offStr && n1.offEnd - 1 >= n2.offStr
+ *            = n2.offEnd > n1.offStr && n1.offEnd > n2.offStr
+ *            
+ * Sort n1 = PERSON on offEnd asc
+ * Binary search to find first n1: n1.offEnd > n2.offStr (the bit after &&)
+ * Scan n1's until n2.offEnd < n1.offStr for overlap
+ */
+  val nerCmp = new Comparator[Ner] {
+    override def compare(a: Ner, b:Ner) = a.offEnd - b.offEnd
+  }
+  
+  def filterPer2(ners: Seq[Ner]): Seq[Ner] = {
+    val per = {
+      val a = ners.view.filter(n => n.impl == GAZ && n.typ == T_PERSON).toArray
+      Arrays.sort(a, nerCmp)
+      log.debug(s"filterPer2.per: ${a.toList}")
+      a
+    }
+    
+    def pred(n: Ner): Boolean = n.typ != T_PERSON2 || {
+      val i = Arrays.binarySearch(per, n.copy(offEnd = n.offStr + 1), nerCmp) // find 1st per(j).offEnd > n.offStr (>= n.offStr + 1)
+      val j = if (i >= 0) i else -(i + 1)
+      val overlaps = j < per.length && per(j).offStr < n.offEnd // assume per(j)'s don't overlap so no need to scan
+      log.debug(s"i = $i, j = $j, overlaps = $overlaps, n = $n")
+      !overlaps
+    }
+    
+    ners filter pred
+  }
+    
   def augment(hs: HitsMap): Doc => Doc = { d =>
     
     def searchNers(content: Option[String], idEmbIdx: IdEmbIdx): Seq[Ner] = for {
@@ -66,37 +103,6 @@ object Hits {
       text = c.substring(pi.offStr, pi.offEnd)
       ok <- qtf.map(_ == termFreq(text)).orElse(Some(true)) if ok // skip if there's a term freq mismatch
     } yield toNer(text, pi, extRefId, score, typ)
-    
-    val nerCmp = new Comparator[Ner] {
-      override def compare(a: Ner, b:Ner) = {
-        val x = a.offEnd - b.offEnd
-        if (x != 0) x else a.offStr - b.offStr
-      }
-    }
-
-    def filterPer2(ners: Seq[Ner]): Seq[Ner] = {
-      val per = {
-        val a = ners.view.filter(n => n.impl == GAZ && n.typ == T_PERSON).toArray
-        Arrays.sort(a, nerCmp)
-        a
-      }
-      
-      def pred(n: Ner): Boolean = n.typ != T_PERSON2 || {
-        val i = Arrays.binarySearch(per, n, nerCmp)
-        if (i >= 0) {
-          false // exact match found
-        } else {
-          val j  = -i - 1 // insertion point, 1st item > n
-          // compare items while per(j).offStr <= n.offStr && per(j).offEnd >= n.offEnd
-          // if any such item false else true
-          log.debug(s"filterPer2.pred: insertion point j = $j, per.length = ${per.length}, n = $n}")
-          if (j < per.length) log.debug(s"filterPer2.pred: per(j) = ${per(j)}")
-          j < per.length && per(j).offStr <= n.offStr
-        }
-      }
-      
-      ners filter pred
-    }
     
     def newNers(content: Option[String], idEmbIdx: IdEmbIdx): Seq[Ner] = filterPer2(searchNers(content, idEmbIdx))
     

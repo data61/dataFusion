@@ -4,7 +4,7 @@ import org.scalatest.{ FlatSpec, Matchers }
 
 import com.typesafe.scalalogging.Logger
 
-import au.csiro.data61.dataFusion.common.Data.{ Doc, EMB_IDX_MAIN, Embedded, ExtRef, IdEmbIdx, LPosDoc, Ner, PHits, PosInfo, Stats, T_PERSON, T_ORGANIZATION }
+import au.csiro.data61.dataFusion.common.Data._
 
 class HitsTest extends FlatSpec with Matchers {
   val log = Logger(getClass)
@@ -25,7 +25,7 @@ class HitsTest extends FlatSpec with Matchers {
 //    case class PosInfo(posStr: Int, posEnd: Int, offStr: Int, offEnd: Int)
   val pi = PosInfo(1, 4, doc.content.get.indexOf("SARAH"), doc.content.get.indexOf(" here!"))
   
-  val expected = Ner(pi.posStr, pi.posEnd, pi.offStr, pi.offEnd, score, content.substring(pi.offStr, pi.offEnd), typ, "D61GAZ", Some(extRef))
+  val expected = Ner(pi.posStr, pi.posEnd, pi.offStr, pi.offEnd, score, content.substring(pi.offStr, pi.offEnd), typ, GAZ, Some(extRef))
 
   "augment" should "add hit to doc.ner" in {
 //    case class LPosDoc(idEmbIdx: IdEmbIdx, posInfos: List[PosInfo])
@@ -62,8 +62,14 @@ class HitsTest extends FlatSpec with Matchers {
     Hits.qTermFreq("Aaron H Bloggs", T_PERSON) should be(None)
   }
   
+  def mkNer(offStr: Int, offEnd: Int, typ: String) = Ner(0, 0, offStr, offEnd, 1.0, "text", typ, GAZ, None)
+  
   "filterPer2" should "filter PERSON2 within PERSON" in {
-    
+    val p = (0 until 3).map(i => mkNer(10 * i, 10 * i + 6, T_PERSON))
+    val p2 = Seq(mkNer(2, 6, T_PERSON2), mkNer(20, 24, T_PERSON2), mkNer(26, 28, T_PERSON2))
+    val x = Hits.filterPer2(p ++ p2)
+    x should be(p :+ p2(2)) // (0) & (1) are filtered out
+    log.debug(s"x = $x")
   }
   
 }
