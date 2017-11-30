@@ -37,7 +37,7 @@ Ardern will claim the top job after only two and a-half months as Labour leader 
   "Email.toNer" should "find names" in {
     val extRef = Some(ExtRef("Jacinda Ardern", List(1, 2)))
     val gazNer = List(Ner(7, 9, 36, 50, 1.0, "Jacinda Ardern", T_PERSON2, GAZ , extRef))
-    val ners = Email.toNer(Email.extRef(gazNer))(text).toList
+    val ners = Email.toNer(Email.extRefNer(gazNer), _ => 1.0)(text).toList
     for (n <- ners) log.debug(s"ner = $n")
     val expected = Seq(
       Ner(7, 10, 36, 63, 1.0, "Ardern Jacinda (Wellington)", "FROM", "D61EMAIL" ,extRef),

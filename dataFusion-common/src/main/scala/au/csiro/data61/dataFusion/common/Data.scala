@@ -39,7 +39,7 @@ object Data {
   case class Stats(totalHits: Int, elapsedSecs: Float)
   case class PosInfo(posStr: Int, posEnd: Int, offStr: Int, offEnd: Int)
   case class LPosDoc(idEmbIdx: IdEmbIdx, posInfos: List[PosInfo])
-  case class PHits(stats: Stats, hits: List[LPosDoc], error: Option[String], extRef: ExtRef, score: Float, typ: String)
+  case class PHits(stats: Stats, hits: List[LPosDoc], error: Option[String], extRef: ExtRef, score: Double, typ: String)
   
   case class LDoc(idEmbIdx: IdEmbIdx, content: String, path: String)
   case class LMeta(idEmbIdx: IdEmbIdx, key: String, `val`: String)

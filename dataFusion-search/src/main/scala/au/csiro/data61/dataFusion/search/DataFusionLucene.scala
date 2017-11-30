@@ -235,7 +235,7 @@ object DataFusionLucene {
     }
     
     object PosDocSearch {
-      class MyCollector(reader: IndexReader, t: Term, score: Float) extends SimpleCollector {
+      class MyCollector(reader: IndexReader, t: Term, score: Double) extends SimpleCollector {
         // val fieldsToLoad = java.util.Collections.singleton(F_CONTENT)
         private var pe: PostingsEnum = null
         private val hitBuf = ListBuffer[LPosDoc]()
@@ -290,14 +290,20 @@ object DataFusionLucene {
 //      val searchSpansNonScoreTimer = Timer()
 //      var searchSpansCount = 0
             
+      /**
+       * Terms from text using the analyzer for the F_CONTENT field.
+       */
+      def getTerms(text: String): Iterator[Term] = tokenIter(analyzer, F_CONTENT, text).map(new Term(F_CONTENT, _))
+      
+      /**
+       * IDF score according to Lucene's formula: https://lucene.apache.org/core/7_1_0/core/org/apache/lucene/search/similarities/TFIDFSimilarity.html
+       * Not using term freq or doc length norm etc. This depends only on the query not the matching doc.
+       */
+      def getScore(r: IndexReader)(terms: Iterator[Term]) = terms.foldLeft(0.0) { (score, t) => score + 1.0 + Math.log10( (r.numDocs + 1.0) / (r.docFreq(t) + 1.0)) }
+      
       def searchSpans(searcher: IndexSearcher, slop: Int, q: PosQuery, minScore: Float): PHits = {
-        val terms = tokenIter(analyzer, F_CONTENT, q.extRef.name).map(new Term(F_CONTENT, _)).toList
-        // Here we score using only Lucene's version of IDF, no term freq or doc length norm etc.
-        // This depends only on the query not the doc, so it could go in PHits once rather than
-        // repeated in each PosInfo, but leave in case this changes.
-        // https://lucene.apache.org/core/6_6_0/core/org/apache/lucene/search/similarities/TFIDFSimilarity.html
-        val reader = searcher.getIndexReader
-        val score = terms.foldLeft(0.0) { (score, t) => score + 1.0 + Math.log10( (reader.numDocs + 1.0) / (reader.docFreq(t) + 1.0)) }.toFloat
+        val terms = getTerms(q.extRef.name).toList
+        val score = getScore(searcher.getIndexReader)(terms.iterator)
         val noHits = PHits(Stats(0, 0.0f), List.empty, None, q.extRef, score, q.typ)
 
         if (score <= minScore) noHits 
@@ -310,7 +316,7 @@ object DataFusionLucene {
        * this is a phrase search
        * a single term results in: java.lang.IllegalArgumentException: Less than 2 subSpans.size():1
        */
-      def searchSpansPhrase(searcher: IndexSearcher, slop: Int, q: PosQuery, terms: List[Term], score: Float): PHits = {
+      def searchSpansPhrase(searcher: IndexSearcher, slop: Int, q: PosQuery, terms: List[Term], score: Double): PHits = {
         val timer = Timer()
         
         val snq = new SpanNearQuery(terms.map(new SpanTermQuery(_)).toArray, slop, q.typ == T_ORGANIZATION)
@@ -347,7 +353,7 @@ object DataFusionLucene {
         PHits(Stats(hits.size, timer.elapsedSecs), hits, None, q.extRef, score, q.typ)
       }
       
-      def searchSpansTerm(searcher: IndexSearcher, q: PosQuery, term: Term, score: Float): PHits = {
+      def searchSpansTerm(searcher: IndexSearcher, q: PosQuery, term: Term, score: Double): PHits = {
         val timer = Timer()
         val tq = new TermQuery(term)
         log.debug(s"searchSpansTerm: TermQuery = $tq")

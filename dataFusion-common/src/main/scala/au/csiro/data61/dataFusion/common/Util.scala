@@ -31,7 +31,7 @@ object Util {
       for (_ <- 0 until n if it.hasNext) buf += it.next
       buf.toList
     }
-    (initN.sortWith(comp2) /: it) { updateSofar }
+    if (initN.size > 1) (initN.sortWith(comp2) /: it) { updateSofar } else initN
   }
   
   /** @return smallest n elements in descending order */

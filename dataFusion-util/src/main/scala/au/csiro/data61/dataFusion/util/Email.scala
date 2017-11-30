@@ -8,6 +8,12 @@ import com.typesafe.scalalogging.Logger
 
 import au.csiro.data61.dataFusion.common.Data.{ Doc, EMAIL, ExtRef, GAZ, Ner, T_PERSON, T_PERSON2 }
 import scala.collection.mutable.ArrayBuffer
+import Main.CliOption
+import com.typesafe.config.ConfigFactory
+import java.io.File
+import au.csiro.data61.dataFusion.search.LuceneUtil
+import org.apache.lucene.index.DirectoryReader
+import au.csiro.data61.dataFusion.search.DataFusionLucene.DFSearching.PosDocSearch
 
 /**
  * Handle email messages printed from MS Outlook then scanned.
@@ -34,7 +40,7 @@ object Email {
   val space = "\\s+".r
   
   /** create EMAIL Ner's from names in parsed email headers */
-  def toNer(extRef: Int => Option[ExtRef])(text: String): Iterator[Ner] = {
+  def toNer(extRefNer: Int => Option[Ner], scorer: String => Double)(text: String): Iterator[Ner] = {
     // rough attempt at generating a pos (word offset) from an off (character offset)
     val wordOffsets = (Iterator.single(0) ++ space.findAllMatchIn(text).map(_.end)).toArray
     def toPos(off: Int) = {
@@ -49,7 +55,10 @@ object Email {
     
     val buf = new ArrayBuffer[Ner]
     def addNer(offStr: Int, offEnd: Int, typ: String): Unit = {
-      buf += Ner(toPos(offStr), toPos(offEnd), offStr, offEnd, 1.0f, text.substring(offStr, offEnd), typ, EMAIL, extRef(offStr))
+      val ern = extRefNer(offStr) // the D61GAZ NER at the same offStr
+      val nerText = text.substring(offStr, offEnd)
+      val score = ern.map(_.score).getOrElse(scorer(nerText))
+      buf += Ner(toPos(offStr), toPos(offEnd), offStr, offEnd, score, nerText, typ, EMAIL, ern.flatMap(_.extRef))
     }
     
     var p = 0
@@ -85,8 +94,8 @@ object Email {
     buf.iterator
   }
     
-  /** the ExtRef in the Email Ner is taken from a GAZ Ner of typ T_PERSON or T_PERSON2 starting at the same offset */
-  def extRef(ner: List[Ner]): Int => Option[ExtRef] = {
+  /** the ExtRef & score in the Email Ner is taken from a GAZ Ner of typ T_PERSON or T_PERSON2 starting at the same offset */
+  def extRefNer(ner: List[Ner]): Int => Option[Ner] = {
     def m(p: Ner => Boolean) = ner.filter(p).groupBy(_.offStr)
     val per3map = m(n => n.impl == GAZ && n.typ == T_PERSON)
     val per2map = m(n => n.impl == GAZ && n.typ == T_PERSON2)
@@ -94,16 +103,29 @@ object Email {
       for {
         l <- per3map.get(offStr).orElse(per2map.get(offStr))
         n <- l.headOption
-        e <- n.extRef
-      } yield e
+      } yield n
   }
   
-  val augment: Doc => Doc = { d =>
-    val ner = d.ner ++ d.content.toList.flatMap(toNer(extRef(d.ner)))
-    val embedded = d.embedded.map { e =>
-      val ner = e.ner ++ e.content.toList.flatMap(toNer(extRef(e.ner)))
-      e.copy(ner = ner)
+  def augment(cliOption: CliOption): Doc => Doc = {
+    val scorer: String => Double = {
+      if (cliOption.emailIDF) {
+        val conf = ConfigFactory.load.getConfig("search")
+        val docIndex = new File(conf.getString("docIndex"))
+        val reader = DirectoryReader.open(LuceneUtil.directory(docIndex))
+        val sc = PosDocSearch.getScore(reader) _
+        text => sc(PosDocSearch.getTerms(text))
+      } else {
+      _ => 1.0
+      }
     }
-    d.copy(ner = ner, embedded = embedded)
+    
+    d => {
+      val ner = d.ner ++ d.content.toList.flatMap(toNer(extRefNer(d.ner), scorer))
+      val embedded = d.embedded.map { e =>
+        val ner = e.ner ++ e.content.toList.flatMap(toNer(extRefNer(e.ner), scorer))
+        e.copy(ner = ner)
+      }
+      d.copy(ner = ner, embedded = embedded)
+    }
   }
 }

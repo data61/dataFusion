@@ -19,9 +19,9 @@ import spray.json.{ pimpAny, pimpString }
 object Main {
   private val log = Logger(getClass)
   
-  case class CliOption(hits: Option[File], email: Boolean, age: Boolean, tmner: Option[File], output: Option[File], startId: Long, proximity: Boolean, collectionRe: String, decay: Double, resetEnglishScore: Boolean, resetId: Boolean, numWorkers: Int)
+  case class CliOption(hits: Option[File], email: Boolean, emailIDF: Boolean, age: Boolean, tmner: Option[File], output: Option[File], startId: Long, proximity: Boolean, collectionRe: String, decay: Double, resetEnglishScore: Boolean, resetId: Boolean, numWorkers: Int)
   
-  val defaultCliOption = CliOption(None, false, false, None, None, 0L, false, "/collection/([^/]+)/", 500.0f, false, false, Runtime.getRuntime.availableProcessors)
+  val defaultCliOption = CliOption(None, false, true, false, None, None, 0L, false, "/collection/([^/]+)/", 500.0f, false, false, Runtime.getRuntime.availableProcessors)
   
   val defGazOut = "gaz.json" // gaz for gazetteer
   val node = "node.json"
@@ -37,6 +37,9 @@ object Main {
     opt[Unit]("email") action { (_, c) =>
       c.copy(email = true, output = c.output.orElse(Some(new File(defGazOut))))
     } text (s"Parse content for people in email headers. Read tika/ner json from stdin and write it augmented with NER data derived from email headers. Output defaults to $defGazOut")
+    opt[Boolean]("emailIDF") action { (v, c) =>
+      c.copy(emailIDF = v)
+    } text (s"Use search index to assign IDF score to D61EMAIL NER (otherwise score = 1.0). Even when false if there is a matching D61GAZ NER its extRef and IDF score are used, so this only affects the non-matching D61EMAIL NERs (default ${defaultCliOption.emailIDF})")
     opt[Unit]("age") action { (_, c) =>
       c.copy(age = true, output = c.output.orElse(Some(new File(defGazOut))))
     } text (s"Parse content for age after a person's name. Read tika/ner json from stdin and write it augmented with NER data derived from age matches. Output defaults to $defGazOut")
@@ -110,7 +113,7 @@ object Main {
     }
     
     val a1: D2D = c.hits.map(h => Hits.augment(hitsMap(h)))
-    val a2: D2D = if (c.email) Some(Email.augment) else None
+    val a2: D2D = if (c.email) Some(Email.augment(c)) else None
     val a3: D2D = if (c.age) Some(Age.augment) else None
     val a4: D2D = c.tmner.map(t => TmNer.augment(tmnerMap(t)))
     

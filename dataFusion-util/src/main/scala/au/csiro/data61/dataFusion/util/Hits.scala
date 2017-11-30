@@ -32,7 +32,7 @@ object Hits {
   def hitIter(hIn: InputStream): Iterator[PHits] = Source.fromInputStream(hIn, "UTF-8").getLines.map(_.parseJson.convertTo[PHits])
   
   /** idEmbIdx -> extRefId, score, typ, lposdoc */
-  type HitsMap = Map[IdEmbIdx, Seq[(ExtRef, Float, String, LPosDoc)]]
+  type HitsMap = Map[IdEmbIdx, Seq[(ExtRef, Double, String, LPosDoc)]]
   
   def hitsMap(iter: Iterator[PHits]): HitsMap =
     iter.flatMap { x =>
