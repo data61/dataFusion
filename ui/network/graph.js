@@ -4,7 +4,7 @@ var svg = d3.select("svg"),
     height = +svg.attr("height");
 
 var color = d3.scaleOrdinal(d3.schemeCategory20);
-var typs = [ 'PERSON', 'ORGANIZATION', 'FROM', 'TO', 'CC', 'BCC' ];
+var typs = [ 'PERSON', 'PERSON2', 'D61EMAIL', 'ORGANIZATION' ];
 function nodeColour(n) {
   return color(1 + typs.indexOf(n.typ));
 }

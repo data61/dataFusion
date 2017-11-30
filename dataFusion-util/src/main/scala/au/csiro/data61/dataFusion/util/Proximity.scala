@@ -23,11 +23,15 @@ object Proximity {
 
   def fileWithSuffix(f: File, suffix: String) = new File(f.getPath + suffix)
 
-  /** take EMAIL Ners and GAZ Ners that do not start at the same location as an EMAIL Ner (avoid duplicates) */
+  /**
+   * GAZ NERs and EMAIL NERs with no extRef (possibly non-Australian - avoids duplicates with GAZ NERs).
+   * Also map all EMAIL typ (FROM|TO|CC|BCC) to a single typ=EMAIL so we only get one node per person.
+   */
   def nerFilter(ner: List[Ner]): Iterator[Ner] = {
-    val emailNer = ner.filter(n => n.impl == EMAIL)
-    val offStr = emailNer.view.map(_.offStr).toSet
-    emailNer.iterator ++ ner.view.filter(n => n.impl == GAZ && (n.typ == T_PERSON || n.typ == T_PERSON2 || n.typ == T_ORGANIZATION) && !offStr.contains(n.offStr))
+//    val emailNer = ner.filter(n => n.impl == EMAIL)
+//    val offStr = emailNer.view.map(_.offStr).toSet
+//    emailNer.iterator ++ ner.view.filter(n => n.impl == GAZ && (n.typ == T_PERSON || n.typ == T_PERSON2 || n.typ == T_ORGANIZATION) && !offStr.contains(n.offStr))
+    ner.iterator.filter(n => n.impl == GAZ || (n.impl == EMAIL && n.extRef.isEmpty)).map(n => if (n.impl == EMAIL) n.copy(typ = EMAIL) else n)
   }
   
   def doProximity(cliOption: CliOption) = {
@@ -104,7 +108,7 @@ class Proximity(cliOption: CliOption, nerFilter: List[Ner]=> Iterator[Ner]) {
   val collectionRE = cliOption.collectionRe.r
   def collection(path: String) = collectionRE.findFirstMatchIn(path).map(_.group(1)).getOrElse("UNKNOWN")
   
-  // used multi-threaded usage so must be thread-safe
+  // used concurrently
   def accDoc(d: Doc): Unit = {
     val cutoff = (cliOption.decay * 5).toInt
     for {
@@ -113,10 +117,10 @@ class Proximity(cliOption: CliOption, nerFilter: List[Ner]=> Iterator[Ner]) {
       // _ = log.info(s"v.size = ${v.size}")
       i <- 0 until v.size - 1 // exclude last
       ni = v(i)
-      extRefi <- ni.extRef
+      extRefi = ni.extRef.getOrElse(ExtRef(ni.text, List.empty))
       (j, dist) <- (i + 1 until v.size).view.map { j => (j, v(j).offStr - ni.offStr) }.takeWhile(_._2 < cutoff)
       nj = v(j)
-      extRefj <- nj.extRef
+      extRefj = nj.extRef.getOrElse(ExtRef(nj.text, List.empty))
     } {
       // log.info(s"$i, $j -> $dist")
       val idi = accNode(NodeKey(extRefi.name, ni.typ), ni.score, extRefi)
