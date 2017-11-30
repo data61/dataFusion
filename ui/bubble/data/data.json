@@ -1,0 +1,416 @@
+let graph = {
+  "nodes":[
+  {
+    "index": 0,
+    "nodeId": "5a1777d04792ea2e743b5729",
+    "score": 4,
+    "typ": "FROM",
+    "extRef": { "name": "EVERETT WARREN"
+  }},
+    {
+      "index": 1,
+      "nodeId": "5a1777d032a87002ea4423e8",
+      "score": 2,
+      "typ": "PERSON",
+      "extRef": { "name": "GAINES HULL"
+    }},
+    {
+      "index": 2,
+      "nodeId": "5a1777d0eb99ec2644b24569",
+      "score": 2,
+      "typ": "BCC",
+      "extRef": { "name": "ELISE ATKINSON"
+    }},
+    {
+      "index": 3,
+      "nodeId": "5a1777d0d9b55695ef46c4a8",
+      "score": 3,
+      "typ": "PERSON",
+      "extRef": { "name": "ANDREA MERCADO"
+    }},
+    {
+      "index": 4,
+      "nodeId": "5a1777d0a86f75cd8c3cc9b6",
+      "score": 5,
+      "typ": "PERSON",
+      "extRef": { "name": "GILLIAM PECK"
+    }},
+    {
+      "index": 5,
+      "nodeId": "5a1777d010dbf449a7bc4d65",
+      "score": 4,
+      "typ": "ORGANIZATION",
+      "extRef": { "name": "TRASOLA PTY LTD"
+    }},
+    {
+      "index": 6,
+      "nodeId": "5a1777d03af37cb79e9e6dff",
+      "score": 4,
+      "typ": "BCC",
+      "extRef": { "name": "CAREY WEBSTER"
+    }},
+    {
+      "index": 7,
+      "nodeId": "5a1777d040e72dc54507622d",
+      "score": 1,
+      "typ": "FROM",
+      "extRef": { "name": "JEANNETTE BRIDGES"
+    }},
+    {
+      "index": 8,
+      "nodeId": "5a1777d014c68d9f860bf4ca",
+      "score": 2,
+      "typ": "BCC",
+      "extRef": { "name": "CORINNE COCHRAN"
+    }},
+    {
+      "index": 9,
+      "nodeId": "5a1777d091a1b4f7bcf29050",
+      "score": 1,
+      "typ": "ORGANIZATION",
+      "extRef": { "name": "OPTICOM PTY LTD"
+    }},
+    {
+      "index": 10,
+      "nodeId": "5a1777d0578838a4f60fffb4",
+      "score": 3,
+      "typ": "TO",
+      "extRef": { "name": "CARLSON BRIGHT"
+    }},
+    {
+      "index": 11,
+      "nodeId": "5a1777d03605a17244783364",
+      "score": 2,
+      "typ": "ORGANIZATION",
+      "extRef": { "name": "GEOFARM PTY LTD"
+    }},
+    {
+      "index": 12,
+      "nodeId": "5a1777d063ac2b011b1fbd37",
+      "score": 5,
+      "typ": "PERSON",
+      "extRef": { "name": "LOLA PARSONS"
+    }},
+    {
+      "index": 13,
+      "nodeId": "5a1777d0856164316d807d48",
+      "score": 1,
+      "typ": "BCC",
+      "extRef": { "name": "KARYN LANG"
+    }},
+    {
+      "index": 14,
+      "nodeId": "5a1777d0c1562e05e5e222fd",
+      "score": 1,
+      "typ": "ORGANIZATION",
+      "extRef": { "name": "IMMUNICS PTY LTD"
+    }},
+    {
+      "index": 15,
+      "nodeId": "5a1777d08049e0204e8b176b",
+      "score": 1,
+      "typ": "BCC",
+      "extRef": { "name": "COLON SINGLETON"
+    }},
+    {
+      "index": 16,
+      "nodeId": "5a1777d05b31e4ff620e402d",
+      "score": 2,
+      "typ": "BCC",
+      "extRef": { "name": "GUY LOGAN"
+    }},
+    {
+      "index": 17,
+      "nodeId": "5a1777d021d4a1504d00d70d",
+      "score": 2,
+      "typ": "TO",
+      "extRef": { "name": "KATHERINE CRAWFORD"
+    }},
+    {
+      "index": 18,
+      "nodeId": "5a1777d0fda29ff4a8611256",
+      "score": 4,
+      "typ": "BCC",
+      "extRef": { "name": "ELIZA BECKER"
+    }},
+    {
+      "index": 19,
+      "nodeId": "5a1777d0ec7db10758f3e051",
+      "score": 1,
+      "typ": "FROM",
+      "extRef": { "name": "DENNIS ARMSTRONG"
+    }},
+    {
+      "index": 20,
+      "nodeId": "5a1777d02f48b2bbdbcf3722",
+      "score": 1,
+      "typ": "BCC",
+      "extRef": { "name": "HOLLY STEIN"
+    }},
+    {
+      "index": 21,
+      "nodeId": "5a1777d04fe46a574f38eeca",
+      "score": 4,
+      "typ": "FROM",
+      "extRef": { "name": "AIMEE ANDERSON"
+    }},
+    {
+      "index": 22,
+      "nodeId": "5a1777d084e64af1009cf550",
+      "score": 3,
+      "typ": "TO",
+      "extRef": { "name": "ABBY EWING"
+    }},
+    {
+      "index": 23,
+      "nodeId": "5a1777d01e30e919eed52802",
+      "score": 4,
+      "typ": "ORGANIZATION",
+      "extRef": { "name": "ZBOO PTY LTD"
+    }},
+    {
+      "index": 24,
+      "nodeId": "5a1777d0e6145f644713a583",
+      "score": 3,
+      "typ": "TO",
+      "extRef": { "name": "ROSALIE STRONG"
+    }},
+    {
+      "index": 25,
+      "nodeId": "5a1777d0e723ccb1079ca424",
+      "score": 4,
+      "typ": "PERSON",
+      "extRef": { "name": "NETTIE MCGUIRE"
+    }},
+    {
+      "index": 26,
+      "nodeId": "5a1777d0538904a8d05b89bd",
+      "score": 3,
+      "typ": "FROM",
+      "extRef": { "name": "CRAWFORD BALLARD"
+    }},
+    {
+      "index": 27,
+      "nodeId": "5a1777d0c8ed460c84352cf4",
+      "score": 3,
+      "typ": "PERSON",
+      "extRef": { "name": "REEVES ROWLAND"
+    }},
+    {
+      "index": 28,
+      "nodeId": "5a1777d0c190850d4fcdaac7",
+      "score": 3,
+      "typ": "FROM",
+      "extRef": { "name": "MARILYN WILKINSON"
+    }},
+    {
+      "index": 29,
+      "nodeId": "5a1777d071e788e67ea59c66",
+      "score": 3,
+      "typ": "FROM",
+      "extRef": { "name": "BESSIE NAVARRO"
+    }},
+    {
+      "index": 30,
+      "nodeId": "5a1777d0d43197f8f2aaabe7",
+      "score": 4,
+      "typ": "BCC",
+      "extRef": { "name": "KRIS BAIRD"
+    }},
+    {
+      "index": 31,
+      "nodeId": "5a1777d01a79407569373827",
+      "score": 4,
+      "typ": "ORGANIZATION",
+      "extRef": { "name": "TALAE PTY LTD"
+    }},
+    {
+      "index": 32,
+      "nodeId": "5a1777d06ccb08980f88c790",
+      "score": 2,
+      "typ": "PERSON",
+      "extRef": { "name": "VASQUEZ HART"
+    }},
+    {
+      "index": 33,
+      "nodeId": "5a1777d077599e4346cf1e43",
+      "score": 3,
+      "typ": "BCC",
+      "extRef": { "name": "APRIL JUAREZ"
+    }},
+    {
+      "index": 34,
+      "nodeId": "5a1777d04157ef47d9b62440",
+      "score": 5,
+      "typ": "FROM",
+      "extRef": { "name": "ROBINSON SERRANO"
+    }},
+    {
+      "index": 35,
+      "nodeId": "5a1777d0a8ddc0379fb2e8da",
+      "score": 5,
+      "typ": "FROM",
+      "extRef": { "name": "WALLACE WILCOX"
+    }},
+    {
+      "index": 36,
+      "nodeId": "5a1777d021d4d4895d7f1da1",
+      "score": 4,
+      "typ": "PERSON",
+      "extRef": { "name": "HOWELL DUNN"
+    }},
+    {
+      "index": 37,
+      "nodeId": "5a1777d0e33c17e93557ca37",
+      "score": 2,
+      "typ": "BCC",
+      "extRef": { "name": "WALL SAWYER"
+    }},
+    {
+      "index": 38,
+      "nodeId": "5a1777d06e90ee741b829abf",
+      "score": 4,
+      "typ": "TO",
+      "extRef": { "name": "MARIE DUNLAP"
+    }},
+    {
+      "index": 39,
+      "nodeId": "5a1777d0403ca64591610e91",
+      "score": 5,
+      "typ": "ORGANIZATION",
+      "extRef": { "name": "NAVIR PTY LTD"
+    }},
+    {
+      "index": 40,
+      "nodeId": "5a1777d0c9366bb814660f39",
+      "score": 5,
+      "typ": "FROM",
+      "extRef": { "name": "CABRERA HEATH"
+    }},
+    {
+      "index": 41,
+      "nodeId": "5a1777d07d53c9498ccc72f7",
+      "score": 2,
+      "typ": "PERSON",
+      "extRef": { "name": "TANIA JOYNER"
+    }},
+    {
+      "index": 42,
+      "nodeId": "5a1777d08f6534ba29e39c08",
+      "score": 2,
+      "typ": "FROM",
+      "extRef": { "name": "KARINA ALFORD"
+    }},
+    {
+      "index": 43,
+      "nodeId": "5a1777d033dbe26423e22d3f",
+      "score": 4,
+      "typ": "ORGANIZATION",
+      "extRef": { "name": "VELITY PTY LTD"
+    }},
+    {
+      "index": 44,
+      "nodeId": "5a1777d00c40c0e748ac568a",
+      "score": 2,
+      "typ": "FROM",
+      "extRef": { "name": "ANNABELLE DUFFY"
+    }},
+    {
+      "index": 45,
+      "nodeId": "5a1777d065d3a46d33a88039",
+      "score": 1,
+      "typ": "FROM",
+      "extRef": { "name": "ELLEN BECK"
+    }},
+    {
+      "index": 46,
+      "nodeId": "5a1777d0adcb70e9094599b1",
+      "score": 2,
+      "typ": "ORGANIZATION",
+      "extRef": { "name": "PHORMULA PTY LTD"
+    }},
+    {
+      "index": 47,
+      "nodeId": "5a1777d0726d4f29ef408d3f",
+      "score": 5,
+      "typ": "BCC",
+      "extRef": { "name": "AMANDA MANN"
+    }},
+    {
+      "index": 48,
+      "nodeId": "5a1777d09a0946ea347352e9",
+      "score": 5,
+      "typ": "ORGANIZATION",
+      "extRef": { "name": "COMTOURS PTY LTD"
+    }},
+    {
+      "index": 49,
+      "nodeId": "5a1777d0a4859c3a55591ee1",
+      "score": 4,
+      "typ": "BCC",
+      "extRef": { "name": "JAYNE RIDDLE"
+    }}
+  ],
+  "edges": [
+    {
+      "source": { "nodeId": "5a1777d032a87002ea4423e8"
+      },
+      "target": { "nodeId": "5a1777d0a86f75cd8c3cc9b6"
+      }
+    },
+    {
+      "source": { "nodeId": "5a1777d0d9b55695ef46c4a8"
+      },
+      "target": { "nodeId": "5a1777d0e33c17e93557ca37"
+      }
+    },
+    {
+      "source": { "nodeId": "5a1777d0e33c17e93557ca37"
+      },
+      "target": { "nodeId": "5a1777d032a87002ea4423e8"
+      }
+    },
+    {
+      "source": { "nodeId": "5a1777d0e33c17e93557ca37"
+      },
+      "target": { "nodeId": "5a1777d04792ea2e743b5729"
+      }
+    },
+    {
+      "source": { "nodeId": "5a1777d0e33c17e93557ca37"
+      },
+      "target": { "nodeId": "5a1777d04792ea2e743b5729"
+      }
+    },
+    {
+      "source": { "nodeId": "5a1777d0a86f75cd8c3cc9b6"
+      },
+      "target": { "nodeId": "5a1777d03605a17244783364"
+      }
+    },
+    {
+      "source": { "nodeId": "5a1777d0a86f75cd8c3cc9b6"
+      },
+      "target": { "nodeId": "5a1777d063ac2b011b1fbd37"
+      }
+    },
+    {
+      "source": { "nodeId": "5a1777d04792ea2e743b5729"
+      },
+      "target": { "nodeId": "5a1777d0c1562e05e5e222fd"
+      }
+    },
+    {
+      "source": { "nodeId": "5a1777d04792ea2e743b5729"
+      },
+      "target": { "nodeId": "5a1777d03af37cb79e9e6dff"
+      }
+    },
+    {
+      "source": { "nodeId": "5a1777d04792ea2e743b5729"
+      },
+      "target": { "nodeId": "5a1777d0eb99ec2644b24569"
+      }
+    }
+  ]
+}

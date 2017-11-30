@@ -1,0 +1,160 @@
+body {
+  font-family: Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  height: 100%;
+  color: #262626;
+  font-size: 0.8rem;
+}
+
+a {
+  color: #880E4F;
+  text-decoration: none;
+}
+
+header {
+  background: #f7f7f7;
+  padding: 1.2rem;
+}
+
+h1 {
+  font-size: 1rem;
+  font-weight: bold;
+  margin: 0;
+  padding: 0;
+}
+
+#logos {
+  position: absolute;
+  right: 1.2rem;
+  top: 0.4rem;
+}
+
+#logos img {
+  height: 2.8rem;
+}
+
+#container {
+  height: 98vh;
+  width: 98vh;
+  margin-left: 150px;
+  position: relative;
+}
+
+#info {
+  border-radius: 10px;
+  position: absolute;
+  right: 0;
+  top: 0;
+  min-height: 300px;
+  width: calc(98vw - 98vh - 250px);
+  max-width: 500px;
+  margin: 5rem 40px 40px;
+  background: #f7f7f7;
+  border: 1px solid lightgray;
+  visibility: hidden;
+  padding: 20px;
+  font-size: 14px;
+}
+
+#name {
+  border-bottom: 1px solid lightgray;
+  padding-bottom: 12px;
+  font-size: 16px;
+}
+
+#desc {
+  word-wrap: break-word;
+}
+
+#legend {
+  position: absolute;
+  top: 0;
+  left: -120px;
+  width: 110px;
+  font-size: 12px;
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+}
+
+#legend li {
+  padding: 4px;
+}
+
+#legend li svg {
+  vertical-align: middle;
+}
+
+#fetch-graph {
+  left: 20rem;
+}
+
+#vis-opts {
+  left: 30rem;
+}
+
+.graph-form {
+  position: absolute;
+  top: 0rem;
+}
+
+.graph-form h2 {
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: normal;
+  padding: 1.2rem 0;
+  margin: 0;
+}
+
+.graph-form h2:after {
+  content: "^";
+  display: inline-block;
+  margin-left: 0.5rem;
+  transform: rotate(0deg) translateY(0.25rem);
+}
+
+.graph-form.closed h2:after {
+  transform: rotate(180deg);
+}
+
+.graph-form.closed form {
+  display: none;
+}
+
+/* Form styles */
+form {
+  border-radius: 10px;
+  background: rgba(220, 220, 220, 0.95);
+  border: 1px solid gray;
+}
+
+fieldset {
+  border: none;
+  margin: 0;
+  padding: 0.6rem 1rem;
+}
+
+legend {
+  font-weight: bold;
+  padding: 0 0 0.4rem;
+}
+
+label {
+  padding-right: 0.2rem;
+}
+
+input[type=number] {
+  width: 3rem;
+}
+
+#network-chart .links line {
+  stroke: #999;
+  stroke-opacity: 0.6;
+}
+
+#network-chart .nodes circle {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}

@@ -7,7 +7,7 @@ This project consists of static files providing a demonstration web user interfa
 
 ## Running
 
-CORS access to servers isn't working from a `file:` URL. To use python's simple web server to serve the UI over HTTP, run `python3 -m http.server`. Access the UI at: http://localhost:8000/.
+[CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) access to servers isn't working from a `file:` URL. To use python's simple web server to serve the UI over HTTP, run `python3 -m http.server`. Access the UI at: http://localhost:8000/.
 
 ## Usage
 

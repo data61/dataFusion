@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>DataFusion Phase 2 Demo</title>
+    <link rel="stylesheet" href="css/index.css"></link>
+  </head>
+  <body>
+    <header id="page-header">
+      <h1>DataFusion Phase 2 Demo</h1>
+      <div id="logos">
+        <img src="images/data61-logo.png" />
+        <img src="images/csiro-black.png" />
+      </div>
+    </header>
+    <div id="container">
+      <ul id="legend">
+        <li>
+          <svg width="20" height="20">
+            <circle cx="10" cy="10" r="10" fill="#880E4F"></circle>
+          </svg>
+          <span>Company</span>
+        </li>
+        <li>
+          <svg width="20" height="20">
+            <circle cx="10" cy="10" r="10" fill="#BF360C"></circle>
+          </svg>
+          <span>Person</span>
+        </li>
+        <li>
+          <svg width="20" height="20">
+            <circle cx="10" cy="10" r="10" fill="#311B92"></circle>
+          </svg>
+          <span>Email Entity</span>
+        </li>
+        <li>
+          <svg width="20" height="20">
+            <circle cx="10" cy="10" r="10" fill="lightgray"></circle>
+            <circle cx="7" cy="7" r="7" fill="gray"></circle>
+          </svg>
+          <span>Score</span>
+        </li>
+        <li>
+          <svg width="20" height="20">
+            <line x1="0" y1="10" x2="20" y2="10" stroke="gray"></line>
+          </svg>
+          <span>Relationship</span>
+        </li>
+      </ul>
+      <svg id="bubble-chart" viewbox="0 0 500 500"></svg>
+      <svg id="network-chart" viewbox="0 0 500 500"></svg>
+    </div>
+    <div id="info">
+      <h3 id="name"></h3>
+      <p id="desc">Information from search, documents etc</p>
+    </div>
+    <div class="graph-form closed" id="fetch-graph">
+      <h2>Fetch graph</h2>
+      <form id="fetchForm" action="#">
+        <fieldset>
+          <label for="graphType">Graph type:</label>
+          <select id="graphType">
+            <option value="0">Top Connected</option>
+            <option value="1">Local network</option>
+          </select>
+        </fieldset>
+        <fieldset>
+          <label for="includePerson2">Include person nodes using only first and family names</label>
+          <input type="checkbox" id="includePerson2" name="includePerson2" />
+        </fieldset>
+        <fieldset>
+          <div>
+            <legend>Collections</legend>
+            <label for="colCbc">CBC</label><input type="checkbox" id="colCbc" name="colCbc" />
+            <label for="colChanley">Chanley</label><input type="checkbox" id="colChanley" name="colChanley" />
+            <label for="colMascot">MASCOT</label><input type="checkbox" id="colMascot" name="colMascot" />
+            <label for="colRtp">RTP</label><input type="checkbox" id="colRtp" name="colRtp" />
+            <label for="colRulings">Rulings</label><input type="checkbox" id="colRulings" name="colRulings" />
+          </div>
+        </fieldset>
+        <fieldset>
+          <label for="maxEdges">Max edges:</label><input type="number" id="maxEdges" name="maxEdges" value="100" />
+          <label for="minScore">Min score:</label><input type="number" id="minScore" name="minScore" value="4.5" step="0.1" />
+          <label for="port">Graph service port:</label><input type="number" id="port" name="port" value="8089" />
+        </fieldset>
+        <fieldset>
+          <label for="nodeId">Node ID</label><input type="number" id="nodeId" value="1786" />
+          <input type="hidden" id="extRefId" value="" />
+          <label for="maxHops">maxHops</label><input type="text" id="maxHops" name="maxHops" value="2" />
+          <input type="submit" value="Fetch graph" /> <input type="reset" value="Reset" />
+        </fieldset>
+      </form>
+    </div>
+    <div class="graph-form closed" id="vis-opts">
+      <h2>Visualisation Options</h2>
+      <form id="optsForm" action="#">
+        <fieldset>
+          <label for="visType">Chart type:</label>
+          <select id="visType">
+            <option value="network">Network</option>
+            <option value="bubble">Bubble</option>
+          </select>
+        </fieldset>
+        <fieldset>
+          <label for="chargeStrength">Charge strength:</label><input type="number" id="chargeStrength" name="chargeStrength" value="-3" />
+        </fieldset>
+        <fieldset>
+          <div>
+            <legend>Distance range</legend>
+            <label for="distanceLogScale">Log scale</label><input type="checkbox" id="distanceLogScale" name="distanceLogScale" />
+            <label for="distanceFrom">From:</label><input type="number" id="distanceFrom" name="distanceFrom" value="20" step=10 />
+            <label for="distanceTo">To:</label><input type="number" id="distanceTo" name="distanceTo" value="300" step="10" />
+          </div>
+        </fieldset>
+        <fieldset>
+          <div>
+            <legend>Node radius range</legend>
+            <label for="nodeRadiusLogScale">Log scale</label><input type="checkbox" id="nodeRadiusLogScale" name="nodeRadiusLogScale" />
+            <label for="nodeRadiusFrom">From:</label><input type="number" id="nodeRadiusFrom" name="nodeRadiusFrom" value="2" />
+            <label for="nodeRadiusTo">To:</label><input type="number" id="nodeRadiusTo" name="nodeRadiusTo" value="10" />
+          </div>
+        </fieldset>
+        <fieldset>
+          <div>
+            <legend>Edge width range</legend>
+            <label for="edgeWidthLogScale">Log scale</label><input type="checkbox" id="edgeWidthLogScale" name="edgeWidthLogScale" />
+            <label for="edgeWidthFrom">From:</label><input type="number" id="edgeWidthFrom" name="edgeWidthFrom" value="1" />
+            <label for="edgeWidthTo">To:</label><input type="number" id="edgeWidthTo" name="edgeWidthTo" value="4" />
+          </div>
+        </fieldset>
+        <fieldset>
+          <input type="submit" value="Redraw" /> <input type="reset" value="Reset" />
+        </fieldset>
+      </form>
+    </div>
+    <script src="js/d3.v4.min.js"></script>
+    <script src="js/d3-selection-multi.v1.min.js"></script>
+    <script src="js/d3plus.min.js"></script>
+    <script src="js/index.js"></script>
+    <script src="js/form.js"></script>
+    <script src="js/network.js"></script>
+    <script src="js/bubble.js"></script>
+  </body>
+</html>

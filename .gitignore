@@ -48,9 +48,8 @@ target/
 
 # project generated CSV files, NER models, Lucene indices, H2 test database etc.
 dataFusion-ner/MITIE-models/
-scripts/out/
 *.csv
 dataFusion-search/*Index/
 dataFusion.mv.db
 
-scripts/email_from_to/
+ui/swagger-ui-3.3.2/
