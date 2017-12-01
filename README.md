@@ -10,7 +10,7 @@ This project:
 2. performs [Named Entity Recognition](https://en.wikipedia.org/wiki/Named-entity_recognition) (NER);
 4. provides batch search for known entities in documents, reporting locations of each match;
 6. builds a network of entities that appear close together in documents and so are likely related in some way; 
-7. provides web services to the above and multi-threaded command line interfaces;
+7. provides web services to the above and multi-threaded command line interfaces.
 
 The following diagram depicts the processing steps and data flow. 
 
