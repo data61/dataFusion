@@ -29,6 +29,9 @@ See the top level [README](../README.md#build).
 
 ## JSON Data Formats
 This section describes the JSON based data file formats used throughout the dataFusion project.
+
+![JSON Formats](../images/JSONFormatsUML.png "JSON Formats")
+
 ### File Structure
 Each line is a JSON structure describing one item of some type. This is more efficient to read and write than making the entire file a JSON array of such structures, because parsing/serialisation can operate document/line at a time, without storing all the data in memory. Since the line delimiter is used as a structure delimiter, the JSON structures must not be “pretty printed” across multiple lines in the file, however “pretty printing” is used here as an aid to human readability.
 ### Document JSON format
