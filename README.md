@@ -12,7 +12,11 @@ This project:
 6. builds a network of entities that appear close together in documents and so are likely related in some way; 
 7. provides web services to the above and multi-threaded command line interfaces;
 
+The following diagram depicts the processing steps and data flow. 
+
 ![Data Flow](images/datafusion.png "Data Flow")
+
+Please see [JSON Data Formats](dataFusion-common#json-data-formats) for details of the data at each step.
 
 ## Project Structure
 The top level directory provides the [sbt](http://www.scala-sbt.org/) build for the [Scala](http://scala-lang.org/) sub-projects in each of the child directories:
