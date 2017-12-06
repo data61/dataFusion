@@ -5,6 +5,7 @@ This project provides command line utilities for:
 - Filtering and merging [Search Result JSON format](../dataFusion-common#search-result-json-format) into the [Document JSON format](../dataFusion-common#document-json-format) (`--hits` CLI option).
 Search results for `typ=PERSON2` (using only first and family names) often overlap with `typ=PERSON` (using the full name).
 In this case the `typ=PERSON2` result is an inferior match and is filtered out.
+This processing also filters out the spurious matches described in [People](../dataFusion-search#people).
 - Parsing content for mentions of people in email headers and merging results into the [Document JSON format](../dataFusion-common#document-json-format) (`--email` CLI option).
 If the resulting `offStr` (see [NER Structure](../dataFusion-common#ner-structure)) matches that of a NER with `impl=D61GAZ` and `typ=PERSON|PERSON2` then the `score` and `extRef` are taken from that NER.
 Otherwise extRef is not set and score is computed using the Lucene's IDF formula if the `--emailIDF` option is true (default) else it's set to 1.0. 

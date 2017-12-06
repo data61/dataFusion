@@ -21,6 +21,7 @@ Lucene's `SynonymGraphFilter` is used to map synonyms specified in a file `synon
 A search hit must match all tokens in the query with tokens in the same order.
 ### People
 A search hit must match all tokens in the query, but the tokens may appear in any order.
+A phrase search for unordered terms (e.g. for PERSON|PERSON2) produces spurious matches where all terms are matched but not with the correct number of occurrences e.g. “Aaron H Aaron” matches “Aaron H H”. Fetching the text to check the number of occurrences would negatively impact the performance of the search, so this check is deferred to `dataFusion-util --hits` processing where the text is already available. Consequently the Search Result JSON (hits.json) contains the spurious matches, but they are filtered out from gaz.json.
 ### Scoring
 A query is assigned an [IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf#Inverse_document_frequency) score  calculated using [Lucene’s formula](https://lucene.apache.org/core/7_1_0/core/org/apache/lucene/search/similarities/TFIDFSimilarity.html). If this score is below the threshold set by the `--minScore` CLI option (default 3.5) then the query is deemed to be insufficiently distiguishing and is skipped.
 ### Query Generation from CSV
