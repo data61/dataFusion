@@ -1,9 +1,10 @@
 let colourMap = {
   "ORGANIZATION": "#880E4F",
   "PERSON": "#BF360C",
-  "FROM": "#311B92",
-  "TO": "#311B92",
-  "BCC": "#311B92"
+  "PERSON2": "#311B92",
+  "FROM": "green",
+  "TO": "green",
+  "BCC": "green"
 }
 
 let size = Math.min(window.innerHeight, window.innerWidth)
@@ -26,30 +27,29 @@ function hideDataSidebar () {
 }
 
 // Form switcher
-(function () {
-  function toggleClosedClass (el, forceClose) {
-    let cn = el.parentNode.className
-    let closedIdx = cn.indexOf(" closed")
-    if (closedIdx > -1 && !forceClose) {
-      cn = cn.slice(0, closedIdx)
-    } else {
-      cn = cn + " closed"
-    }
-    el.parentNode.className = cn
+
+function toggleClosedClass (el, forceClose) {
+  let cn = el.parentNode.className
+  let closedIdx = cn.indexOf(" closed")
+  if (closedIdx > -1 && !forceClose) {
+    cn = cn.slice(0, closedIdx)
+  } else {
+    cn = cn + " closed"
   }
+  el.parentNode.className = cn
+}
 
-  let clickers = Array.prototype.slice.call(document.querySelectorAll(".graph-form h2"))
+let clickers = Array.prototype.slice.call(document.querySelectorAll(".graph-form h2"))
 
-  clickers.forEach((clicker, idx, arr) => {
-    clicker.onclick = function() {
-      return function (el, idx) {
-        let others = clickers.filter((el, currIdx, arr) => idx !== currIdx)
-        others.forEach(clicker => toggleClosedClass(clicker, true))
-        toggleClosedClass(el, false)
-      }(this, idx)
-    }
-  })
-})()
+clickers.forEach((clicker, idx, arr) => {
+  clicker.onclick = function() {
+    return function (el, idx) {
+      let others = clickers.filter((el, currIdx, arr) => idx !== currIdx)
+      others.forEach(clicker => toggleClosedClass(clicker, true))
+      toggleClosedClass(el, false)
+    }(this, idx)
+  }
+})
 
 // Form actions
 document.querySelector("#fetchForm").onsubmit = evt => {

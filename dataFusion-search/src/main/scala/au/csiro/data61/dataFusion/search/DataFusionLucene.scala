@@ -30,6 +30,8 @@ import au.csiro.data61.dataFusion.common.Data.JsonProtocol._
 import au.csiro.data61.dataFusion.common.Timer
 import spray.json.{ pimpAny, pimpString }
 
+import resource.managed
+
 /**
  * dataFusion specific field names, analyzers etc. for Lucene.
  */
@@ -72,7 +74,9 @@ object DataFusionLucene {
       }
     }
     val parser = new SolrSynonymParser(true, false, synAnalyzer); // bools are dedup, expand
-    parser.parse(new InputStreamReader(new FileInputStream(conf.getString("synonyms")), utf8))
+    for (in <- managed(new InputStreamReader(new FileInputStream(conf.getString("synonyms")), utf8))) {
+      parser.parse(in)
+    }
     parser.build
   }
   

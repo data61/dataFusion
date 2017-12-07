@@ -31,6 +31,12 @@
           <svg width="20" height="20">
             <circle cx="10" cy="10" r="10" fill="#311B92"></circle>
           </svg>
+          <span>Person 2</span>
+        </li>
+        <li>
+          <svg width="20" height="20">
+            <circle cx="10" cy="10" r="10" fill="green"></circle>
+          </svg>
           <span>Email Entity</span>
         </li>
         <li>
@@ -47,7 +53,7 @@
           <span>Relationship</span>
         </li>
       </ul>
-      <svg id="bubble-chart" viewbox="0 0 500 500"></svg>
+      <svg id="bubble-chart" viewbox="0 0 500 500" text-anchor="middle" font-size="10"></svg>
       <svg id="network-chart" viewbox="0 0 500 500"></svg>
     </div>
     <div id="info">
@@ -84,7 +90,7 @@
           <label for="port">Graph service port:</label><input type="number" id="port" name="port" value="8089" />
         </fieldset>
         <fieldset>
-          <label for="nodeId">Node ID</label><input type="number" id="nodeId" value="1786" />
+          <label for="nodeId">Node ID</label><input type="number" id="nodeId" value="" />
           <input type="hidden" id="extRefId" value="" />
           <label for="maxHops">maxHops</label><input type="text" id="maxHops" name="maxHops" value="2" />
           <input type="submit" value="Fetch graph" /> <input type="reset" value="Reset" />
@@ -135,7 +141,6 @@
     </div>
     <script src="js/d3.v4.min.js"></script>
     <script src="js/d3-selection-multi.v1.min.js"></script>
-    <script src="js/d3plus.min.js"></script>
     <script src="js/index.js"></script>
     <script src="js/form.js"></script>
     <script src="js/network.js"></script>

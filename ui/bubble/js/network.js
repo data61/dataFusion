@@ -1,7 +1,7 @@
 function networkGraph (graph, p) {
   var svg = d3.select("#network-chart");
 
-  var typs = [ 'PERSON', 'ORGANIZATION', 'FROM', 'TO', 'CC', 'BCC' ];
+  var typs = [ 'PERSON', 'ORGANIZATION', 'PERSON2', 'FROM', 'TO', 'CC', 'BCC' ];
   function nodeColour(n) {
     return colourMap[n.typ];
   }

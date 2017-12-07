@@ -36,8 +36,8 @@ h1 {
 }
 
 #container {
-  height: 98vh;
-  width: 98vh;
+  height: calc(98vh - 60px);
+  width: calc(98vh - 60px);
   margin-left: 150px;
   position: relative;
 }

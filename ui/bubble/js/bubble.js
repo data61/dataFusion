@@ -44,7 +44,7 @@ function bubbleGraph (graph, p) {
   let format = d3.format(",d")
   let pack = d3.pack()
     .size([width, height])
-    .padding(20)
+    .padding(12)
 
   let packedNodes = pack(d3.hierarchy({children: graph.nodes}).sum(d => d.score))
 
@@ -109,12 +109,34 @@ function bubbleGraph (graph, p) {
       hideDataSidebar()
       lines.style("stroke", "none")
     })
+    
+  nodeG.on('click', d => setNodeId(d.data.nodeId));
 
   let circle = nodeG.append("circle")
     .attr("r", d => d.r)
     .attr("id", d => `circ-${d.data.nodeId}`)
     .style("fill", d => colourMap[d.data.typ])
 
+
+  let clipPaths = nodeG.append("clipPath")
+    .attr("id", d=> `clip-${d.data.nodeId}` )
+    .attr("clipPathUnits", "objectBoundingBox")
+    .append("use")
+    .attr("xlink:href", d => `#circ-${d.data.nodeId}`)
+
+  let labels = nodeG.append("text")
+    .attr("clip-path", d => `url(#clip-${d.data.nodeId})`).attr("fill", "white")
+    .attr("font-family", "Verdana")
+    .attr('text-anchor', "middle")
+    .attr("alignment-baseline", "middle")
+    .selectAll("tspan")
+    .data(d => d.data.extRef.name.split(" "))
+    .enter().append("tspan")
+      .attr("x", 0)
+      .attr("y", (d, i, nodes) => 13 + (i - nodes.length / 2 - 0.5) * 10)
+      .text(d => d)
+
+/*
   let labels = nodeG.append("text")
     .text(d => d.data.extRef.name)
     .attr("fill", "white")
@@ -123,9 +145,8 @@ function bubbleGraph (graph, p) {
     .attr("alignment-baseline", "middle")
     .attr("font-size", function(d) {
       return Math.min(1.5 * d.r, (1.5 * d.r - 8) / this.getComputedTextLength() * 24) + "px";
-    })
+    }) */
 
-  //d3plus.textwrap().container(d3.select("text")).resize(true).draw()
 
   let nodeEdges = graph.edges.map(edge => Object.assign({}, edge, {
     x1: d3.select(`#circ-${edge.source}`).data()[0].x,

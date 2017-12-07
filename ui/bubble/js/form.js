@@ -51,8 +51,15 @@ function getFormVals() {
 };
 
 function setNodeId(nodeId) {
+  let fetchForm = document.getElementById("fetch-graph");
+  let optsForm = document.getElementById("vis-opts");
   d3.select('#nodeId').property('value', nodeId);
   d3.select('#extRefId').property('value', '');
+  document.forms.fetchForm.graphType.value = 1
+  if (fetchForm.className.indexOf("closed") > -1) {
+    toggleClosedClass(fetchForm.querySelector("h2"), false)
+    toggleClosedClass(optsForm.querySelector("h2"), true)
+  }
 };
 
 function getProtoHost() {
