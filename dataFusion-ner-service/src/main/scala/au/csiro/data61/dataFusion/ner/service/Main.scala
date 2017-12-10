@@ -108,9 +108,6 @@ Test with:
       opt[Boolean]('m', "mitie") action { (v, c) =>
         c.copy(mitie = v)
       } text (s"Use MITIE (default ${defaultCliOption.mitie})")
-      opt[Boolean]('p', "preprocess") action { (v, c) =>
-        c.copy(preprocess = v)
-      } text (s"Preprocess text by adding `.` between consecutive new lines (default ${defaultCliOption.preprocess})")
       help("help") text ("prints this usage text")
     }
     

@@ -51,15 +51,7 @@ object Main {
     
     def ordering(a: Ner, b: Ner) = a.posStr < b.posStr || a.posStr == b.posStr && a.posEnd < b.posEnd
         
-    // with input with no "."s, CoreNLP is not terminating and consuming 100% CPU!
-    val preprocess: String => String =
-      if (cliOption.preprocess) _.replaceAll("\n\n+", "\n.\n")
-      else identity
-   
-    def ner(lang: String, in: String): List[Ner] = {
-      val in2 = preprocess(in)
-      ners.flatMap(_(lang, in2)).sortWith(ordering)
-    }
+    def ner(lang: String, in: String): List[Ner] = ners.flatMap(_(lang, in)).sortWith(ordering)
     
     // all we do with this is compare it to "es" for Spanish processing else English
     def getLang(m: Map[String, String]) = m.get(META_LANG_CODE).getOrElse("en")
@@ -140,8 +132,8 @@ object Main {
     // logThread.join // not necessary with daemon thread, can take up to 1 min to wake up
   }
   
-  case class CliOption(output: File, corenlp: Boolean, opennlp: Boolean, mitie: Boolean, preprocess: Boolean, numWorkers: Int)
-  val defaultCliOption = CliOption(new File("ner.json"), true, true, true, true, Runtime.getRuntime.availableProcessors)
+  case class CliOption(output: File, corenlp: Boolean, opennlp: Boolean, mitie: Boolean, numWorkers: Int)
+  val defaultCliOption = CliOption(new File("ner.json"), true, true, true, Runtime.getRuntime.availableProcessors)
 
   def main(args: Array[String]): Unit = {
     
@@ -160,9 +152,6 @@ object Main {
       opt[Boolean]('m', "mitie") action { (v, c) =>
         c.copy(mitie = v)
       } text (s"Use MITIE (default ${defaultCliOption.mitie})")
-      opt[Boolean]('p', "preprocess") action { (v, c) =>
-        c.copy(preprocess = v)
-      } text (s"Preprocess text by adding `.` between consecutive new lines (default ${defaultCliOption.preprocess})")
       opt[Int]('n', "numWorkers") action { (v, c) =>
         c.copy(numWorkers = v)
       } text (s"numWorkers (default ${defaultCliOption.numWorkers} the number of CPUs)")
