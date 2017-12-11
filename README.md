@@ -25,6 +25,16 @@ The top level directory provides the [sbt](http://www.scala-sbt.org/) build for 
 
 The library projects dataFusion-{tika,ner,search} all provide a multi-threaded command line interface (CLI) for efficient bulk processing without the need for web services and clients.
 
+## Scalability
+
+Scalability options, ordered by least change first, are:
+
+1. Run CLI's on a single machine with more CPUs.
+2. Split the data, run CLI's on multiple machines, join the results. This is Map-Reduce without using Hadoop. [GNU Parallel](https://www.gnu.org/software/parallel/) should make this easy.
+3. Run web services on multiple machines with a load balancer in front of them (most web servers can perform this function). The load balancer is transparent, it looks to a client just like the web service. Client software (needs to be written) makes requests to the load balancer which distributes the requests to the machines running the web services.
+4. Hadoop with or without Spark. To benefit from the cluster it is crucial that the heavy processing: Tika, ImageMagik (image preprocessing done before Tesseract), Tesseract and NER, runs on the processing nodes. This would require installation on all the processing nodes of ImageMagik, Tesseract and the non-Java components of the MITIE NER implementation (the models which are data files and the C++ code which resides in a shared library, a .so file). Options 2 & 3 above have this same requirement, however this may be more acceptable on single purpose VM's than it is on a general purpose cluster.
+
+
 ## Install Tools
 
 To run the Scala code install:
@@ -108,7 +118,7 @@ Examples:
      
 ## Swagger Support
 
-The `dataFusion-$name-service` web services use [Swagger](https://swagger.io/) to both
+The `dataFusion-*-service` web services use [Swagger](https://swagger.io/) to both
 document their APIs and provide a user interface to call them (for use by developers rather than end users).
 Each web service exposes an endpoint `http://host:port/api-docs/swagger.json` which provides the Swagger description of the service.
 
