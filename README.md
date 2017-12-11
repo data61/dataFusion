@@ -74,7 +74,7 @@ Examples:
 These projects have configuration in `src/main/resources/application.conf`, which uses `${?ENV_VAR}` syntax to define environment variables that may be set to override default values set in the file. For example dataFusion-ner's [application.conf](dataFusion-ner/src/main/resources/application.conf) sets the default location for MITIE's English NER model to `MITIE-models/english/ner_model.dat` (relative to whatever directory the program is run from) and allows this to be overridden by setting an environment variable `NER_MITIE_ENGLISH_MODEL`.
 
 Note that configuation is the union of all the `application.conf`'s on the class path. The project's own `application.conf` takes precedence, but the `application.conf`'s of dependent projects
-are also used. So the web service projects (e.g. datFusion-ner-service) also use their base project's configuration (e.g. datFusion-ner).
+are also used. So the web service projects (e.g. datFusion-ner-service) also use their base project's configuration (e.g. dataFusion-ner).
 
 ### Recommendations
 
