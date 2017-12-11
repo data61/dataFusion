@@ -1,9 +1,14 @@
 # dataFusion - ui
 
 ## Introduction
-This project consists of static files providing a demonstration web user interface of a network graph of entities found in proximity in unstructured documents. The data for the visualization is provided by [dataFusion-graph-service](../dataFusion-graph-service). The visualization is based on [D3's force layout](https://github.com/d3/d3-force/blob/master/README.md).
+Two user interfaces are provided here:
 
-[ECMAScript](https://en.wikipedia.org/wiki/ECMAScript) 6 is used so the web page only runs in some modern browsers (Chrome, Firefox, Edge, not yet Safari).
+- network: an initial user interface to experiment with [D3's force layout](https://github.com/d3/d3-force/blob/master/README.md) for network visualization; and
+- bubble: which refines the above and adds a new "bubble" representation, which is cleaner in apparence and less information dense.
+
+Both user interfaces consist of static files providing a demonstration web user interface of a network graph of entities found in proximity in unstructured documents. The data for the visualizations is provided by [dataFusion-graph-service](../dataFusion-graph-service).
+
+[ECMAScript](https://en.wikipedia.org/wiki/ECMAScript) 6 is used so the user interfaces only run in some modern browsers (Chrome, Firefox, Edge, not yet Safari).
 
 ## Running
 
