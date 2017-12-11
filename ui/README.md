@@ -13,6 +13,8 @@ This project consists of static files providing a demonstration web user interfa
 
 This user interface provides many input fields affecting the graph layout that would probably not be provided in a production user interface. This is intended to allow experimentation to determine appropriate parameters for a production user interface, which will vary depending on the usage scenario.
 
+![Network Graph](../images/network.png "Network Graph")
+
 ### Description of Input Fields
 
 - `include person nodes using only first and family names`
