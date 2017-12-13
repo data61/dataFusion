@@ -21,7 +21,7 @@ import spray.json.{ pimpAny, pimpString }
 import spray.json.DefaultJsonProtocol._
 
 object Main {
-  val log = Logger(getClass)
+  private val log = Logger(getClass)
   
   case class Docs(docOuts: List[Doc])
   

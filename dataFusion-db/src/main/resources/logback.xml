@@ -16,6 +16,6 @@
 <!--   <logger name="au.csiro.data61" level="DEBUG" /> -->
   
   <root level="INFO">
-    <appender-ref ref="CONS" />
+    <appender-ref ref="FILE" />
   </root>
 </configuration>

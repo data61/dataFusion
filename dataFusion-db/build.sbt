@@ -4,12 +4,16 @@ libraryDependencies ++= Seq(
   "slick",
   "slick-hikaricp",
   "slick-codegen"
-).map("com.typesafe.slick" %% _ % "3.2.0")
+).map("com.typesafe.slick" %% _ % "3.2.1")
 
 libraryDependencies ++= Seq(
   "au.csiro.data61" %% "datafusion-common" % "0.2-SNAPSHOT",
-  "org.postgresql" % "postgresql" % "42.1.1",
-  "com.h2database" % "h2" % "1.4.195"
+  "org.postgresql" % "postgresql" % "42.1.4",
+  "com.h2database" % "h2" % "1.4.196",
+  "com.typesafe" % "config" % "1.3.1",
+  "com.github.scopt" %% "scopt" % "3.7.0",
+  "com.jsuereth" %% "scala-arm" % "2.0"
+  
 )
 
 com.github.retronym.SbtOneJar.oneJarSettings

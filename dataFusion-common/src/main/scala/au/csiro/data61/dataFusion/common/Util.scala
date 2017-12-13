@@ -10,6 +10,15 @@ object Util {
   /** @return a BufferedWriter using UTF-8 encoding */
   def bufWriter(f: File) = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(f), "UTF-8"))
   
+  /** Get a Scala singleton Object.
+    * @param fqn object's fully qualified name
+    * @return object as type T
+    */
+  def getObject[T](fqn: String): T = {
+    val m = scala.reflect.runtime.universe.runtimeMirror(getClass.getClassLoader)
+    m.reflectModule(m.staticModule(fqn)).instance.asInstanceOf[T]
+  }
+  
   /**
    * Modified from: https://stackoverflow.com/questions/5674741/simplest-way-to-get-the-top-n-elements-of-a-scala-iterable
    * Well the simplest is sort.take(n), but for a large collection where n << the collection size, this is much more efficient!
