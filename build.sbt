@@ -15,6 +15,8 @@ releaseProcess := Seq[ReleaseStep](
   pushChanges
 )
 
+releaseIgnoreUntrackedFiles := true // tests fail without dataFusion-ner/MITIE-models/
+
 def hasPrefix(org: String, prefixes: Seq[String]) = prefixes.exists(x => org.startsWith(x))
 
 lazy val commonSettings = Seq(
