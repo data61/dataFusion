@@ -44,7 +44,7 @@ function bubbleGraph (graph, p) {
   let format = d3.format(",d")
   let pack = d3.pack()
     .size([width, height])
-    .padding(12)
+    .padding(18)
 
   let packedNodes = pack(d3.hierarchy({children: graph.nodes}).sum(d => d.score))
 
@@ -73,9 +73,12 @@ function bubbleGraph (graph, p) {
       d3.selectAll(`.target-${d.data.nodeId}`)
         .style("stroke", "darkgray")
 
+      let idText = ""
+      if (d.data.extRef && d.data.extRef.ids && Array.isArray(d.data.extRef.ids)) idText = `<strong>IDs:</strong> ${d.data.extRef.ids.reduce((acc, curr) => acc + ", " + curr)}`
+
       displayDataSidebar({
-        title: `${d.data.extRef.name} (${d.data.typ})`,
-        desc: `Score: ${d.data.score}, IDs: ${d.data.extRef.ids.reduce((acc, curr) => acc + ", " + curr)}`
+        title: `${d.data.name || d.data.extRef.name} (${d.data.typ})`,
+        desc: `<p><strong>Score:</strong> ${d.data.score}</p> <p>${idText}</p>`
       });
 
       graph.edges.map(edge => {
@@ -130,7 +133,11 @@ function bubbleGraph (graph, p) {
     .attr('text-anchor', "middle")
     .attr("alignment-baseline", "middle")
     .selectAll("tspan")
-    .data(d => d.data.extRef.name.split(" "))
+    .data(d => {
+      let name = d.data.name || d.data.extRef.name
+      if (Array.isArray(name)) name = name[0].split('/').slice(-1)[0]
+      return name.split(" ")
+    })
     .enter().append("tspan")
       .attr("x", 0)
       .attr("y", (d, i, nodes) => 13 + (i - nodes.length / 2 - 0.5) * 10)

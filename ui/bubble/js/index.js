@@ -1,10 +1,10 @@
 let colourMap = {
   "ORGANIZATION": "#880E4F",
   "PERSON": "#BF360C",
-  "PERSON2": "#311B92",
-  "FROM": "green",
-  "TO": "green",
-  "BCC": "green"
+  "PERSON2": "#BF360C",
+  "FROM": "#311B92",
+  "TO": "#311B92",
+  "BCC": "#311B92"
 }
 
 let size = Math.min(window.innerHeight, window.innerWidth)

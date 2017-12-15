@@ -8,14 +8,35 @@ function networkGraph (graph, p) {
 
   var simulation;
 
-  var nodeTitle = d => d.extRef.name + ' (typ: ' + d.typ + ', score: ' + d.score + ', ids: ' + d.extRef.ids + ')';
+  var nodeTitle = d => {
+    if (p.graphType > 1) {
+      return d.name + ' (' + d.typ + ')';  
+    } else {
+      return (d.name || d.extRef.name) + ' (typ: ' + d.typ + ', score: ' + d.score + ', ids: ' + d.extRef.ids + ')';
+    }
+  }
+
+  function edgeHeading(d) {
+    if (p.graphType > 1) {
+      return `${d.source.name || d.source.extRef.name} (${d.typ}) ${d.target.name || d.target.extRef.name}`
+    } else {
+      return `${d.source.name || d.source.extRef.name} <-> ${d.target.name || d.target.extRef.name}`
+    }
+  }
 
   function edgeTitle(d) {
-    console.log(d)
-    var t = "Weight, count in selected collections: " + [ d.totalWeight, d.totalCount ];
-    var w = d.weights;
-    for (c in w) t += "\n  Weight, count in " + c + ": " + w[c];
-    return t;
+    if (p.graphType > 1) {
+      let retStr = `<p><strong>Context in document:</strong> ${d.context}</p>`;
+      retStr += `<p><strong>Relationship type:</strong> ${d.typ}</p>`;
+      retStr += `<p><strong>Source filename:</strong> ${d.file.split('/').pop()}`;
+      return retStr;
+    } else {
+      let t = `<p><strong>Weight, count in selected collections:</strong> ${d.totalWeight}, ${d.totalCount}</p>`;
+      let w = d.weights;
+      for (c in w) t += `<p><strong>Weight, count in ${c}:</strong> ${w[c][0]}, ${w[c][1]}</p>`;
+      return t;
+    }
+
   };
 
   var edgeLength = d => 1/d.totalWeight;
@@ -38,19 +59,30 @@ function networkGraph (graph, p) {
       .selectAll("line")
       .data(graph.edges)
       .enter().append("line")
-        .attr("stroke-width", e => edgeScale(e.totalCount))
+        .attr("stroke-width", p.graphType > 1 ? 2 : e => edgeScale(e.totalCount))
         .style("cursor", "pointer")
 
 
     //link.append("title").text(edgeTitle);
-    link.on("mouseover", d => {
+    link.on("mouseover", function (d) {
+      link.style("stroke-opacity", 0.1)
+      d3.select(this).style("stroke-opacity", 0.6)
+
+      node.style("opacity", 0.1)
+      d3.select(`#node-${d.source.nodeId}`).style("opacity", 1)
+      d3.select(`#node-${d.target.nodeId}`).style("opacity", 1)
+  
       displayDataSidebar({
-        title: `${d.source.extRef.name} <-> ${d.target.extRef.name}`,
+        title: edgeHeading(d),
         desc: edgeTitle(d)
       })    
     })
 
-    link.on("mouseout", hideDataSidebar)
+    link.on("mouseout", d => {
+      link.style("stroke-opacity", 0.6)
+      node.style("opacity", 1)
+      hideDataSidebar()
+    })
 
     var nodeScale = (
       p.nodeRadiusLogScale
@@ -65,9 +97,10 @@ function networkGraph (graph, p) {
       .selectAll("circle")
       .data(graph.nodes)
       .enter().append("circle")
-        .attr("r", n => nodeScale(n.score))
+        .attr("r", n => p.graphType > 1 ? 4 : nodeScale(n.score))
         .attr("fill", nodeColour)
         .style("cursor", "pointer")
+        .attr("id", d => `node-${d.nodeId}`)
         .call(d3.drag()
             .on("start", dragstarted)
             .on("drag", dragged)
@@ -75,9 +108,12 @@ function networkGraph (graph, p) {
 
     //node.append("title").text(nodeTitle);
     node.on("mouseover", d => {
+      let idText = ""
+      if (d.extRef && d.extRef.ids && Array.isArray(d.extRef.ids)) idText = `<strong>IDs:</strong> ${d.extRef.ids.reduce((acc, curr) => acc + ", " + curr)}`
+
       displayDataSidebar({
-        title: `${d.extRef.name} (${d.typ})`,
-        desc: `Score: ${d.score}, IDs: ${d.extRef.ids}`
+        title: `${d.name || (d.extRef && d.extRef.name)} (${d.typ})`,
+        desc: `<p><strong>Score:</strong> ${d.score}</p> <p>${idText}</p>`
       })    
     })
 
@@ -104,7 +140,7 @@ function networkGraph (graph, p) {
 
     simulation.force("link")
         .links(graph.edges)
-        .distance(d => distScale(edgeLength(d)));
+        .distance(d => p.graphType > 1 ? 20 : distScale(edgeLength(d)));
 
     simulation.force("charge").strength(p.chargeStrength);
 

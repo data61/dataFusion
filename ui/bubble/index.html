@@ -2,12 +2,12 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>DataFusion Phase 2 Demo</title>
+    <title>DataFusion Data Service Demo</title>
     <link rel="stylesheet" href="css/index.css"></link>
   </head>
   <body>
     <header id="page-header">
-      <h1>DataFusion Phase 2 Demo</h1>
+      <h1>DataFusion Data Service Demo</h1>
       <div id="logos">
         <img src="images/data61-logo.png" />
         <img src="images/csiro-black.png" />
@@ -30,12 +30,6 @@
         <li>
           <svg width="20" height="20">
             <circle cx="10" cy="10" r="10" fill="#311B92"></circle>
-          </svg>
-          <span>Person 2</span>
-        </li>
-        <li>
-          <svg width="20" height="20">
-            <circle cx="10" cy="10" r="10" fill="green"></circle>
           </svg>
           <span>Email Entity</span>
         </li>
@@ -66,8 +60,10 @@
         <fieldset>
           <label for="graphType">Graph type:</label>
           <select id="graphType">
-            <option value="0">Top Connected</option>
-            <option value="1">Local network</option>
+            <optgroup label="Interactive Graphs (Phase 1)">
+              <option value="0">Top Connected</option>
+              <option value="1">Local network</option>
+            </optgroup>
           </select>
         </fieldset>
         <fieldset>
@@ -87,7 +83,6 @@
         <fieldset>
           <label for="maxEdges">Max edges:</label><input type="number" id="maxEdges" name="maxEdges" value="100" />
           <label for="minScore">Min score:</label><input type="number" id="minScore" name="minScore" value="4.5" step="0.1" />
-          <label for="port">Graph service port:</label><input type="number" id="port" name="port" value="8089" />
         </fieldset>
         <fieldset>
           <label for="nodeId">Node ID</label><input type="number" id="nodeId" value="" />
@@ -110,7 +105,7 @@
         <fieldset>
           <label for="chargeStrength">Charge strength:</label><input type="number" id="chargeStrength" name="chargeStrength" value="-3" />
         </fieldset>
-        <fieldset>
+        <fieldset id="dist">
           <div>
             <legend>Distance range</legend>
             <label for="distanceLogScale">Log scale</label><input type="checkbox" id="distanceLogScale" name="distanceLogScale" />
@@ -118,7 +113,7 @@
             <label for="distanceTo">To:</label><input type="number" id="distanceTo" name="distanceTo" value="300" step="10" />
           </div>
         </fieldset>
-        <fieldset>
+        <fieldset id="rad">
           <div>
             <legend>Node radius range</legend>
             <label for="nodeRadiusLogScale">Log scale</label><input type="checkbox" id="nodeRadiusLogScale" name="nodeRadiusLogScale" />
@@ -126,13 +121,17 @@
             <label for="nodeRadiusTo">To:</label><input type="number" id="nodeRadiusTo" name="nodeRadiusTo" value="10" />
           </div>
         </fieldset>
-        <fieldset>
+        <fieldset id="wid">
           <div>
             <legend>Edge width range</legend>
             <label for="edgeWidthLogScale">Log scale</label><input type="checkbox" id="edgeWidthLogScale" name="edgeWidthLogScale" />
             <label for="edgeWidthFrom">From:</label><input type="number" id="edgeWidthFrom" name="edgeWidthFrom" value="1" />
             <label for="edgeWidthTo">To:</label><input type="number" id="edgeWidthTo" name="edgeWidthTo" value="4" />
           </div>
+        </fieldset>
+        <fieldset>
+          <label for="edgeLimit">Edge limit</label>
+          <input type="number" id="edgeLimit" value="100" step="10" />
         </fieldset>
         <fieldset>
           <input type="submit" value="Redraw" /> <input type="reset" value="Reset" />

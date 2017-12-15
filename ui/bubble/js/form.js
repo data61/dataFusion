@@ -1,4 +1,47 @@
-const apiRoutes = ['/topConnectedGraph', '/graph']
+const apiRoutes = [
+  {
+    method: 'POST',
+    port: 8089,
+    route: '/topConnectedGraph',
+    name: 'Top Connected' 
+  },
+  {
+    method: 'POST',
+    port: 8089,
+    route: '/graph',
+    name: 'Local Network'
+  },
+  {
+    method: 'GET',
+    port: 80,
+    route: '/ui/research/network.json',
+    name: 'Research' 
+  },
+  {
+    method: 'GET',
+    port: 80,
+    route: '/ui/research/network-nb.json',
+    name: 'Research B' 
+  },
+  {
+    method: 'GET',
+    port: 80,
+    route: '/ui/stephen/demo1/network.json',
+    name: 'Demo 1' 
+  },
+  {
+    method: 'GET',
+    port: 80,
+    route: '/ui/stephen/demo2/network.json',
+    name: 'Demo 2' 
+  },
+  {
+    method: 'GET',
+    port: 80,
+    route: '/ui/stephen/demo3/network.json',
+    name: 'Demo 3' 
+  }
+]
 
 function getStr(selector, atr = 'value') {
   return d3.select(selector).property(atr);
@@ -40,9 +83,10 @@ function getFormVals() {
     edgeWidthLogScale: isChecked('#edgeWidthLogScale'),
     edgeWidthFrom: getInt('#edgeWidthFrom'),
     edgeWidthTo: getInt('#edgeWidthTo'),
+    edgeLimit: getInt("#edgeLimit"),
     maxEdges: getInt('#maxEdges'),
     minScore: getFloat('#minScore'),
-    port: getInt('#port'),
+    //port: getInt('#port'),
     nodeId: getInt('#nodeId'),
     extRefId: getInt('#extRefId'),
     maxHops: getInt('#maxHops'),
@@ -71,6 +115,26 @@ var protoHost = getProtoHost();
 console.log('protoHost =', protoHost);
 
 let currentGraph;
+const visSelect = document.getElementById("visType")
+const edgeLmtInpt = document.getElementById("edgeLimit")
+const distFields = document.getElementById("dist")
+const radFields = document.getElementById("rad")
+const widFields = document.getElementById("wid")
+const chargeInpt = document.getElementById("chargeStrength")
+
+function setFieldVals (type) {
+  edgeLmtInpt.value = type === "network" ? 100 : 10
+  chargeInpt.disabled = type === "bubble"
+  distFields.disabled = type === "bubble"
+  radFields.disabled = type === "bubble"
+  widFields.disabled = type === "bubble"
+}
+
+visSelect.onchange = function (e) {
+  setFieldVals(this.value)
+}
+
+setFieldVals(document.forms.optsForm.visType.value)
 
 function getGraph() {
   var p = getFormVals();
@@ -81,34 +145,64 @@ function getGraph() {
     else data.extRefId = p.extRefId;
   }
 
+  p.port = apiRoutes[p.graphType].port;
+
   if (p.collections.length) data.collections = p.collections;
   console.log(`${apiRoutes[p.graphType]}: request data`, data);
-  d3.json(protoHost + ':' + p.port + apiRoutes[p.graphType])
-    .mimeType("application/json")
-    .header("Content-Type", "application/json")
-    .response(xhr => JSON.parse(xhr.responseText))
-    .post(JSON.stringify(data), function(error, graph) {
-      if (error) throw error;
-      currentGraph = graph;
-      drawGraph();
-    });
+
+  if (apiRoutes[p.graphType].method === "POST") {
+    d3.json(protoHost + ':' + p.port + apiRoutes[p.graphType].route)
+      .mimeType("application/json")
+      .header("Content-Type", "application/json")
+      .response(xhr => JSON.parse(xhr.responseText))
+      .post(JSON.stringify(data), function(error, graph) {
+        if (error) throw error;
+        currentGraph = graph;
+        drawGraph();
+      });
+  } else if (apiRoutes[p.graphType].method === "GET") {
+    d3.json(protoHost + ':' + p.port + apiRoutes[p.graphType].route)
+      .mimeType("application/json")
+      .header("Content-Type", "application/json")
+      .response(xhr => JSON.parse(xhr.responseText))
+      .get(function(error, graph) {
+        if (error) throw error;
+
+        currentGraph = graph;
+        drawGraph();
+      });
+  }
 };
 
 function drawGraph () {
   var p = getFormVals();
+  var data = JSON.parse(JSON.stringify(currentGraph));
+
+  // apply edges limit
+  if (data.edges.length > p.edgeLimit) {
+    data.edges.length = p.edgeLimit;
+  };
+
+  var ids = new Set();
+  data.edges.forEach(e => {
+    ids.add(e.source);
+    ids.add(e.target);
+  });
+
+  data.nodes = data.nodes.filter(n => ids.has(n.nodeId));
 
   switch (p.chartType) {
     case "network":
       document.querySelector("#network-chart").style.display = "block"
       document.querySelector("#network-chart").innerHTML = ""
       document.querySelector("#bubble-chart").style.display = "none"
-      networkGraph(JSON.parse(JSON.stringify(currentGraph)), p)
+      networkGraph(data, p)
       break;
     case "bubble":
       document.querySelector("#bubble-chart").style.display = "block"
       document.querySelector("#bubble-chart").innerHTML = ""
       document.querySelector("#network-chart").style.display = "none"
-      bubbleGraph(JSON.parse(JSON.stringify(currentGraph)), p)
+      bubbleGraph(data, p)
       break;
     default:
       return;
