@@ -3,7 +3,7 @@
 # used by sh/dfus
 export DFUS_DIR="$PWD"
 export SCALA_VER=2.12
-export DFUS_VER=0.2-SNAPSHOT
+export DFUS_VER=1.1-SNAPSHOT
 
 # sbt tests using MITIE will fail without these vars being appropriately set
 export LD_LIBRARY_PATH=${DFUS_DIR}/dataFusion-ner/MITIE-native/ubuntu # directory containing libjavamitie.so
