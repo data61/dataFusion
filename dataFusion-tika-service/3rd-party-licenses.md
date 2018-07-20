@@ -112,8 +112,8 @@ BSD | [The BSD License](http://www.adobe.com/devnet/xmp/library/eula-xmp-library
 BSD | [The BSD License](http://www.opensource.org/licenses/bsd-license.php) | org.codehaus.woodstox # stax2-api # 3.1.4 | <notextile></notextile>
 BSD | [The New BSD License](http://www.opensource.org/licenses/bsd-license.html) | org.reflections # reflections # 0.9.10 | <notextile></notextile>
 CC0 | [CC0](http://creativecommons.org/publicdomain/zero/1.0/) | org.reactivestreams # reactive-streams # 1.0.0 | <notextile></notextile>
-GPL | [GPL](https://www.gnu.org/licenses/gpl-3.0.en.html) | au.csiro.data61 # datafusion-common_2.12 # 0.2-SNAPSHOT | <notextile></notextile>
-GPL | [GPL](https://www.gnu.org/licenses/gpl-3.0.en.html) | au.csiro.data61 # datafusion-tika_2.12 # 0.2-SNAPSHOT | <notextile></notextile>
+GPL | [GPL](https://www.gnu.org/licenses/gpl-3.0.en.html) | au.csiro.data61 # datafusion-common_2.12 # 1.1-SNAPSHOT | <notextile></notextile>
+GPL | [GPL](https://www.gnu.org/licenses/gpl-3.0.en.html) | au.csiro.data61 # datafusion-tika_2.12 # 1.1-SNAPSHOT | <notextile></notextile>
 GPL | [GPL v3](http://www.gnu.org/licenses/gpl.txt) | com.levigo.jbig2 # levigo-jbig2-imageio # 2.0 | <notextile></notextile>
 GPL with Classpath Extension | [CDDL + GPLv2 with classpath exception](https://glassfish.dev.java.net/nonav/public/CDDL+GPL.html) | javax.annotation # javax.annotation-api # 1.2 | <notextile></notextile>
 GPL with Classpath Extension | [CDDL + GPLv2 with classpath exception](https://glassfish.dev.java.net/nonav/public/CDDL+GPL.html) | javax.ws.rs # javax.ws.rs-api # 2.0.1 | <notextile></notextile>

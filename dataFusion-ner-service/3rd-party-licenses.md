@@ -53,9 +53,9 @@ BSD | [BSD-Style](http://www.opensource.org/licenses/bsd-license.php) | com.thou
 BSD | [New BSD license](http://www.opensource.org/licenses/bsd-license.php) | com.google.protobuf # protobuf-java # 3.2.0 | <notextile></notextile>
 BSD | [The New BSD License](http://www.opensource.org/licenses/bsd-license.html) | org.reflections # reflections # 0.9.10 | <notextile></notextile>
 CC0 | [CC0](http://creativecommons.org/publicdomain/zero/1.0/) | org.reactivestreams # reactive-streams # 1.0.0 | <notextile></notextile>
-GPL | [GNU General Public License Version 3](http://www.gnu.org/licenses/gpl-3.0.txt) | edu.stanford.nlp # stanford-corenlp # 3.8.1-20170922 | <notextile></notextile>
-GPL | [GPL](https://www.gnu.org/licenses/gpl-3.0.en.html) | au.csiro.data61 # datafusion-common_2.12 # 0.2-SNAPSHOT | <notextile></notextile>
-GPL | [GPL](https://www.gnu.org/licenses/gpl-3.0.en.html) | au.csiro.data61 # datafusion-ner_2.12 # 0.2-SNAPSHOT | <notextile></notextile>
+GPL | [GNU General Public License Version 3](http://www.gnu.org/licenses/gpl-3.0.txt) | edu.stanford.nlp # stanford-corenlp # 3.9.1 | <notextile></notextile>
+GPL | [GPL](https://www.gnu.org/licenses/gpl-3.0.en.html) | au.csiro.data61 # datafusion-common_2.12 # 1.1-SNAPSHOT | <notextile></notextile>
+GPL | [GPL](https://www.gnu.org/licenses/gpl-3.0.en.html) | au.csiro.data61 # datafusion-ner_2.12 # 1.1-SNAPSHOT | <notextile></notextile>
 GPL | [GPL2 w/ CPE](https://glassfish.java.net/public/CDDL+GPL_1_1.html) | javax.xml.bind # jaxb-api # 2.2.7 | <notextile></notextile>
 GPL with Classpath Extension | [CDDL + GPLv2 with classpath exception](https://glassfish.dev.java.net/nonav/public/CDDL+GPL.html) | javax.servlet # javax.servlet-api # 3.0.1 | <notextile></notextile>
 GPL with Classpath Extension | [CDDL + GPLv2 with classpath exception](https://glassfish.dev.java.net/nonav/public/CDDL+GPL.html) | javax.ws.rs # jsr311-api # 1.1.1 | <notextile></notextile>

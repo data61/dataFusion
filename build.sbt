@@ -34,7 +34,7 @@ lazy val commonSettings = Seq(
   unmanagedSourceDirectories in Test := (scalaSource in Test).value :: Nil,
   
   // filterScalaLibrary := false, // sbt-dependency-graph: include scala library in output
-  scalacOptions in (Compile,doc) := Seq("-diagrams"), // sbt-dependency-graph needs: sudo apt-get install graphviz
+  // scalacOptions in (Compile,doc) := Seq("-diagrams"), // svg in scaladocs needs: sudo apt-get install graphviz
   
   EclipseKeys.withSource := true,
   // If Eclipse and sbt are both building to same dirs at same time it takes forever and produces corrupted builds.

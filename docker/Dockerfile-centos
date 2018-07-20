@@ -1,0 +1,18 @@
+FROM centos:latest 
+
+ENV LANGUAGE=en
+ENV LC_ALL=C
+ENV LANG=C
+
+# openblas and build tools are to build MITIE (used by dataFusion-ner)
+# graphviz is for dependency graphs generated as part of the sbt build
+# libreoffice, tesseract and ImageMagick are used by dataFusion-tika (and its unit tests)
+
+RUN yum -y groupinstall 'Development Tools' && \
+  yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && \
+  yum -y install openblas-devel cmake swig git java-1.8.0-openjdk-devel graphviz libreoffice tesseract ImageMagick
+
+RUN curl https://bintray.com/sbt/rpm/rpm > /etc/yum.repos.d/bintray-sbt-rpm.repo && \
+  yum -y install sbt
+
+ENTRYPOINT ["bash"]

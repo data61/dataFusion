@@ -47,6 +47,7 @@ test-bin/
 target/
 
 # project generated CSV files, NER models, Lucene indices, H2 test database etc.
+dataFusion-ner/MITIE/
 dataFusion-ner/MITIE-models/
 *.csv
 dataFusion-search/*Index/

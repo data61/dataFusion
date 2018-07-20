@@ -42,7 +42,7 @@ BSD | [BSD 3-clause](http://opensource.org/licenses/BSD-3-Clause) | org.scala-la
 BSD | [BSD-Style](http://www.opensource.org/licenses/bsd-license.php) | com.thoughtworks.paranamer # paranamer # 2.8 | <notextile></notextile>
 BSD | [The New BSD License](http://www.opensource.org/licenses/bsd-license.html) | org.reflections # reflections # 0.9.10 | <notextile></notextile>
 CC0 | [CC0](http://creativecommons.org/publicdomain/zero/1.0/) | org.reactivestreams # reactive-streams # 1.0.0 | <notextile></notextile>
-GPL | [GPL](https://www.gnu.org/licenses/gpl-3.0.en.html) | au.csiro.data61 # datafusion-common_2.12 # 0.2-SNAPSHOT | <notextile></notextile>
+GPL | [GPL](https://www.gnu.org/licenses/gpl-3.0.en.html) | au.csiro.data61 # datafusion-common_2.12 # 1.1-SNAPSHOT | <notextile></notextile>
 GPL with Classpath Extension | [CDDL + GPLv2 with classpath exception](https://glassfish.dev.java.net/nonav/public/CDDL+GPL.html) | javax.ws.rs # jsr311-api # 1.1.1 | <notextile></notextile>
 LGPL | [EPL + GNU Lesser General Public License](http://logback.qos.ch/license.html) | ch.qos.logback # logback-classic # 1.2.3 | <notextile></notextile>
 LGPL | [EPL + GNU Lesser General Public License](http://logback.qos.ch/license.html) | ch.qos.logback # logback-core # 1.2.3 | <notextile></notextile>
