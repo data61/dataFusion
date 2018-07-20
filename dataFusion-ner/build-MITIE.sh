@@ -13,7 +13,7 @@ EN=MITIE-models/english
 ES=MITIE-models/spanish
 
 # when these files are missing the script makes a fresh start, else it does as little as necessary
-[ "$1" = "--clean" ] && rm -rf MITIE MITIE-native/$OS/libjavamitie.so "$EN/$NER" # "$ES/$NER"
+[ "$1" = "--clean" ] && rm -rf MITIE MITIE-native/$OS/libjavamitie.so "$EN/$NER" ../sh/setenv.$OS # "$ES/$NER"
 
 # Build MITIE java jar and native shared library
 [ -d MITIE ] || git clone https://github.com/mit-nlp/MITIE
@@ -34,19 +34,19 @@ ES=MITIE-models/spanish
 }
 
 # Install English NER model
-EN_BZ2=MITIE-models-v0.2.tar.bz2
 [ -r "$EN/$NER" ] || {
   echo "Downloading English models ..."
+  EN_BZ2=MITIE-models-v0.2.tar.bz2
   curl --location https://github.com/mit-nlp/MITIE/releases/download/v0.4/$EN_BZ2 > $EN_BZ2
   tar xvfj $EN_BZ2 $EN/$NER  # only extract EN NER model
   rm $EN_BZ2
 }
 
 # Install Spanish NER model
-ES_ZIP=MITIE-models-v0.2-Spanish.zip
 if false; then
 [ -r "$ES/$NER" ] || {
   echo "Downloading Spanish models ..."
+  ES_ZIP=MITIE-models-v0.2-Spanish.zip
   curl --location https://github.com/mit-nlp/MITIE/releases/download/v0.4/$ES_ZIP > $ES_ZIP
   unzip $ES_ZIP $ES/$NER  # only extract ES NER model
   rm $ES_ZIP
@@ -54,6 +54,7 @@ if false; then
 fi
 
 # create a file that can be sourced to set required environment variables
+[ -r "../sh/setenv.$OS" ] || {
 cat > ../sh/setenv.$OS <<EoF1
 #! /not/to/be/execed
  
@@ -83,5 +84,6 @@ Try "dfus -h" to get started.
 EoF2
 
 EoF1
+}
 
 
