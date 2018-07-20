@@ -1,11 +1,10 @@
 name := "dataFusion-ner"
 
 libraryDependencies ++= Seq(
-  "edu.stanford.nlp" % "stanford-corenlp" % "3.9.1", // exclude("com.apple", "AppleJavaExtensions"),
+  "edu.stanford.nlp" % "stanford-corenlp" % "3.9.1",
   "edu.stanford.nlp" % "stanford-corenlp" % "3.9.1" classifier "models", //  classifier "models-spanish",
   
   "org.apache.opennlp" % "opennlp-tools" % "1.9.0",
-  // "com.google.protobuf" % "protobuf-java" % "3.1.0", // undeclared dependency of corenlp?
   "com.typesafe" % "config" % "1.3.1",
   "com.github.scopt" %% "scopt" % "3.7.0",
   "com.jsuereth" %% "scala-arm" % "2.0",

@@ -34,7 +34,7 @@ The Manhattan District Engineer, Kenneth Nichols, moved the Manhattan District h
     val ners = nerSplitParagraphs(en, enTxt, 1, 1) // split into small chunks
     log.debug(s"ners = ${ners}")
     // 3.9.1 has many new tags over 3.8.0, e.g. CITY, STATE_OR_PROVINCE (rather than just LOCATION), TITLE for job title, CAUSE_OF_DEATH (for "war"), CRIMINAL_CHARGE for "bombing"
-    assert(ners.contains(Ner(9, 10, 47, 56, 1.0, "Manhattan", "CITY", "CoreNLP", None)))
+    assert(ners.contains(Ner(12, 15, 67, 79, 1.0, "World War II", "MISC", "CoreNLP", None)))
     assert(ners.contains(Ner(98, 100, 566, 577, 1.0, "August 1943", "DATE", "CoreNLP", None)))
   }
   

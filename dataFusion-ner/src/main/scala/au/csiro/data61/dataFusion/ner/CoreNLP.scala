@@ -17,11 +17,18 @@ import resource.managed
 object CoreNLP {
   val log = Logger(getClass)
 
+  implicit class mapPropOps(m: Map[String, String]) {
+    def toProps = m.foldLeft(new Properties) { case (p, (k, v)) => { p.setProperty(k, v); p } }
+  }
+  
   object English {
     // use hard-coded default properties for English models
     val nlp = {
-      val p = new Properties
-      p.setProperty("annotators", Seq(STANFORD_TOKENIZE, STANFORD_SSPLIT, STANFORD_POS, STANFORD_LEMMA, STANFORD_NER).mkString(", "))
+      val p = Map(
+        "annotators" -> Seq(STANFORD_TOKENIZE, STANFORD_SSPLIT, STANFORD_POS, STANFORD_LEMMA, STANFORD_NER).mkString(", "),
+        "ner.combinationMode" -> "HIGH_RECALL",
+        "ner.applyFineGrained" -> "false"
+      ).toProps
       val nlp = CoreNLP.synchronized { new StanfordCoreNLP(p, true) } // synchronized else multi-threaded sbt test fails
       log.debug(s"CoreNLP English pipeline initialized with properties: ${p.asScala}")
       nlp
