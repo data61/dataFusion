@@ -7,7 +7,6 @@ libraryDependencies ++= Seq(
 ).map("com.typesafe.slick" %% _ % "3.2.1")
 
 libraryDependencies ++= Seq(
-  "au.csiro.data61" %% "datafusion-common" % "0.2-SNAPSHOT",
   "org.postgresql" % "postgresql" % "42.1.4",
   "com.h2database" % "h2" % "1.4.196",
   "com.typesafe" % "config" % "1.3.1",
